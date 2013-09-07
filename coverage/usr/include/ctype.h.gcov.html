@@ -211,9 +211,9 @@
 <span class="lineNum">     149 </span>            : __END_DECLS
 <a name="150"><span class="lineNum">     150 </span>            : </a>
 <span class="lineNum">     151 </span>            : __DARWIN_CTYPE_TOP_static_inline int
-<span class="lineNum">     152 </span><span class="lineCov">      80633 : isascii(int _c)</span>
+<span class="lineNum">     152 </span><span class="lineCov">     241956 : isascii(int _c)</span>
 <span class="lineNum">     153 </span>            : {
-<span class="lineNum">     154 </span><span class="lineCov">      80633 :         return ((_c &amp; ~0x7F) == 0);</span>
+<span class="lineNum">     154 </span><span class="lineCov">     241956 :         return ((_c &amp; ~0x7F) == 0);</span>
 <span class="lineNum">     155 </span>            : }
 <span class="lineNum">     156 </span>            : 
 <span class="lineNum">     157 </span>            : #ifdef USE_ASCII
@@ -229,13 +229,13 @@
 <span class="lineNum">     167 </span>            : #endif /* USE_ASCII */
 <a name="168"><span class="lineNum">     168 </span>            : </a>
 <span class="lineNum">     169 </span>            : __DARWIN_CTYPE_static_inline int
-<span class="lineNum">     170 </span><span class="lineCov">      80633 : __istype(__darwin_ct_rune_t _c, unsigned long _f)</span>
+<span class="lineNum">     170 </span><span class="lineCov">     241956 : __istype(__darwin_ct_rune_t _c, unsigned long _f)</span>
 <span class="lineNum">     171 </span>            : {
 <span class="lineNum">     172 </span>            : #ifdef USE_ASCII
 <span class="lineNum">     173 </span>            :         return !!(__maskrune(_c, _f));
 <span class="lineNum">     174 </span>            : #else /* USE_ASCII */
-<span class="lineNum">     175 </span><span class="lineCov">     161266 :         return (isascii(_c) ? !!(_DefaultRuneLocale.__runetype[_c] &amp; _f)</span>
-<span class="lineNum">     176 </span><span class="lineCov">      80633 :                 : !!__maskrune(_c, _f));</span>
+<span class="lineNum">     175 </span><span class="lineCov">     483912 :         return (isascii(_c) ? !!(_DefaultRuneLocale.__runetype[_c] &amp; _f)</span>
+<span class="lineNum">     176 </span><span class="lineCov">     241956 :                 : !!__maskrune(_c, _f));</span>
 <span class="lineNum">     177 </span>            : #endif /* USE_ASCII */
 <span class="lineNum">     178 </span>            : }
 <span class="lineNum">     179 </span>            : 
@@ -343,9 +343,9 @@
 <span class="lineNum">     281 </span>            : }
 <a name="282"><span class="lineNum">     282 </span>            : </a>
 <span class="lineNum">     283 </span>            : __DARWIN_CTYPE_TOP_static_inline int
-<span class="lineNum">     284 </span><span class="lineCov">      80633 : isspace(int _c)</span>
+<span class="lineNum">     284 </span><span class="lineCov">     241956 : isspace(int _c)</span>
 <span class="lineNum">     285 </span>            : {
-<span class="lineNum">     286 </span><span class="lineCov">      80633 :         return (__istype(_c, _CTYPE_S));</span>
+<span class="lineNum">     286 </span><span class="lineCov">     241956 :         return (__istype(_c, _CTYPE_S));</span>
 <span class="lineNum">     287 </span>            : }
 <span class="lineNum">     288 </span>            : 
 <span class="lineNum">     289 </span>            : __DARWIN_CTYPE_TOP_static_inline int
@@ -368,9 +368,9 @@
 <span class="lineNum">     306 </span>            : }
 <a name="307"><span class="lineNum">     307 </span>            : </a>
 <span class="lineNum">     308 </span>            : __DARWIN_CTYPE_TOP_static_inline int
-<span class="lineNum">     309 </span><span class="lineCov">        142 : tolower(int _c)</span>
+<span class="lineNum">     309 </span><span class="lineCov">        426 : tolower(int _c)</span>
 <span class="lineNum">     310 </span>            : {
-<span class="lineNum">     311 </span><span class="lineCov">        142 :         return (__tolower(_c));</span>
+<span class="lineNum">     311 </span><span class="lineCov">        426 :         return (__tolower(_c));</span>
 <span class="lineNum">     312 </span>            : }
 <span class="lineNum">     313 </span>            : 
 <span class="lineNum">     314 </span>            : __DARWIN_CTYPE_TOP_static_inline int

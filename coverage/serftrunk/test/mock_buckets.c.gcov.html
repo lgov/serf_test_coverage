@@ -92,132 +92,132 @@
 <span class="lineNum">      30 </span>            :     int remaining_times;
 <a name="31"><span class="lineNum">      31 </span>            : } mockbkt_context_t;</a>
 <span class="lineNum">      32 </span>            : 
-<span class="lineNum">      33 </span><span class="lineCov">       1460 : serf_bucket_t *serf_bucket_mock_create(mockbkt_action *actions,</span>
-<span class="lineNum">      34 </span><span class="lineCov">       1460 :                                        int len,</span>
-<span class="lineNum">      35 </span><span class="lineCov">       1460 :                                        serf_bucket_alloc_t *allocator)</span>
+<span class="lineNum">      33 </span><span class="lineCov">       4380 : serf_bucket_t *serf_bucket_mock_create(mockbkt_action *actions,</span>
+<span class="lineNum">      34 </span><span class="lineCov">       4380 :                                        int len,</span>
+<span class="lineNum">      35 </span><span class="lineCov">       4380 :                                        serf_bucket_alloc_t *allocator)</span>
 <span class="lineNum">      36 </span>            : {
-<span class="lineNum">      37 </span><span class="lineCov">       1460 :     mockbkt_context_t *ctx;</span>
+<span class="lineNum">      37 </span><span class="lineCov">       4380 :     mockbkt_context_t *ctx;</span>
 <span class="lineNum">      38 </span>            : 
-<span class="lineNum">      39 </span><span class="lineCov">       1460 :     ctx = serf_bucket_mem_alloc(allocator, sizeof(*ctx));</span>
-<span class="lineNum">      40 </span><span class="lineCov">       1460 :     ctx-&gt;actions = actions;</span>
-<span class="lineNum">      41 </span><span class="lineCov">       1460 :     ctx-&gt;len = len;</span>
-<span class="lineNum">      42 </span><span class="lineCov">       1460 :     ctx-&gt;current_data = 0l;</span>
-<span class="lineNum">      43 </span><span class="lineCov">       1460 :     ctx-&gt;remaining_data = -1;</span>
-<span class="lineNum">      44 </span><span class="lineCov">       1460 :     ctx-&gt;current_action = 0;</span>
-<span class="lineNum">      45 </span><span class="lineCov">       1460 :     ctx-&gt;remaining_times = -1;</span>
+<span class="lineNum">      39 </span><span class="lineCov">       4380 :     ctx = serf_bucket_mem_alloc(allocator, sizeof(*ctx));</span>
+<span class="lineNum">      40 </span><span class="lineCov">       4380 :     ctx-&gt;actions = actions;</span>
+<span class="lineNum">      41 </span><span class="lineCov">       4380 :     ctx-&gt;len = len;</span>
+<span class="lineNum">      42 </span><span class="lineCov">       4380 :     ctx-&gt;current_data = 0l;</span>
+<span class="lineNum">      43 </span><span class="lineCov">       4380 :     ctx-&gt;remaining_data = -1;</span>
+<span class="lineNum">      44 </span><span class="lineCov">       4380 :     ctx-&gt;current_action = 0;</span>
+<span class="lineNum">      45 </span><span class="lineCov">       4380 :     ctx-&gt;remaining_times = -1;</span>
 <span class="lineNum">      46 </span>            : 
-<span class="lineNum">      47 </span><span class="lineCov">       1460 :     return serf_bucket_create(&amp;serf_bucket_type_mock, allocator, ctx);</span>
+<span class="lineNum">      47 </span><span class="lineCov">       4380 :     return serf_bucket_create(&amp;serf_bucket_type_mock, allocator, ctx);</span>
 <a name="48"><span class="lineNum">      48 </span>            : }</a>
 <span class="lineNum">      49 </span>            : 
-<span class="lineNum">      50 </span><span class="lineCov">      56706 : static apr_status_t next_action(mockbkt_context_t *ctx)</span>
+<span class="lineNum">      50 </span><span class="lineCov">     170118 : static apr_status_t next_action(mockbkt_context_t *ctx)</span>
 <span class="lineNum">      51 </span>            : {
-<span class="lineNum">      52 </span><span class="lineCov">      56706 :     mockbkt_action *action;</span>
+<span class="lineNum">      52 </span><span class="lineCov">     170118 :     mockbkt_action *action;</span>
 <span class="lineNum">      53 </span>            : 
-<span class="lineNum">      54 </span><span class="lineCov">      56706 :     while (1)</span>
+<span class="lineNum">      54 </span><span class="lineCov">     170118 :     while (1)</span>
 <span class="lineNum">      55 </span>            :     {
-<span class="lineNum">      56 </span><span class="lineCov">      58179 :         if (ctx-&gt;current_action &gt;= ctx-&gt;len)</span>
-<span class="lineNum">      57 </span><span class="lineCov">          1 :             return APR_EOF;</span>
+<span class="lineNum">      56 </span><span class="lineCov">     174537 :         if (ctx-&gt;current_action &gt;= ctx-&gt;len)</span>
+<span class="lineNum">      57 </span><span class="lineCov">          3 :             return APR_EOF;</span>
 <span class="lineNum">      58 </span>            : 
-<span class="lineNum">      59 </span><span class="lineCov">      58178 :         action = &amp;ctx-&gt;actions[ctx-&gt;current_action];</span>
+<span class="lineNum">      59 </span><span class="lineCov">     174534 :         action = &amp;ctx-&gt;actions[ctx-&gt;current_action];</span>
 <span class="lineNum">      60 </span>            : 
-<span class="lineNum">      61 </span><span class="lineCov">      58178 :         if (ctx-&gt;remaining_times == 0) {</span>
-<span class="lineNum">      62 </span><span class="lineCov">       1473 :             ctx-&gt;current_action++;</span>
-<span class="lineNum">      63 </span><span class="lineCov">       1473 :             ctx-&gt;remaining_times = -1;</span>
-<span class="lineNum">      64 </span><span class="lineCov">       1473 :             ctx-&gt;remaining_data = -1;</span>
-<span class="lineNum">      65 </span><span class="lineCov">       1473 :             continue;</span>
+<span class="lineNum">      61 </span><span class="lineCov">     174534 :         if (ctx-&gt;remaining_times == 0) {</span>
+<span class="lineNum">      62 </span><span class="lineCov">       4419 :             ctx-&gt;current_action++;</span>
+<span class="lineNum">      63 </span><span class="lineCov">       4419 :             ctx-&gt;remaining_times = -1;</span>
+<span class="lineNum">      64 </span><span class="lineCov">       4419 :             ctx-&gt;remaining_data = -1;</span>
+<span class="lineNum">      65 </span><span class="lineCov">       4419 :             continue;</span>
 <span class="lineNum">      66 </span>            :         }
 <span class="lineNum">      67 </span>            : 
-<span class="lineNum">      68 </span><span class="lineCov">      56705 :         if (ctx-&gt;remaining_data &lt;= 0) {</span>
-<span class="lineNum">      69 </span><span class="lineCov">       2934 :             ctx-&gt;current_data = action-&gt;data;</span>
-<span class="lineNum">      70 </span><span class="lineCov">       2934 :             ctx-&gt;remaining_times = action-&gt;times;</span>
-<span class="lineNum">      71 </span><span class="lineCov">       2934 :             ctx-&gt;remaining_data = strlen(action-&gt;data);</span>
-<span class="lineNum">      72 </span><span class="lineCov">       2934 :         }</span>
+<span class="lineNum">      68 </span><span class="lineCov">     170115 :         if (ctx-&gt;remaining_data &lt;= 0) {</span>
+<span class="lineNum">      69 </span><span class="lineCov">       8802 :             ctx-&gt;current_data = action-&gt;data;</span>
+<span class="lineNum">      70 </span><span class="lineCov">       8802 :             ctx-&gt;remaining_times = action-&gt;times;</span>
+<span class="lineNum">      71 </span><span class="lineCov">       8802 :             ctx-&gt;remaining_data = strlen(action-&gt;data);</span>
+<span class="lineNum">      72 </span><span class="lineCov">       8802 :         }</span>
 <span class="lineNum">      73 </span>            : 
-<span class="lineNum">      74 </span><span class="lineCov">      56705 :         return APR_SUCCESS;</span>
+<span class="lineNum">      74 </span><span class="lineCov">     170115 :         return APR_SUCCESS;</span>
 <span class="lineNum">      75 </span>            :     }
-<a name="76"><span class="lineNum">      76 </span><span class="lineCov">      56706 : }</span></a>
+<a name="76"><span class="lineNum">      76 </span><span class="lineCov">     170118 : }</span></a>
 <span class="lineNum">      77 </span>            : 
-<span class="lineNum">      78 </span><span class="lineCov">      49321 : static apr_status_t serf_mock_readline(serf_bucket_t *bucket,</span>
-<span class="lineNum">      79 </span><span class="lineCov">      49321 :                                        int acceptable, int *found,</span>
-<span class="lineNum">      80 </span><span class="lineCov">      49321 :                                        const char **data, apr_size_t *len)</span>
+<span class="lineNum">      78 </span><span class="lineCov">     147963 : static apr_status_t serf_mock_readline(serf_bucket_t *bucket,</span>
+<span class="lineNum">      79 </span><span class="lineCov">     147963 :                                        int acceptable, int *found,</span>
+<span class="lineNum">      80 </span><span class="lineCov">     147963 :                                        const char **data, apr_size_t *len)</span>
 <span class="lineNum">      81 </span>            : {
-<span class="lineNum">      82 </span><span class="lineCov">      49321 :     mockbkt_context_t *ctx = bucket-&gt;data;</span>
-<span class="lineNum">      83 </span><span class="lineCov">      49321 :     mockbkt_action *action;</span>
-<span class="lineNum">      84 </span><span class="lineCov">      49321 :     apr_status_t status;</span>
-<span class="lineNum">      85 </span><span class="lineCov">      49321 :     const char *start_line;</span>
+<span class="lineNum">      82 </span><span class="lineCov">     147963 :     mockbkt_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">      83 </span><span class="lineCov">     147963 :     mockbkt_action *action;</span>
+<span class="lineNum">      84 </span><span class="lineCov">     147963 :     apr_status_t status;</span>
+<span class="lineNum">      85 </span><span class="lineCov">     147963 :     const char *start_line;</span>
 <span class="lineNum">      86 </span>            : 
-<span class="lineNum">      87 </span><span class="lineCov">      49321 :     status = next_action(ctx);</span>
-<span class="lineNum">      88 </span><span class="lineCov">      49321 :     if (status) {</span>
-<span class="lineNum">      89 </span><span class="lineCov">          1 :         *len = 0;</span>
-<span class="lineNum">      90 </span><span class="lineCov">          1 :         return status;</span>
+<span class="lineNum">      87 </span><span class="lineCov">     147963 :     status = next_action(ctx);</span>
+<span class="lineNum">      88 </span><span class="lineCov">     147963 :     if (status) {</span>
+<span class="lineNum">      89 </span><span class="lineCov">          3 :         *len = 0;</span>
+<span class="lineNum">      90 </span><span class="lineCov">          3 :         return status;</span>
 <span class="lineNum">      91 </span>            :     }
 <span class="lineNum">      92 </span>            : 
-<span class="lineNum">      93 </span><span class="lineCov">      49320 :     action = &amp;ctx-&gt;actions[ctx-&gt;current_action];</span>
-<span class="lineNum">      94 </span><span class="lineCov">      49320 :     start_line = *data = ctx-&gt;current_data;</span>
-<span class="lineNum">      95 </span><span class="lineCov">      49320 :     *len = ctx-&gt;remaining_data;</span>
+<span class="lineNum">      93 </span><span class="lineCov">     147960 :     action = &amp;ctx-&gt;actions[ctx-&gt;current_action];</span>
+<span class="lineNum">      94 </span><span class="lineCov">     147960 :     start_line = *data = ctx-&gt;current_data;</span>
+<span class="lineNum">      95 </span><span class="lineCov">     147960 :     *len = ctx-&gt;remaining_data;</span>
 <span class="lineNum">      96 </span>            : 
-<span class="lineNum">      97 </span><span class="lineCov">      49320 :     serf_util_readline(&amp;start_line, len, acceptable, found);</span>
+<span class="lineNum">      97 </span><span class="lineCov">     147960 :     serf_util_readline(&amp;start_line, len, acceptable, found);</span>
 <span class="lineNum">      98 </span>            : 
 <span class="lineNum">      99 </span>            :     /* See how much ctx-&gt;current moved forward. */
-<span class="lineNum">     100 </span><span class="lineCov">      49320 :     *len = start_line - ctx-&gt;current_data;</span>
-<span class="lineNum">     101 </span><span class="lineCov">      49320 :     ctx-&gt;remaining_data -= *len;</span>
-<span class="lineNum">     102 </span><span class="lineCov">      49320 :     ctx-&gt;current_data += *len;</span>
-<span class="lineNum">     103 </span><span class="lineCov">      49320 :     if (ctx-&gt;remaining_data == 0)</span>
-<span class="lineNum">     104 </span><span class="lineCov">       2717 :         ctx-&gt;remaining_times--;</span>
+<span class="lineNum">     100 </span><span class="lineCov">     147960 :     *len = start_line - ctx-&gt;current_data;</span>
+<span class="lineNum">     101 </span><span class="lineCov">     147960 :     ctx-&gt;remaining_data -= *len;</span>
+<span class="lineNum">     102 </span><span class="lineCov">     147960 :     ctx-&gt;current_data += *len;</span>
+<span class="lineNum">     103 </span><span class="lineCov">     147960 :     if (ctx-&gt;remaining_data == 0)</span>
+<span class="lineNum">     104 </span><span class="lineCov">       8151 :         ctx-&gt;remaining_times--;</span>
 <span class="lineNum">     105 </span>            : 
-<span class="lineNum">     106 </span><span class="lineCov">     147960 :     return ctx-&gt;remaining_data ? APR_SUCCESS : action-&gt;status;</span>
-<a name="107"><span class="lineNum">     107 </span><span class="lineCov">      49321 : }</span></a>
+<span class="lineNum">     106 </span><span class="lineCov">     443880 :     return ctx-&gt;remaining_data ? APR_SUCCESS : action-&gt;status;</span>
+<a name="107"><span class="lineNum">     107 </span><span class="lineCov">     147963 : }</span></a>
 <span class="lineNum">     108 </span>            : 
-<span class="lineNum">     109 </span><span class="lineCov">       6088 : static apr_status_t serf_mock_read(serf_bucket_t *bucket,</span>
-<span class="lineNum">     110 </span><span class="lineCov">       6088 :                                    apr_size_t requested,</span>
-<span class="lineNum">     111 </span><span class="lineCov">       6088 :                                    const char **data, apr_size_t *len)</span>
+<span class="lineNum">     109 </span><span class="lineCov">      18264 : static apr_status_t serf_mock_read(serf_bucket_t *bucket,</span>
+<span class="lineNum">     110 </span><span class="lineCov">      18264 :                                    apr_size_t requested,</span>
+<span class="lineNum">     111 </span><span class="lineCov">      18264 :                                    const char **data, apr_size_t *len)</span>
 <span class="lineNum">     112 </span>            : {
-<span class="lineNum">     113 </span><span class="lineCov">       6088 :     mockbkt_context_t *ctx = bucket-&gt;data;</span>
-<span class="lineNum">     114 </span><span class="lineCov">       6088 :     mockbkt_action *action;</span>
-<span class="lineNum">     115 </span><span class="lineCov">       6088 :     apr_status_t status;</span>
+<span class="lineNum">     113 </span><span class="lineCov">      18264 :     mockbkt_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">     114 </span><span class="lineCov">      18264 :     mockbkt_action *action;</span>
+<span class="lineNum">     115 </span><span class="lineCov">      18264 :     apr_status_t status;</span>
 <span class="lineNum">     116 </span>            : 
-<span class="lineNum">     117 </span><span class="lineCov">       6088 :     status = next_action(ctx);</span>
-<span class="lineNum">     118 </span><span class="lineCov">       6088 :     if (status) {</span>
+<span class="lineNum">     117 </span><span class="lineCov">      18264 :     status = next_action(ctx);</span>
+<span class="lineNum">     118 </span><span class="lineCov">      18264 :     if (status) {</span>
 <span class="lineNum">     119 </span><span class="lineNoCov">          0 :         *len = 0;</span>
 <span class="lineNum">     120 </span><span class="lineNoCov">          0 :         return status;</span>
 <span class="lineNum">     121 </span>            :     }
 <span class="lineNum">     122 </span>            : 
-<span class="lineNum">     123 </span><span class="lineCov">       6088 :     action = &amp;ctx-&gt;actions[ctx-&gt;current_action];</span>
-<span class="lineNum">     124 </span><span class="lineCov">      18264 :     *len = requested &lt; ctx-&gt;remaining_data ? requested : ctx-&gt;remaining_data;</span>
-<span class="lineNum">     125 </span><span class="lineCov">       6088 :     *data = ctx-&gt;current_data;</span>
+<span class="lineNum">     123 </span><span class="lineCov">      18264 :     action = &amp;ctx-&gt;actions[ctx-&gt;current_action];</span>
+<span class="lineNum">     124 </span><span class="lineCov">      54792 :     *len = requested &lt; ctx-&gt;remaining_data ? requested : ctx-&gt;remaining_data;</span>
+<span class="lineNum">     125 </span><span class="lineCov">      18264 :     *data = ctx-&gt;current_data;</span>
 <span class="lineNum">     126 </span>            : 
-<span class="lineNum">     127 </span><span class="lineCov">       6088 :     ctx-&gt;remaining_data -= *len;</span>
-<span class="lineNum">     128 </span><span class="lineCov">       6088 :     ctx-&gt;current_data += *len;</span>
+<span class="lineNum">     127 </span><span class="lineCov">      18264 :     ctx-&gt;remaining_data -= *len;</span>
+<span class="lineNum">     128 </span><span class="lineCov">      18264 :     ctx-&gt;current_data += *len;</span>
 <span class="lineNum">     129 </span>            : 
-<span class="lineNum">     130 </span><span class="lineCov">       6088 :     if (ctx-&gt;remaining_data == 0)</span>
-<span class="lineNum">     131 </span><span class="lineCov">        212 :         ctx-&gt;remaining_times--;</span>
+<span class="lineNum">     130 </span><span class="lineCov">      18264 :     if (ctx-&gt;remaining_data == 0)</span>
+<span class="lineNum">     131 </span><span class="lineCov">        636 :         ctx-&gt;remaining_times--;</span>
 <span class="lineNum">     132 </span>            : 
-<span class="lineNum">     133 </span><span class="lineCov">      18264 :     return ctx-&gt;remaining_data ? APR_SUCCESS : action-&gt;status;</span>
-<a name="134"><span class="lineNum">     134 </span><span class="lineCov">       6088 : }</span></a>
+<span class="lineNum">     133 </span><span class="lineCov">      54792 :     return ctx-&gt;remaining_data ? APR_SUCCESS : action-&gt;status;</span>
+<a name="134"><span class="lineNum">     134 </span><span class="lineCov">      18264 : }</span></a>
 <span class="lineNum">     135 </span>            : 
-<span class="lineNum">     136 </span><span class="lineCov">         37 : static apr_status_t serf_mock_peek(serf_bucket_t *bucket,</span>
-<span class="lineNum">     137 </span><span class="lineCov">         37 :                                    const char **data,</span>
-<span class="lineNum">     138 </span><span class="lineCov">         37 :                                    apr_size_t *len)</span>
+<span class="lineNum">     136 </span><span class="lineCov">        111 : static apr_status_t serf_mock_peek(serf_bucket_t *bucket,</span>
+<span class="lineNum">     137 </span><span class="lineCov">        111 :                                    const char **data,</span>
+<span class="lineNum">     138 </span><span class="lineCov">        111 :                                    apr_size_t *len)</span>
 <span class="lineNum">     139 </span>            : {
-<span class="lineNum">     140 </span><span class="lineCov">         37 :     mockbkt_context_t *ctx = bucket-&gt;data;</span>
-<span class="lineNum">     141 </span><span class="lineCov">         37 :     mockbkt_action *action;</span>
-<span class="lineNum">     142 </span><span class="lineCov">         37 :     apr_status_t status;</span>
+<span class="lineNum">     140 </span><span class="lineCov">        111 :     mockbkt_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">     141 </span><span class="lineCov">        111 :     mockbkt_action *action;</span>
+<span class="lineNum">     142 </span><span class="lineCov">        111 :     apr_status_t status;</span>
 <span class="lineNum">     143 </span>            : 
-<span class="lineNum">     144 </span><span class="lineCov">         37 :     status = next_action(ctx);</span>
-<span class="lineNum">     145 </span><span class="lineCov">         37 :     if (status)</span>
+<span class="lineNum">     144 </span><span class="lineCov">        111 :     status = next_action(ctx);</span>
+<span class="lineNum">     145 </span><span class="lineCov">        111 :     if (status)</span>
 <span class="lineNum">     146 </span><span class="lineNoCov">          0 :         return status;</span>
 <span class="lineNum">     147 </span>            : 
-<span class="lineNum">     148 </span><span class="lineCov">         37 :     action = &amp;ctx-&gt;actions[ctx-&gt;current_action];</span>
-<span class="lineNum">     149 </span><span class="lineCov">         37 :     *len = ctx-&gt;remaining_data;</span>
-<span class="lineNum">     150 </span><span class="lineCov">         37 :     *data = ctx-&gt;current_data;</span>
+<span class="lineNum">     148 </span><span class="lineCov">        111 :     action = &amp;ctx-&gt;actions[ctx-&gt;current_action];</span>
+<span class="lineNum">     149 </span><span class="lineCov">        111 :     *len = ctx-&gt;remaining_data;</span>
+<span class="lineNum">     150 </span><span class="lineCov">        111 :     *data = ctx-&gt;current_data;</span>
 <span class="lineNum">     151 </span>            : 
 <span class="lineNum">     152 </span>            :     /* peek only returns an error, APR_EOF or APR_SUCCESS.
 <span class="lineNum">     153 </span>            :        APR_EAGAIN is returned as APR_SUCCESS. */
-<span class="lineNum">     154 </span><span class="lineCov">        107 :     if (SERF_BUCKET_READ_ERROR(action-&gt;status))</span>
+<span class="lineNum">     154 </span><span class="lineCov">        321 :     if (SERF_BUCKET_READ_ERROR(action-&gt;status))</span>
 <span class="lineNum">     155 </span><span class="lineNoCov">          0 :         return status;</span>
 <span class="lineNum">     156 </span>            : 
-<span class="lineNum">     157 </span><span class="lineCov">         37 :     return action-&gt;status == APR_EOF ? APR_EOF : APR_SUCCESS;</span>
-<span class="lineNum">     158 </span><span class="lineCov">         37 : }</span>
+<span class="lineNum">     157 </span><span class="lineCov">        111 :     return action-&gt;status == APR_EOF ? APR_EOF : APR_SUCCESS;</span>
+<span class="lineNum">     158 </span><span class="lineCov">        111 : }</span>
 <span class="lineNum">     159 </span>            : 
 <span class="lineNum">     160 </span>            : /* An action { &quot;&quot;, 0, APR_EAGAIN } means that serf should exit serf_context_run
 <span class="lineNum">     161 </span>            :    and pass the buck back to the application. As long as no new data arrives,
@@ -227,24 +227,24 @@
 <span class="lineNum">     165 </span>            :    If the current action is { &quot;&quot;, 0, APR_EAGAIN }, reduce the number of times
 <a name="166"><span class="lineNum">     166 </span>            :    the action should run by one, and proceed with the next action if needed.</a>
 <span class="lineNum">     167 </span>            :  */
-<span class="lineNum">     168 </span><span class="lineCov">       1260 : apr_status_t serf_bucket_mock_more_data_arrived(serf_bucket_t *bucket)</span>
+<span class="lineNum">     168 </span><span class="lineCov">       3780 : apr_status_t serf_bucket_mock_more_data_arrived(serf_bucket_t *bucket)</span>
 <span class="lineNum">     169 </span>            : {
-<span class="lineNum">     170 </span><span class="lineCov">       1260 :     mockbkt_context_t *ctx = bucket-&gt;data;</span>
-<span class="lineNum">     171 </span><span class="lineCov">       1260 :     mockbkt_action *action;</span>
-<span class="lineNum">     172 </span><span class="lineCov">       1260 :     apr_status_t status;</span>
+<span class="lineNum">     170 </span><span class="lineCov">       3780 :     mockbkt_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">     171 </span><span class="lineCov">       3780 :     mockbkt_action *action;</span>
+<span class="lineNum">     172 </span><span class="lineCov">       3780 :     apr_status_t status;</span>
 <span class="lineNum">     173 </span>            : 
-<span class="lineNum">     174 </span><span class="lineCov">       1260 :     status = next_action(ctx);</span>
-<span class="lineNum">     175 </span><span class="lineCov">       1260 :     if (status)</span>
+<span class="lineNum">     174 </span><span class="lineCov">       3780 :     status = next_action(ctx);</span>
+<span class="lineNum">     175 </span><span class="lineCov">       3780 :     if (status)</span>
 <span class="lineNum">     176 </span><span class="lineNoCov">          0 :         return status;</span>
 <span class="lineNum">     177 </span>            : 
-<span class="lineNum">     178 </span><span class="lineCov">       1260 :     action = &amp;ctx-&gt;actions[ctx-&gt;current_action];</span>
-<span class="lineNum">     179 </span><span class="lineCov">       1262 :     if (ctx-&gt;remaining_data == 0 &amp;&amp; action-&gt;status == APR_EAGAIN) {</span>
-<span class="lineNum">     180 </span><span class="lineCov">          2 :         ctx-&gt;remaining_times--;</span>
-<span class="lineNum">     181 </span><span class="lineCov">          2 :         action-&gt;times--;</span>
-<span class="lineNum">     182 </span><span class="lineCov">          2 :     }</span>
+<span class="lineNum">     178 </span><span class="lineCov">       3780 :     action = &amp;ctx-&gt;actions[ctx-&gt;current_action];</span>
+<span class="lineNum">     179 </span><span class="lineCov">       3786 :     if (ctx-&gt;remaining_data == 0 &amp;&amp; action-&gt;status == APR_EAGAIN) {</span>
+<span class="lineNum">     180 </span><span class="lineCov">          6 :         ctx-&gt;remaining_times--;</span>
+<span class="lineNum">     181 </span><span class="lineCov">          6 :         action-&gt;times--;</span>
+<span class="lineNum">     182 </span><span class="lineCov">          6 :     }</span>
 <span class="lineNum">     183 </span>            : 
-<span class="lineNum">     184 </span><span class="lineCov">       1260 :     return APR_SUCCESS;</span>
-<span class="lineNum">     185 </span><span class="lineCov">       1260 : }</span>
+<span class="lineNum">     184 </span><span class="lineCov">       3780 :     return APR_SUCCESS;</span>
+<span class="lineNum">     185 </span><span class="lineCov">       3780 : }</span>
 <span class="lineNum">     186 </span>            : 
 <span class="lineNum">     187 </span>            : const serf_bucket_type_t serf_bucket_type_mock = {
 <span class="lineNum">     188 </span>            :     &quot;MOCK&quot;,

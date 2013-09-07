@@ -82,29 +82,29 @@
 <a name="20"><span class="lineNum">      20 </span>            : #include &quot;serf_private.h&quot;</a>
 <span class="lineNum">      21 </span>            : 
 <span class="lineNum">      22 </span>            : serf_bucket_t *serf_bucket_create(
-<span class="lineNum">      23 </span><span class="lineCov">       9986 :     const serf_bucket_type_t *type,</span>
-<span class="lineNum">      24 </span><span class="lineCov">       9986 :     serf_bucket_alloc_t *allocator,</span>
-<span class="lineNum">      25 </span><span class="lineCov">       9986 :     void *data)</span>
+<span class="lineNum">      23 </span><span class="lineCov">      29993 :     const serf_bucket_type_t *type,</span>
+<span class="lineNum">      24 </span><span class="lineCov">      29993 :     serf_bucket_alloc_t *allocator,</span>
+<span class="lineNum">      25 </span><span class="lineCov">      29993 :     void *data)</span>
 <span class="lineNum">      26 </span>            : {
-<span class="lineNum">      27 </span><span class="lineCov">       9986 :     serf_bucket_t *bkt = serf_bucket_mem_alloc(allocator, sizeof(*bkt));</span>
+<span class="lineNum">      27 </span><span class="lineCov">      29993 :     serf_bucket_t *bkt = serf_bucket_mem_alloc(allocator, sizeof(*bkt));</span>
 <span class="lineNum">      28 </span>            : 
-<span class="lineNum">      29 </span><span class="lineCov">       9986 :     bkt-&gt;type = type;</span>
-<span class="lineNum">      30 </span><span class="lineCov">       9986 :     bkt-&gt;data = data;</span>
-<span class="lineNum">      31 </span><span class="lineCov">       9986 :     bkt-&gt;allocator = allocator;</span>
+<span class="lineNum">      29 </span><span class="lineCov">      29993 :     bkt-&gt;type = type;</span>
+<span class="lineNum">      30 </span><span class="lineCov">      29993 :     bkt-&gt;data = data;</span>
+<span class="lineNum">      31 </span><span class="lineCov">      29993 :     bkt-&gt;allocator = allocator;</span>
 <span class="lineNum">      32 </span>            : 
-<span class="lineNum">      33 </span><span class="lineCov">       9986 :     return bkt;</span>
+<span class="lineNum">      33 </span><span class="lineCov">      29993 :     return bkt;</span>
 <span class="lineNum">      34 </span>            : }
 <a name="35"><span class="lineNum">      35 </span>            : </a>
 <span class="lineNum">      36 </span>            : 
 <span class="lineNum">      37 </span>            : apr_status_t serf_default_read_iovec(
-<span class="lineNum">      38 </span><span class="lineCov">       3982 :     serf_bucket_t *bucket,</span>
-<span class="lineNum">      39 </span><span class="lineCov">       3982 :     apr_size_t requested,</span>
-<span class="lineNum">      40 </span><span class="lineCov">       3982 :     int vecs_size,</span>
-<span class="lineNum">      41 </span><span class="lineCov">       3982 :     struct iovec *vecs,</span>
-<span class="lineNum">      42 </span><span class="lineCov">       3982 :     int *vecs_used)</span>
+<span class="lineNum">      38 </span><span class="lineCov">      11949 :     serf_bucket_t *bucket,</span>
+<span class="lineNum">      39 </span><span class="lineCov">      11949 :     apr_size_t requested,</span>
+<span class="lineNum">      40 </span><span class="lineCov">      11949 :     int vecs_size,</span>
+<span class="lineNum">      41 </span><span class="lineCov">      11949 :     struct iovec *vecs,</span>
+<span class="lineNum">      42 </span><span class="lineCov">      11949 :     int *vecs_used)</span>
 <span class="lineNum">      43 </span>            : {
-<span class="lineNum">      44 </span><span class="lineCov">       3982 :     const char *data;</span>
-<span class="lineNum">      45 </span><span class="lineCov">       3982 :     apr_size_t len;</span>
+<span class="lineNum">      44 </span><span class="lineCov">      11949 :     const char *data;</span>
+<span class="lineNum">      45 </span><span class="lineCov">      11949 :     apr_size_t len;</span>
 <span class="lineNum">      46 </span>            : 
 <span class="lineNum">      47 </span>            :     /* Read some data from the bucket.
 <span class="lineNum">      48 </span>            :      *
@@ -115,21 +115,21 @@
 <span class="lineNum">      53 </span>            :      * abort()s if we ever see EAGAIN.  Instead, we'll go directly to the
 <span class="lineNum">      54 </span>            :      * vtable and bypass the debug tracker.
 <span class="lineNum">      55 </span>            :      */
-<span class="lineNum">      56 </span><span class="lineCov">       3982 :     apr_status_t status = bucket-&gt;type-&gt;read(bucket, requested, &amp;data, &amp;len);</span>
+<span class="lineNum">      56 </span><span class="lineCov">      11949 :     apr_status_t status = bucket-&gt;type-&gt;read(bucket, requested, &amp;data, &amp;len);</span>
 <span class="lineNum">      57 </span>            : 
 <span class="lineNum">      58 </span>            :     /* assert that vecs_size &gt;= 1 ? */
 <span class="lineNum">      59 </span>            : 
 <span class="lineNum">      60 </span>            :     /* Return that data as a single iovec. */
-<span class="lineNum">      61 </span><span class="lineCov">       3982 :     if (len) {</span>
-<span class="lineNum">      62 </span><span class="lineCov">       3946 :         vecs[0].iov_base = (void *)data; /* loses the 'const' */</span>
-<span class="lineNum">      63 </span><span class="lineCov">       3946 :         vecs[0].iov_len = len;</span>
-<span class="lineNum">      64 </span><span class="lineCov">       3946 :         *vecs_used = 1;</span>
-<span class="lineNum">      65 </span><span class="lineCov">       3946 :     }</span>
+<span class="lineNum">      61 </span><span class="lineCov">      11949 :     if (len) {</span>
+<span class="lineNum">      62 </span><span class="lineCov">      11840 :         vecs[0].iov_base = (void *)data; /* loses the 'const' */</span>
+<span class="lineNum">      63 </span><span class="lineCov">      11840 :         vecs[0].iov_len = len;</span>
+<span class="lineNum">      64 </span><span class="lineCov">      11840 :         *vecs_used = 1;</span>
+<span class="lineNum">      65 </span><span class="lineCov">      11840 :     }</span>
 <span class="lineNum">      66 </span>            :     else {
-<span class="lineNum">      67 </span><span class="lineCov">         36 :         *vecs_used = 0;</span>
+<span class="lineNum">      67 </span><span class="lineCov">        109 :         *vecs_used = 0;</span>
 <span class="lineNum">      68 </span>            :     }
 <span class="lineNum">      69 </span>            : 
-<span class="lineNum">      70 </span><span class="lineCov">       3982 :     return status;</span>
+<span class="lineNum">      70 </span><span class="lineCov">      11949 :     return status;</span>
 <span class="lineNum">      71 </span>            : }
 <a name="72"><span class="lineNum">      72 </span>            : </a>
 <span class="lineNum">      73 </span>            : 
@@ -167,21 +167,21 @@
 <span class="lineNum">     105 </span>            : }
 <a name="106"><span class="lineNum">     106 </span>            : </a>
 <span class="lineNum">     107 </span>            : 
-<span class="lineNum">     108 </span><span class="lineCov">       2510 : void serf_default_destroy(serf_bucket_t *bucket)</span>
+<span class="lineNum">     108 </span><span class="lineCov">       7565 : void serf_default_destroy(serf_bucket_t *bucket)</span>
 <span class="lineNum">     109 </span>            : {
 <span class="lineNum">     110 </span>            : #ifdef SERF_DEBUG_BUCKET_USE
 <span class="lineNum">     111 </span>            :     serf_debug__bucket_destroy(bucket);
 <span class="lineNum">     112 </span>            : #endif
 <span class="lineNum">     113 </span>            : 
-<span class="lineNum">     114 </span><span class="lineCov">       2510 :     serf_bucket_mem_free(bucket-&gt;allocator, bucket);</span>
-<span class="lineNum">     115 </span><span class="lineCov">       2510 : }</span>
+<span class="lineNum">     114 </span><span class="lineCov">       7565 :     serf_bucket_mem_free(bucket-&gt;allocator, bucket);</span>
+<span class="lineNum">     115 </span><span class="lineCov">       7565 : }</span>
 <a name="116"><span class="lineNum">     116 </span>            : </a>
 <span class="lineNum">     117 </span>            : 
-<span class="lineNum">     118 </span><span class="lineCov">       2510 : void serf_default_destroy_and_data(serf_bucket_t *bucket)</span>
+<span class="lineNum">     118 </span><span class="lineCov">       7565 : void serf_default_destroy_and_data(serf_bucket_t *bucket)</span>
 <span class="lineNum">     119 </span>            : {
-<span class="lineNum">     120 </span><span class="lineCov">       2510 :     serf_bucket_mem_free(bucket-&gt;allocator, bucket-&gt;data);</span>
-<span class="lineNum">     121 </span><span class="lineCov">       2510 :     serf_default_destroy(bucket);</span>
-<span class="lineNum">     122 </span><span class="lineCov">       2510 : }</span>
+<span class="lineNum">     120 </span><span class="lineCov">       7565 :     serf_bucket_mem_free(bucket-&gt;allocator, bucket-&gt;data);</span>
+<span class="lineNum">     121 </span><span class="lineCov">       7565 :     serf_default_destroy(bucket);</span>
+<span class="lineNum">     122 </span><span class="lineCov">       7565 : }</span>
 <a name="123"><span class="lineNum">     123 </span>            : </a>
 <span class="lineNum">     124 </span>            : 
 <span class="lineNum">     125 </span><span class="lineNoCov">          0 : serf_bucket_t * serf_buckets_are_v2(serf_bucket_t *bucket,</span>
@@ -193,14 +193,14 @@
 <span class="lineNum">     131 </span>            : /* ==================================================================== */
 <a name="132"><span class="lineNum">     132 </span>            : </a>
 <span class="lineNum">     133 </span>            : 
-<span class="lineNum">     134 </span><span class="lineCov">      80646 : char *serf_bstrmemdup(serf_bucket_alloc_t *allocator,</span>
-<span class="lineNum">     135 </span><span class="lineCov">      80646 :                       const char *str,</span>
-<span class="lineNum">     136 </span><span class="lineCov">      80646 :                       apr_size_t size)</span>
+<span class="lineNum">     134 </span><span class="lineCov">     241995 : char *serf_bstrmemdup(serf_bucket_alloc_t *allocator,</span>
+<span class="lineNum">     135 </span><span class="lineCov">     241995 :                       const char *str,</span>
+<span class="lineNum">     136 </span><span class="lineCov">     241995 :                       apr_size_t size)</span>
 <span class="lineNum">     137 </span>            : {
-<span class="lineNum">     138 </span><span class="lineCov">      80646 :     char *newstr = serf_bucket_mem_alloc(allocator, size + 1);</span>
-<span class="lineNum">     139 </span><span class="lineCov">     241938 :     memcpy(newstr, str, size);</span>
-<span class="lineNum">     140 </span><span class="lineCov">      80646 :     newstr[size] = '\0';</span>
-<span class="lineNum">     141 </span><span class="lineCov">      80646 :     return newstr;</span>
+<span class="lineNum">     138 </span><span class="lineCov">     241995 :     char *newstr = serf_bucket_mem_alloc(allocator, size + 1);</span>
+<span class="lineNum">     139 </span><span class="lineCov">     725985 :     memcpy(newstr, str, size);</span>
+<span class="lineNum">     140 </span><span class="lineCov">     241995 :     newstr[size] = '\0';</span>
+<span class="lineNum">     141 </span><span class="lineCov">     241995 :     return newstr;</span>
 <span class="lineNum">     142 </span>            : }
 <a name="143"><span class="lineNum">     143 </span>            : </a>
 <span class="lineNum">     144 </span>            : 
@@ -223,60 +223,60 @@
 <span class="lineNum">     161 </span><span class="lineNoCov">          0 :     return newstr;</span>
 <a name="162"><span class="lineNum">     162 </span>            : }</a>
 <span class="lineNum">     163 </span>            : 
-<span class="lineNum">     164 </span><span class="lineCov">        101 : char *serf_bstrcatv(serf_bucket_alloc_t *allocator, struct iovec *vec,</span>
-<span class="lineNum">     165 </span><span class="lineCov">        101 :                     int vecs, apr_size_t *bytes_written)</span>
+<span class="lineNum">     164 </span><span class="lineCov">        303 : char *serf_bstrcatv(serf_bucket_alloc_t *allocator, struct iovec *vec,</span>
+<span class="lineNum">     165 </span><span class="lineCov">        303 :                     int vecs, apr_size_t *bytes_written)</span>
 <span class="lineNum">     166 </span>            : {
-<span class="lineNum">     167 </span><span class="lineCov">        101 :     int i;</span>
-<span class="lineNum">     168 </span><span class="lineCov">        101 :     apr_size_t new_len = 0;</span>
-<span class="lineNum">     169 </span><span class="lineCov">        101 :     char *c, *newstr;</span>
+<span class="lineNum">     167 </span><span class="lineCov">        303 :     int i;</span>
+<span class="lineNum">     168 </span><span class="lineCov">        303 :     apr_size_t new_len = 0;</span>
+<span class="lineNum">     169 </span><span class="lineCov">        303 :     char *c, *newstr;</span>
 <span class="lineNum">     170 </span>            : 
-<span class="lineNum">     171 </span><span class="lineCov">       1010 :     for (i = 0; i &lt; vecs; i++) {</span>
-<span class="lineNum">     172 </span><span class="lineCov">        404 :         new_len += vec[i].iov_len;</span>
-<span class="lineNum">     173 </span><span class="lineCov">        404 :     }</span>
+<span class="lineNum">     171 </span><span class="lineCov">       3030 :     for (i = 0; i &lt; vecs; i++) {</span>
+<span class="lineNum">     172 </span><span class="lineCov">       1212 :         new_len += vec[i].iov_len;</span>
+<span class="lineNum">     173 </span><span class="lineCov">       1212 :     }</span>
 <span class="lineNum">     174 </span>            : 
 <span class="lineNum">     175 </span>            :     /* It's up to the caller to free this memory later. */
-<span class="lineNum">     176 </span><span class="lineCov">        101 :     newstr = serf_bucket_mem_alloc(allocator, new_len);</span>
+<span class="lineNum">     176 </span><span class="lineCov">        303 :     newstr = serf_bucket_mem_alloc(allocator, new_len);</span>
 <span class="lineNum">     177 </span>            : 
-<span class="lineNum">     178 </span><span class="lineCov">        101 :     c = newstr;</span>
-<span class="lineNum">     179 </span><span class="lineCov">       1010 :     for (i = 0; i &lt; vecs; i++) {</span>
-<span class="lineNum">     180 </span><span class="lineCov">       1212 :         memcpy(c, vec[i].iov_base, vec[i].iov_len);</span>
-<span class="lineNum">     181 </span><span class="lineCov">        404 :         c += vec[i].iov_len;</span>
-<span class="lineNum">     182 </span><span class="lineCov">        404 :     }</span>
+<span class="lineNum">     178 </span><span class="lineCov">        303 :     c = newstr;</span>
+<span class="lineNum">     179 </span><span class="lineCov">       3030 :     for (i = 0; i &lt; vecs; i++) {</span>
+<span class="lineNum">     180 </span><span class="lineCov">       3636 :         memcpy(c, vec[i].iov_base, vec[i].iov_len);</span>
+<span class="lineNum">     181 </span><span class="lineCov">       1212 :         c += vec[i].iov_len;</span>
+<span class="lineNum">     182 </span><span class="lineCov">       1212 :     }</span>
 <span class="lineNum">     183 </span>            : 
-<span class="lineNum">     184 </span><span class="lineCov">        101 :     if (bytes_written) {</span>
-<span class="lineNum">     185 </span><span class="lineCov">        101 :         *bytes_written = c - newstr;</span>
-<span class="lineNum">     186 </span><span class="lineCov">        101 :     }</span>
+<span class="lineNum">     184 </span><span class="lineCov">        303 :     if (bytes_written) {</span>
+<span class="lineNum">     185 </span><span class="lineCov">        303 :         *bytes_written = c - newstr;</span>
+<span class="lineNum">     186 </span><span class="lineCov">        303 :     }</span>
 <span class="lineNum">     187 </span>            : 
-<span class="lineNum">     188 </span><span class="lineCov">        101 :     return newstr;</span>
+<span class="lineNum">     188 </span><span class="lineCov">        303 :     return newstr;</span>
 <span class="lineNum">     189 </span>            : }
 <span class="lineNum">     190 </span>            : 
 <span class="lineNum">     191 </span>            : /* ==================================================================== */
 <a name="192"><span class="lineNum">     192 </span>            : </a>
 <span class="lineNum">     193 </span>            : 
-<span class="lineNum">     194 </span><span class="lineCov">       5518 : static void find_crlf(const char **data, apr_size_t *len, int *found)</span>
+<span class="lineNum">     194 </span><span class="lineCov">      16563 : static void find_crlf(const char **data, apr_size_t *len, int *found)</span>
 <span class="lineNum">     195 </span>            : {
-<span class="lineNum">     196 </span><span class="lineCov">       5518 :     const char *start = *data;</span>
-<span class="lineNum">     197 </span><span class="lineCov">       5518 :     const char *end = start + *len;</span>
+<span class="lineNum">     196 </span><span class="lineCov">      16563 :     const char *start = *data;</span>
+<span class="lineNum">     197 </span><span class="lineCov">      16563 :     const char *end = start + *len;</span>
 <span class="lineNum">     198 </span>            : 
-<span class="lineNum">     199 </span><span class="lineCov">      11036 :     while (start &lt; end) {</span>
-<span class="lineNum">     200 </span><span class="lineCov">       5516 :         const char *cr = memchr(start, '\r', *len);</span>
+<span class="lineNum">     199 </span><span class="lineCov">      33126 :     while (start &lt; end) {</span>
+<span class="lineNum">     200 </span><span class="lineCov">      16557 :         const char *cr = memchr(start, '\r', *len);</span>
 <span class="lineNum">     201 </span>            : 
-<span class="lineNum">     202 </span><span class="lineCov">       5516 :         if (cr == NULL) {</span>
-<span class="lineNum">     203 </span><span class="lineCov">          8 :             break;</span>
+<span class="lineNum">     202 </span><span class="lineCov">      16557 :         if (cr == NULL) {</span>
+<span class="lineNum">     203 </span><span class="lineCov">         24 :             break;</span>
 <span class="lineNum">     204 </span>            :         }
-<span class="lineNum">     205 </span><span class="lineCov">       5508 :         ++cr;</span>
+<span class="lineNum">     205 </span><span class="lineCov">      16533 :         ++cr;</span>
 <span class="lineNum">     206 </span>            : 
-<span class="lineNum">     207 </span><span class="lineCov">      11011 :         if (cr &lt; end &amp;&amp; cr[0] == '\n') {</span>
-<span class="lineNum">     208 </span><span class="lineCov">       5503 :             *len -= cr + 1 - start;</span>
-<span class="lineNum">     209 </span><span class="lineCov">       5503 :             *data = cr + 1;</span>
-<span class="lineNum">     210 </span><span class="lineCov">       5503 :             *found = SERF_NEWLINE_CRLF;</span>
-<span class="lineNum">     211 </span><span class="lineCov">       5503 :             return;</span>
+<span class="lineNum">     207 </span><span class="lineCov">      33051 :         if (cr &lt; end &amp;&amp; cr[0] == '\n') {</span>
+<span class="lineNum">     208 </span><span class="lineCov">      16518 :             *len -= cr + 1 - start;</span>
+<span class="lineNum">     209 </span><span class="lineCov">      16518 :             *data = cr + 1;</span>
+<span class="lineNum">     210 </span><span class="lineCov">      16518 :             *found = SERF_NEWLINE_CRLF;</span>
+<span class="lineNum">     211 </span><span class="lineCov">      16518 :             return;</span>
 <span class="lineNum">     212 </span>            :         }
-<span class="lineNum">     213 </span><span class="lineCov">          5 :         if (cr == end) {</span>
-<span class="lineNum">     214 </span><span class="lineCov">          5 :             *len = 0;</span>
-<span class="lineNum">     215 </span><span class="lineCov">          5 :             *data = end;</span>
-<span class="lineNum">     216 </span><span class="lineCov">          5 :             *found = SERF_NEWLINE_CRLF_SPLIT;</span>
-<span class="lineNum">     217 </span><span class="lineCov">          5 :             return;</span>
+<span class="lineNum">     213 </span><span class="lineCov">         15 :         if (cr == end) {</span>
+<span class="lineNum">     214 </span><span class="lineCov">         15 :             *len = 0;</span>
+<span class="lineNum">     215 </span><span class="lineCov">         15 :             *data = end;</span>
+<span class="lineNum">     216 </span><span class="lineCov">         15 :             *found = SERF_NEWLINE_CRLF_SPLIT;</span>
+<span class="lineNum">     217 </span><span class="lineCov">         15 :             return;</span>
 <span class="lineNum">     218 </span>            :         }
 <span class="lineNum">     219 </span>            : 
 <span class="lineNum">     220 </span>            :         /* It was a bare CR without an LF. Just move past it. */
@@ -284,271 +284,271 @@
 <span class="lineNum">     222 </span><span class="lineNoCov">          0 :         start = cr;</span>
 <span class="lineNum">     223 </span><span class="lineNoCov">          0 :     }</span>
 <span class="lineNum">     224 </span>            : 
-<span class="lineNum">     225 </span><span class="lineCov">         10 :     *data = start + *len;</span>
-<span class="lineNum">     226 </span><span class="lineCov">         10 :     *len -= *data - start;</span>
-<span class="lineNum">     227 </span><span class="lineCov">         10 :     *found = SERF_NEWLINE_NONE;</span>
-<span class="lineNum">     228 </span><span class="lineCov">       5528 : }</span>
+<span class="lineNum">     225 </span><span class="lineCov">         30 :     *data = start + *len;</span>
+<span class="lineNum">     226 </span><span class="lineCov">         30 :     *len -= *data - start;</span>
+<span class="lineNum">     227 </span><span class="lineCov">         30 :     *found = SERF_NEWLINE_NONE;</span>
+<span class="lineNum">     228 </span><span class="lineCov">      16593 : }</span>
 <a name="229"><span class="lineNum">     229 </span>            : </a>
 <span class="lineNum">     230 </span>            : 
 <span class="lineNum">     231 </span>            : void serf_util_readline(
-<span class="lineNum">     232 </span><span class="lineCov">      51037 :     const char **data,</span>
-<span class="lineNum">     233 </span><span class="lineCov">      51037 :     apr_size_t *len,</span>
-<span class="lineNum">     234 </span><span class="lineCov">      51037 :     int acceptable,</span>
-<span class="lineNum">     235 </span><span class="lineCov">      51037 :     int *found)</span>
+<span class="lineNum">     232 </span><span class="lineCov">     153157 :     const char **data,</span>
+<span class="lineNum">     233 </span><span class="lineCov">     153157 :     apr_size_t *len,</span>
+<span class="lineNum">     234 </span><span class="lineCov">     153157 :     int acceptable,</span>
+<span class="lineNum">     235 </span><span class="lineCov">     153157 :     int *found)</span>
 <span class="lineNum">     236 </span>            : {
-<span class="lineNum">     237 </span><span class="lineCov">      51037 :     const char *start;</span>
-<span class="lineNum">     238 </span><span class="lineCov">      51037 :     const char *cr;</span>
-<span class="lineNum">     239 </span><span class="lineCov">      51037 :     const char *lf;</span>
-<span class="lineNum">     240 </span><span class="lineCov">      51037 :     int want_cr;</span>
-<span class="lineNum">     241 </span><span class="lineCov">      51037 :     int want_crlf;</span>
-<span class="lineNum">     242 </span><span class="lineCov">      51037 :     int want_lf;</span>
+<span class="lineNum">     237 </span><span class="lineCov">     153157 :     const char *start;</span>
+<span class="lineNum">     238 </span><span class="lineCov">     153157 :     const char *cr;</span>
+<span class="lineNum">     239 </span><span class="lineCov">     153157 :     const char *lf;</span>
+<span class="lineNum">     240 </span><span class="lineCov">     153157 :     int want_cr;</span>
+<span class="lineNum">     241 </span><span class="lineCov">     153157 :     int want_crlf;</span>
+<span class="lineNum">     242 </span><span class="lineCov">     153157 :     int want_lf;</span>
 <span class="lineNum">     243 </span>            : 
 <span class="lineNum">     244 </span>            :     /* If _only_ CRLF is acceptable, then the scanning needs a loop to
 <span class="lineNum">     245 </span>            :      * skip false hits on CR characters. Use a separate function.
 <span class="lineNum">     246 </span>            :      */
-<span class="lineNum">     247 </span><span class="lineCov">      51037 :     if (acceptable == SERF_NEWLINE_CRLF) {</span>
-<span class="lineNum">     248 </span><span class="lineCov">       5518 :         find_crlf(data, len, found);</span>
-<span class="lineNum">     249 </span><span class="lineCov">       5518 :         return;</span>
+<span class="lineNum">     247 </span><span class="lineCov">     153157 :     if (acceptable == SERF_NEWLINE_CRLF) {</span>
+<span class="lineNum">     248 </span><span class="lineCov">      16563 :         find_crlf(data, len, found);</span>
+<span class="lineNum">     249 </span><span class="lineCov">      16563 :         return;</span>
 <span class="lineNum">     250 </span>            :     }
 <span class="lineNum">     251 </span>            : 
-<span class="lineNum">     252 </span><span class="lineCov">      45519 :     start = *data;</span>
-<span class="lineNum">     253 </span><span class="lineCov">      45519 :     cr = lf = NULL;</span>
-<span class="lineNum">     254 </span><span class="lineCov">      45519 :     want_cr = acceptable &amp; SERF_NEWLINE_CR;</span>
-<span class="lineNum">     255 </span><span class="lineCov">      45519 :     want_crlf = acceptable &amp; SERF_NEWLINE_CRLF;</span>
-<span class="lineNum">     256 </span><span class="lineCov">      45519 :     want_lf = acceptable &amp; SERF_NEWLINE_LF;</span>
+<span class="lineNum">     252 </span><span class="lineCov">     136594 :     start = *data;</span>
+<span class="lineNum">     253 </span><span class="lineCov">     136594 :     cr = lf = NULL;</span>
+<span class="lineNum">     254 </span><span class="lineCov">     136594 :     want_cr = acceptable &amp; SERF_NEWLINE_CR;</span>
+<span class="lineNum">     255 </span><span class="lineCov">     136594 :     want_crlf = acceptable &amp; SERF_NEWLINE_CRLF;</span>
+<span class="lineNum">     256 </span><span class="lineCov">     136594 :     want_lf = acceptable &amp; SERF_NEWLINE_LF;</span>
 <span class="lineNum">     257 </span>            : 
-<span class="lineNum">     258 </span><span class="lineCov">      45526 :     if (want_cr || want_crlf) {</span>
-<span class="lineNum">     259 </span><span class="lineCov">      45512 :         cr = memchr(start, '\r', *len);</span>
-<span class="lineNum">     260 </span><span class="lineCov">      45512 :     }</span>
-<span class="lineNum">     261 </span><span class="lineCov">      45519 :     if (want_lf) {</span>
-<span class="lineNum">     262 </span><span class="lineCov">      45516 :         lf = memchr(start, '\n', *len);</span>
-<span class="lineNum">     263 </span><span class="lineCov">      45516 :     }</span>
+<span class="lineNum">     258 </span><span class="lineCov">     136615 :     if (want_cr || want_crlf) {</span>
+<span class="lineNum">     259 </span><span class="lineCov">     136573 :         cr = memchr(start, '\r', *len);</span>
+<span class="lineNum">     260 </span><span class="lineCov">     136573 :     }</span>
+<span class="lineNum">     261 </span><span class="lineCov">     136594 :     if (want_lf) {</span>
+<span class="lineNum">     262 </span><span class="lineCov">     136585 :         lf = memchr(start, '\n', *len);</span>
+<span class="lineNum">     263 </span><span class="lineCov">     136585 :     }</span>
 <span class="lineNum">     264 </span>            : 
-<span class="lineNum">     265 </span><span class="lineCov">      45519 :     if (cr != NULL) {</span>
-<span class="lineNum">     266 </span><span class="lineCov">      44217 :         if (lf != NULL) {</span>
-<span class="lineNum">     267 </span><span class="lineCov">      44186 :             if (cr + 1 == lf)</span>
-<span class="lineNum">     268 </span><span class="lineCov">      44186 :                 *found = want_crlf ? SERF_NEWLINE_CRLF : SERF_NEWLINE_CR;</span>
+<span class="lineNum">     265 </span><span class="lineCov">     136594 :     if (cr != NULL) {</span>
+<span class="lineNum">     266 </span><span class="lineCov">     132690 :         if (lf != NULL) {</span>
+<span class="lineNum">     267 </span><span class="lineCov">     132597 :             if (cr + 1 == lf)</span>
+<span class="lineNum">     268 </span><span class="lineCov">     132597 :                 *found = want_crlf ? SERF_NEWLINE_CRLF : SERF_NEWLINE_CR;</span>
 <span class="lineNum">     269 </span><span class="lineNoCov">          0 :             else if (want_cr &amp;&amp; cr &lt; lf)</span>
 <span class="lineNum">     270 </span><span class="lineNoCov">          0 :                 *found = SERF_NEWLINE_CR;</span>
 <span class="lineNum">     271 </span>            :             else
 <span class="lineNum">     272 </span><span class="lineNoCov">          0 :                 *found = SERF_NEWLINE_LF;</span>
-<span class="lineNum">     273 </span><span class="lineCov">      44186 :         }</span>
-<span class="lineNum">     274 </span><span class="lineCov">         31 :         else if (cr == start + *len - 1) {</span>
+<span class="lineNum">     273 </span><span class="lineCov">     132597 :         }</span>
+<span class="lineNum">     274 </span><span class="lineCov">         93 :         else if (cr == start + *len - 1) {</span>
 <span class="lineNum">     275 </span>            :             /* the CR occurred in the last byte of the buffer. this could be
 <span class="lineNum">     276 </span>            :              * a CRLF split across the data boundary.
 <span class="lineNum">     277 </span>            :              * ### FIX THIS LOGIC? does caller need to detect?
 <span class="lineNum">     278 </span>            :              */
-<span class="lineNum">     279 </span><span class="lineCov">         30 :             *found = want_crlf ? SERF_NEWLINE_CRLF_SPLIT : SERF_NEWLINE_CR;</span>
-<span class="lineNum">     280 </span><span class="lineCov">         30 :         }</span>
-<span class="lineNum">     281 </span><span class="lineCov">          1 :         else if (want_cr)</span>
-<span class="lineNum">     282 </span><span class="lineCov">          1 :             *found = SERF_NEWLINE_CR;</span>
+<span class="lineNum">     279 </span><span class="lineCov">         90 :             *found = want_crlf ? SERF_NEWLINE_CRLF_SPLIT : SERF_NEWLINE_CR;</span>
+<span class="lineNum">     280 </span><span class="lineCov">         90 :         }</span>
+<span class="lineNum">     281 </span><span class="lineCov">          3 :         else if (want_cr)</span>
+<span class="lineNum">     282 </span><span class="lineCov">          3 :             *found = SERF_NEWLINE_CR;</span>
 <span class="lineNum">     283 </span>            :         else /* want_crlf */
 <span class="lineNum">     284 </span><span class="lineNoCov">          0 :             *found = SERF_NEWLINE_NONE;</span>
-<span class="lineNum">     285 </span><span class="lineCov">      44217 :     }</span>
-<span class="lineNum">     286 </span><span class="lineCov">       1302 :     else if (lf != NULL)</span>
-<span class="lineNum">     287 </span><span class="lineCov">         72 :         *found = SERF_NEWLINE_LF;</span>
+<span class="lineNum">     285 </span><span class="lineCov">     132690 :     }</span>
+<span class="lineNum">     286 </span><span class="lineCov">       3904 :     else if (lf != NULL)</span>
+<span class="lineNum">     287 </span><span class="lineCov">        216 :         *found = SERF_NEWLINE_LF;</span>
 <span class="lineNum">     288 </span>            :     else
-<span class="lineNum">     289 </span><span class="lineCov">       1230 :         *found = SERF_NEWLINE_NONE;</span>
+<span class="lineNum">     289 </span><span class="lineCov">       3688 :         *found = SERF_NEWLINE_NONE;</span>
 <span class="lineNum">     290 </span>            : 
-<span class="lineNum">     291 </span><span class="lineCov">      45519 :     switch (*found) {</span>
+<span class="lineNum">     291 </span><span class="lineCov">     136594 :     switch (*found) {</span>
 <span class="lineNum">     292 </span>            :       case SERF_NEWLINE_LF:
-<span class="lineNum">     293 </span><span class="lineCov">         72 :         *data = lf + 1;</span>
-<span class="lineNum">     294 </span><span class="lineCov">         72 :         break;</span>
+<span class="lineNum">     293 </span><span class="lineCov">        216 :         *data = lf + 1;</span>
+<span class="lineNum">     294 </span><span class="lineCov">        216 :         break;</span>
 <span class="lineNum">     295 </span>            :       case SERF_NEWLINE_CR:
 <span class="lineNum">     296 </span>            :       case SERF_NEWLINE_CRLF:
 <span class="lineNum">     297 </span>            :       case SERF_NEWLINE_CRLF_SPLIT:
-<span class="lineNum">     298 </span><span class="lineCov">      44217 :         *data = cr + 1 + (*found == SERF_NEWLINE_CRLF);</span>
-<span class="lineNum">     299 </span><span class="lineCov">      44217 :         break;</span>
+<span class="lineNum">     298 </span><span class="lineCov">     132690 :         *data = cr + 1 + (*found == SERF_NEWLINE_CRLF);</span>
+<span class="lineNum">     299 </span><span class="lineCov">     132690 :         break;</span>
 <span class="lineNum">     300 </span>            :       case SERF_NEWLINE_NONE:
-<span class="lineNum">     301 </span><span class="lineCov">       1230 :         *data += *len;</span>
-<span class="lineNum">     302 </span><span class="lineCov">       1230 :         break;</span>
+<span class="lineNum">     301 </span><span class="lineCov">       3688 :         *data += *len;</span>
+<span class="lineNum">     302 </span><span class="lineCov">       3688 :         break;</span>
 <span class="lineNum">     303 </span>            :       default:
 <span class="lineNum">     304 </span>            :         /* Not reachable */
 <span class="lineNum">     305 </span><span class="lineNoCov">          0 :         return;</span>
 <span class="lineNum">     306 </span>            :     }
 <span class="lineNum">     307 </span>            : 
-<span class="lineNum">     308 </span><span class="lineCov">      45519 :     *len -= *data - start;</span>
-<span class="lineNum">     309 </span><span class="lineCov">      96556 : }</span>
+<span class="lineNum">     308 </span><span class="lineCov">     136594 :     *len -= *data - start;</span>
+<span class="lineNum">     309 </span><span class="lineCov">     289751 : }</span>
 <span class="lineNum">     310 </span>            : 
 <span class="lineNum">     311 </span>            : 
 <span class="lineNum">     312 </span>            : /* ==================================================================== */
 <a name="313"><span class="lineNum">     313 </span>            : </a>
 <span class="lineNum">     314 </span>            : 
-<span class="lineNum">     315 </span><span class="lineCov">         88 : void serf_databuf_init(serf_databuf_t *databuf)</span>
+<span class="lineNum">     315 </span><span class="lineCov">        264 : void serf_databuf_init(serf_databuf_t *databuf)</span>
 <span class="lineNum">     316 </span>            : {
 <span class="lineNum">     317 </span>            :     /* nothing is sitting in the buffer */
-<span class="lineNum">     318 </span><span class="lineCov">         88 :     databuf-&gt;remaining = 0;</span>
+<span class="lineNum">     318 </span><span class="lineCov">        264 :     databuf-&gt;remaining = 0;</span>
 <span class="lineNum">     319 </span>            : 
 <span class="lineNum">     320 </span>            :     /* avoid thinking we have hit EOF */
-<span class="lineNum">     321 </span><span class="lineCov">         88 :     databuf-&gt;status = APR_SUCCESS;</span>
-<span class="lineNum">     322 </span><span class="lineCov">         88 : }</span>
+<span class="lineNum">     321 </span><span class="lineCov">        264 :     databuf-&gt;status = APR_SUCCESS;</span>
+<span class="lineNum">     322 </span><span class="lineCov">        264 : }</span>
 <span class="lineNum">     323 </span>            : 
 <a name="324"><span class="lineNum">     324 </span>            : /* Ensure the buffer is prepared for reading. Will return APR_SUCCESS,</a>
 <span class="lineNum">     325 </span>            :  * APR_EOF, or some failure code. *len is only set for EOF. */
-<span class="lineNum">     326 </span><span class="lineCov">       9465 : static apr_status_t common_databuf_prep(serf_databuf_t *databuf,</span>
-<span class="lineNum">     327 </span><span class="lineCov">       9465 :                                         apr_size_t *len)</span>
+<span class="lineNum">     326 </span><span class="lineCov">      28383 : static apr_status_t common_databuf_prep(serf_databuf_t *databuf,</span>
+<span class="lineNum">     327 </span><span class="lineCov">      28383 :                                         apr_size_t *len)</span>
 <span class="lineNum">     328 </span>            : {
-<span class="lineNum">     329 </span><span class="lineCov">       9465 :     apr_size_t readlen;</span>
-<span class="lineNum">     330 </span><span class="lineCov">       9465 :     apr_status_t status;</span>
+<span class="lineNum">     329 </span><span class="lineCov">      28383 :     apr_size_t readlen;</span>
+<span class="lineNum">     330 </span><span class="lineCov">      28383 :     apr_status_t status;</span>
 <span class="lineNum">     331 </span>            : 
 <span class="lineNum">     332 </span>            :     /* if there is data in the buffer, then we're happy. */
-<span class="lineNum">     333 </span><span class="lineCov">       9465 :     if (databuf-&gt;remaining &gt; 0)</span>
-<span class="lineNum">     334 </span><span class="lineCov">       6072 :         return APR_SUCCESS;</span>
+<span class="lineNum">     333 </span><span class="lineCov">      28383 :     if (databuf-&gt;remaining &gt; 0)</span>
+<span class="lineNum">     334 </span><span class="lineCov">      18209 :         return APR_SUCCESS;</span>
 <span class="lineNum">     335 </span>            : 
 <span class="lineNum">     336 </span>            :     /* if we already hit EOF, then keep returning that. */
-<span class="lineNum">     337 </span><span class="lineCov">       3393 :     if (APR_STATUS_IS_EOF(databuf-&gt;status)) {</span>
+<span class="lineNum">     337 </span><span class="lineCov">      10174 :     if (APR_STATUS_IS_EOF(databuf-&gt;status)) {</span>
 <span class="lineNum">     338 </span>            :         /* *data = NULL;   ?? */
 <span class="lineNum">     339 </span><span class="lineNoCov">          0 :         *len = 0;</span>
 <span class="lineNum">     340 </span><span class="lineNoCov">          0 :         return APR_EOF;</span>
 <span class="lineNum">     341 </span>            :     }
 <span class="lineNum">     342 </span>            : 
 <span class="lineNum">     343 </span>            :     /* refill the buffer */
-<span class="lineNum">     344 </span><span class="lineCov">       3393 :     status = (*databuf-&gt;read)(databuf-&gt;read_baton, sizeof(databuf-&gt;buf),</span>
+<span class="lineNum">     344 </span><span class="lineCov">      10174 :     status = (*databuf-&gt;read)(databuf-&gt;read_baton, sizeof(databuf-&gt;buf),</span>
 <span class="lineNum">     345 </span>            :                               databuf-&gt;buf, &amp;readlen);
-<span class="lineNum">     346 </span><span class="lineCov">       4797 :     if (SERF_BUCKET_READ_ERROR(status)) {</span>
-<span class="lineNum">     347 </span><span class="lineCov">          2 :         return status;</span>
+<span class="lineNum">     346 </span><span class="lineCov">      14384 :     if (SERF_BUCKET_READ_ERROR(status)) {</span>
+<span class="lineNum">     347 </span><span class="lineCov">          6 :         return status;</span>
 <span class="lineNum">     348 </span>            :     }
 <span class="lineNum">     349 </span>            : 
-<span class="lineNum">     350 </span><span class="lineCov">       3391 :     databuf-&gt;current = databuf-&gt;buf;</span>
-<span class="lineNum">     351 </span><span class="lineCov">       3391 :     databuf-&gt;remaining = readlen;</span>
-<span class="lineNum">     352 </span><span class="lineCov">       3391 :     databuf-&gt;status = status;</span>
+<span class="lineNum">     350 </span><span class="lineCov">      10168 :     databuf-&gt;current = databuf-&gt;buf;</span>
+<span class="lineNum">     351 </span><span class="lineCov">      10168 :     databuf-&gt;remaining = readlen;</span>
+<span class="lineNum">     352 </span><span class="lineCov">      10168 :     databuf-&gt;status = status;</span>
 <span class="lineNum">     353 </span>            : 
-<span class="lineNum">     354 </span><span class="lineCov">       3391 :     return APR_SUCCESS;</span>
-<span class="lineNum">     355 </span><span class="lineCov">       9465 : }</span>
+<span class="lineNum">     354 </span><span class="lineCov">      10168 :     return APR_SUCCESS;</span>
+<span class="lineNum">     355 </span><span class="lineCov">      28383 : }</span>
 <a name="356"><span class="lineNum">     356 </span>            : </a>
 <span class="lineNum">     357 </span>            : 
 <span class="lineNum">     358 </span>            : apr_status_t serf_databuf_read(
-<span class="lineNum">     359 </span><span class="lineCov">       7594 :     serf_databuf_t *databuf,</span>
-<span class="lineNum">     360 </span><span class="lineCov">       7594 :     apr_size_t requested,</span>
-<span class="lineNum">     361 </span><span class="lineCov">       7594 :     const char **data,</span>
-<span class="lineNum">     362 </span><span class="lineCov">       7594 :     apr_size_t *len)</span>
+<span class="lineNum">     359 </span><span class="lineCov">      22772 :     serf_databuf_t *databuf,</span>
+<span class="lineNum">     360 </span><span class="lineCov">      22772 :     apr_size_t requested,</span>
+<span class="lineNum">     361 </span><span class="lineCov">      22772 :     const char **data,</span>
+<span class="lineNum">     362 </span><span class="lineCov">      22772 :     apr_size_t *len)</span>
 <span class="lineNum">     363 </span>            : {
-<span class="lineNum">     364 </span><span class="lineCov">       7594 :     apr_status_t status = common_databuf_prep(databuf, len);</span>
-<span class="lineNum">     365 </span><span class="lineCov">       7594 :     if (status)</span>
+<span class="lineNum">     364 </span><span class="lineCov">      22772 :     apr_status_t status = common_databuf_prep(databuf, len);</span>
+<span class="lineNum">     365 </span><span class="lineCov">      22772 :     if (status)</span>
 <span class="lineNum">     366 </span><span class="lineNoCov">          0 :         return status;</span>
 <span class="lineNum">     367 </span>            : 
 <span class="lineNum">     368 </span>            :     /* peg the requested amount to what we have remaining */
-<span class="lineNum">     369 </span><span class="lineCov">      14188 :     if (requested == SERF_READ_ALL_AVAIL || requested &gt; databuf-&gt;remaining)</span>
-<span class="lineNum">     370 </span><span class="lineCov">       2486 :         requested = databuf-&gt;remaining;</span>
+<span class="lineNum">     369 </span><span class="lineCov">      42544 :     if (requested == SERF_READ_ALL_AVAIL || requested &gt; databuf-&gt;remaining)</span>
+<span class="lineNum">     370 </span><span class="lineCov">       7458 :         requested = databuf-&gt;remaining;</span>
 <span class="lineNum">     371 </span>            : 
 <span class="lineNum">     372 </span>            :     /* return the values */
-<span class="lineNum">     373 </span><span class="lineCov">       7594 :     *data = databuf-&gt;current;</span>
-<span class="lineNum">     374 </span><span class="lineCov">       7594 :     *len = requested;</span>
+<span class="lineNum">     373 </span><span class="lineCov">      22772 :     *data = databuf-&gt;current;</span>
+<span class="lineNum">     374 </span><span class="lineCov">      22772 :     *len = requested;</span>
 <span class="lineNum">     375 </span>            : 
 <span class="lineNum">     376 </span>            :     /* adjust our internal state to note we've consumed some data */
-<span class="lineNum">     377 </span><span class="lineCov">       7594 :     databuf-&gt;current += requested;</span>
-<span class="lineNum">     378 </span><span class="lineCov">       7594 :     databuf-&gt;remaining -= requested;</span>
+<span class="lineNum">     377 </span><span class="lineCov">      22772 :     databuf-&gt;current += requested;</span>
+<span class="lineNum">     378 </span><span class="lineCov">      22772 :     databuf-&gt;remaining -= requested;</span>
 <span class="lineNum">     379 </span>            : 
 <span class="lineNum">     380 </span>            :     /* If we read everything, then we need to return whatever the data
 <span class="lineNum">     381 </span>            :      * read returned to us. This is going to be APR_EOF or APR_EGAIN.
 <span class="lineNum">     382 </span>            :      * If we have NOT read everything, then return APR_SUCCESS to indicate
 <span class="lineNum">     383 </span>            :      * that we're ready to return some more if asked.
 <span class="lineNum">     384 </span>            :      */
-<span class="lineNum">     385 </span><span class="lineCov">      22782 :     return databuf-&gt;remaining ? APR_SUCCESS : databuf-&gt;status;</span>
-<span class="lineNum">     386 </span><span class="lineCov">       7594 : }</span>
+<span class="lineNum">     385 </span><span class="lineCov">      68316 :     return databuf-&gt;remaining ? APR_SUCCESS : databuf-&gt;status;</span>
+<span class="lineNum">     386 </span><span class="lineCov">      22772 : }</span>
 <a name="387"><span class="lineNum">     387 </span>            : </a>
 <span class="lineNum">     388 </span>            : 
 <span class="lineNum">     389 </span>            : apr_status_t serf_databuf_readline(
-<span class="lineNum">     390 </span><span class="lineCov">       1562 :     serf_databuf_t *databuf,</span>
-<span class="lineNum">     391 </span><span class="lineCov">       1562 :     int acceptable,</span>
-<span class="lineNum">     392 </span><span class="lineCov">       1562 :     int *found,</span>
-<span class="lineNum">     393 </span><span class="lineCov">       1562 :     const char **data,</span>
-<span class="lineNum">     394 </span><span class="lineCov">       1562 :     apr_size_t *len)</span>
+<span class="lineNum">     390 </span><span class="lineCov">       4684 :     serf_databuf_t *databuf,</span>
+<span class="lineNum">     391 </span><span class="lineCov">       4684 :     int acceptable,</span>
+<span class="lineNum">     392 </span><span class="lineCov">       4684 :     int *found,</span>
+<span class="lineNum">     393 </span><span class="lineCov">       4684 :     const char **data,</span>
+<span class="lineNum">     394 </span><span class="lineCov">       4684 :     apr_size_t *len)</span>
 <span class="lineNum">     395 </span>            : {
-<span class="lineNum">     396 </span><span class="lineCov">       1562 :     apr_status_t status = common_databuf_prep(databuf, len);</span>
-<span class="lineNum">     397 </span><span class="lineCov">       1562 :     if (status)</span>
+<span class="lineNum">     396 </span><span class="lineCov">       4684 :     apr_status_t status = common_databuf_prep(databuf, len);</span>
+<span class="lineNum">     397 </span><span class="lineCov">       4684 :     if (status)</span>
 <span class="lineNum">     398 </span><span class="lineNoCov">          0 :         return status;</span>
 <span class="lineNum">     399 </span>            : 
 <span class="lineNum">     400 </span>            :     /* the returned line will start at the current position. */
-<span class="lineNum">     401 </span><span class="lineCov">       1562 :     *data = databuf-&gt;current;</span>
+<span class="lineNum">     401 </span><span class="lineCov">       4684 :     *data = databuf-&gt;current;</span>
 <span class="lineNum">     402 </span>            : 
 <span class="lineNum">     403 </span>            :     /* read a line from the buffer, and adjust the various pointers. */
-<span class="lineNum">     404 </span><span class="lineCov">       1562 :     serf_util_readline(&amp;databuf-&gt;current, &amp;databuf-&gt;remaining, acceptable,</span>
+<span class="lineNum">     404 </span><span class="lineCov">       4684 :     serf_util_readline(&amp;databuf-&gt;current, &amp;databuf-&gt;remaining, acceptable,</span>
 <span class="lineNum">     405 </span>            :                        found);
 <span class="lineNum">     406 </span>            : 
 <span class="lineNum">     407 </span>            :     /* the length matches the amount consumed by the readline */
-<span class="lineNum">     408 </span><span class="lineCov">       1562 :     *len = databuf-&gt;current - *data;</span>
+<span class="lineNum">     408 </span><span class="lineCov">       4684 :     *len = databuf-&gt;current - *data;</span>
 <span class="lineNum">     409 </span>            : 
 <span class="lineNum">     410 </span>            :     /* see serf_databuf_read's return condition */
-<span class="lineNum">     411 </span><span class="lineCov">       4686 :     return databuf-&gt;remaining ? APR_SUCCESS : databuf-&gt;status;</span>
-<span class="lineNum">     412 </span><span class="lineCov">       1562 : }</span>
+<span class="lineNum">     411 </span><span class="lineCov">      14052 :     return databuf-&gt;remaining ? APR_SUCCESS : databuf-&gt;status;</span>
+<span class="lineNum">     412 </span><span class="lineCov">       4684 : }</span>
 <a name="413"><span class="lineNum">     413 </span>            : </a>
 <span class="lineNum">     414 </span>            : 
 <span class="lineNum">     415 </span>            : apr_status_t serf_databuf_peek(
-<span class="lineNum">     416 </span><span class="lineCov">        309 :     serf_databuf_t *databuf,</span>
-<span class="lineNum">     417 </span><span class="lineCov">        309 :     const char **data,</span>
-<span class="lineNum">     418 </span><span class="lineCov">        309 :     apr_size_t *len)</span>
+<span class="lineNum">     416 </span><span class="lineCov">        927 :     serf_databuf_t *databuf,</span>
+<span class="lineNum">     417 </span><span class="lineCov">        927 :     const char **data,</span>
+<span class="lineNum">     418 </span><span class="lineCov">        927 :     apr_size_t *len)</span>
 <span class="lineNum">     419 </span>            : {
-<span class="lineNum">     420 </span><span class="lineCov">        309 :     apr_status_t status = common_databuf_prep(databuf, len);</span>
-<span class="lineNum">     421 </span><span class="lineCov">        309 :     if (status)</span>
-<span class="lineNum">     422 </span><span class="lineCov">          2 :         return status;</span>
+<span class="lineNum">     420 </span><span class="lineCov">        927 :     apr_status_t status = common_databuf_prep(databuf, len);</span>
+<span class="lineNum">     421 </span><span class="lineCov">        927 :     if (status)</span>
+<span class="lineNum">     422 </span><span class="lineCov">          6 :         return status;</span>
 <span class="lineNum">     423 </span>            : 
 <span class="lineNum">     424 </span>            :     /* return everything we have */
-<span class="lineNum">     425 </span><span class="lineCov">        307 :     *data = databuf-&gt;current;</span>
-<span class="lineNum">     426 </span><span class="lineCov">        307 :     *len = databuf-&gt;remaining;</span>
+<span class="lineNum">     425 </span><span class="lineCov">        921 :     *data = databuf-&gt;current;</span>
+<span class="lineNum">     426 </span><span class="lineCov">        921 :     *len = databuf-&gt;remaining;</span>
 <span class="lineNum">     427 </span>            : 
 <span class="lineNum">     428 </span>            :     /* If the last read returned EOF, then the peek should return the same.
 <span class="lineNum">     429 </span>            :      * The other possibility in databuf-&gt;status is APR_EAGAIN, which we
 <span class="lineNum">     430 </span>            :      * should never return. Thus, just return APR_SUCCESS for non-EOF cases.
 <span class="lineNum">     431 </span>            :      */
-<span class="lineNum">     432 </span><span class="lineCov">        307 :     if (APR_STATUS_IS_EOF(databuf-&gt;status))</span>
+<span class="lineNum">     432 </span><span class="lineCov">        921 :     if (APR_STATUS_IS_EOF(databuf-&gt;status))</span>
 <span class="lineNum">     433 </span><span class="lineNoCov">          0 :         return APR_EOF;</span>
-<span class="lineNum">     434 </span><span class="lineCov">        307 :     return APR_SUCCESS;</span>
-<span class="lineNum">     435 </span><span class="lineCov">        309 : }</span>
+<span class="lineNum">     434 </span><span class="lineCov">        921 :     return APR_SUCCESS;</span>
+<span class="lineNum">     435 </span><span class="lineCov">        927 : }</span>
 <span class="lineNum">     436 </span>            : 
 <span class="lineNum">     437 </span>            : 
 <span class="lineNum">     438 </span>            : /* ==================================================================== */
 <a name="439"><span class="lineNum">     439 </span>            : </a>
 <span class="lineNum">     440 </span>            : 
-<span class="lineNum">     441 </span><span class="lineCov">       3127 : void serf_linebuf_init(serf_linebuf_t *linebuf)</span>
+<span class="lineNum">     441 </span><span class="lineCov">       9389 : void serf_linebuf_init(serf_linebuf_t *linebuf)</span>
 <span class="lineNum">     442 </span>            : {
-<span class="lineNum">     443 </span><span class="lineCov">       3127 :     linebuf-&gt;state = SERF_LINEBUF_EMPTY;</span>
-<span class="lineNum">     444 </span><span class="lineCov">       3127 :     linebuf-&gt;used = 0;</span>
-<span class="lineNum">     445 </span><span class="lineCov">       3127 : }</span>
+<span class="lineNum">     443 </span><span class="lineCov">       9389 :     linebuf-&gt;state = SERF_LINEBUF_EMPTY;</span>
+<span class="lineNum">     444 </span><span class="lineCov">       9389 :     linebuf-&gt;used = 0;</span>
+<span class="lineNum">     445 </span><span class="lineCov">       9389 : }</span>
 <a name="446"><span class="lineNum">     446 </span>            : </a>
 <span class="lineNum">     447 </span>            : 
 <span class="lineNum">     448 </span>            : apr_status_t serf_linebuf_fetch(
-<span class="lineNum">     449 </span><span class="lineCov">      50984 :     serf_linebuf_t *linebuf,</span>
-<span class="lineNum">     450 </span><span class="lineCov">      50984 :     serf_bucket_t *bucket,</span>
-<span class="lineNum">     451 </span><span class="lineCov">      50984 :     int acceptable)</span>
+<span class="lineNum">     449 </span><span class="lineCov">     152998 :     serf_linebuf_t *linebuf,</span>
+<span class="lineNum">     450 </span><span class="lineCov">     152998 :     serf_bucket_t *bucket,</span>
+<span class="lineNum">     451 </span><span class="lineCov">     152998 :     int acceptable)</span>
 <span class="lineNum">     452 </span>            : {
 <span class="lineNum">     453 </span>            :     /* If we had a complete line, then assume the caller has used it, so
 <span class="lineNum">     454 </span>            :      * we can now reset the state.
 <span class="lineNum">     455 </span>            :      */
-<span class="lineNum">     456 </span><span class="lineCov">      50984 :     if (linebuf-&gt;state == SERF_LINEBUF_READY) {</span>
-<span class="lineNum">     457 </span><span class="lineCov">      46597 :         linebuf-&gt;state = SERF_LINEBUF_EMPTY;</span>
+<span class="lineNum">     456 </span><span class="lineCov">     152998 :     if (linebuf-&gt;state == SERF_LINEBUF_READY) {</span>
+<span class="lineNum">     457 </span><span class="lineCov">     139831 :         linebuf-&gt;state = SERF_LINEBUF_EMPTY;</span>
 <span class="lineNum">     458 </span>            : 
 <span class="lineNum">     459 </span>            :         /* Reset the line_used, too, so we don't have to test the state
 <span class="lineNum">     460 </span>            :          * before using this value.
 <span class="lineNum">     461 </span>            :          */
-<span class="lineNum">     462 </span><span class="lineCov">      46597 :         linebuf-&gt;used = 0;</span>
-<span class="lineNum">     463 </span><span class="lineCov">      46597 :     }</span>
+<span class="lineNum">     462 </span><span class="lineCov">     139831 :         linebuf-&gt;used = 0;</span>
+<span class="lineNum">     463 </span><span class="lineCov">     139831 :     }</span>
 <span class="lineNum">     464 </span>            : 
-<span class="lineNum">     465 </span><span class="lineCov">      50984 :     while (1) {</span>
-<span class="lineNum">     466 </span><span class="lineCov">      50988 :         apr_status_t status;</span>
-<span class="lineNum">     467 </span><span class="lineCov">      50988 :         const char *data;</span>
-<span class="lineNum">     468 </span><span class="lineCov">      50988 :         apr_size_t len;</span>
+<span class="lineNum">     465 </span><span class="lineCov">     152998 :     while (1) {</span>
+<span class="lineNum">     466 </span><span class="lineCov">     153010 :         apr_status_t status;</span>
+<span class="lineNum">     467 </span><span class="lineCov">     153010 :         const char *data;</span>
+<span class="lineNum">     468 </span><span class="lineCov">     153010 :         apr_size_t len;</span>
 <span class="lineNum">     469 </span>            : 
-<span class="lineNum">     470 </span><span class="lineCov">      50988 :         if (linebuf-&gt;state == SERF_LINEBUF_CRLF_SPLIT) {</span>
+<span class="lineNum">     470 </span><span class="lineCov">     153010 :         if (linebuf-&gt;state == SERF_LINEBUF_CRLF_SPLIT) {</span>
 <span class="lineNum">     471 </span>            :             /* On the previous read, we received just a CR. The LF might
 <span class="lineNum">     472 </span>            :              * be present, but the bucket couldn't see it. We need to
 <span class="lineNum">     473 </span>            :              * examine a single character to determine how to handle the
 <span class="lineNum">     474 </span>            :              * split CRLF.
 <span class="lineNum">     475 </span>            :              */
 <span class="lineNum">     476 </span>            : 
-<span class="lineNum">     477 </span><span class="lineCov">         37 :             status = serf_bucket_peek(bucket, &amp;data, &amp;len);</span>
-<span class="lineNum">     478 </span><span class="lineCov">         37 :             if (SERF_BUCKET_READ_ERROR(status))</span>
+<span class="lineNum">     477 </span><span class="lineCov">        111 :             status = serf_bucket_peek(bucket, &amp;data, &amp;len);</span>
+<span class="lineNum">     478 </span><span class="lineCov">        111 :             if (SERF_BUCKET_READ_ERROR(status))</span>
 <span class="lineNum">     479 </span><span class="lineNoCov">          0 :                 return status;</span>
 <span class="lineNum">     480 </span>            : 
-<span class="lineNum">     481 </span><span class="lineCov">         37 :             if (len &gt; 0) {</span>
-<span class="lineNum">     482 </span><span class="lineCov">         35 :                 if (*data == '\n') {</span>
+<span class="lineNum">     481 </span><span class="lineCov">        111 :             if (len &gt; 0) {</span>
+<span class="lineNum">     482 </span><span class="lineCov">        105 :                 if (*data == '\n') {</span>
 <span class="lineNum">     483 </span>            :                     /* We saw the second part of CRLF. We don't need to
 <span class="lineNum">     484 </span>            :                      * save that character, so do an actual read to suck
 <span class="lineNum">     485 </span>            :                      * up that character.
 <span class="lineNum">     486 </span>            :                      */
 <span class="lineNum">     487 </span>            :                     /* ### check status */
-<span class="lineNum">     488 </span><span class="lineCov">         35 :                     (void) serf_bucket_read(bucket, 1, &amp;data, &amp;len);</span>
-<span class="lineNum">     489 </span><span class="lineCov">         35 :                 }</span>
+<span class="lineNum">     488 </span><span class="lineCov">        105 :                     (void) serf_bucket_read(bucket, 1, &amp;data, &amp;len);</span>
+<span class="lineNum">     489 </span><span class="lineCov">        105 :                 }</span>
 <span class="lineNum">     490 </span>            :                 /* else:
 <span class="lineNum">     491 </span>            :                  *   We saw the first character of the next line. Thus,
 <span class="lineNum">     492 </span>            :                  *   the current line is terminated by the CR. Just
@@ -557,27 +557,27 @@
 <span class="lineNum">     495 </span>            :                  */
 <span class="lineNum">     496 </span>            : 
 <span class="lineNum">     497 </span>            :                 /* Whatever was read, the line is now ready for use. */
-<span class="lineNum">     498 </span><span class="lineCov">         35 :                 linebuf-&gt;state = SERF_LINEBUF_READY;</span>
-<span class="lineNum">     499 </span><span class="lineCov">         35 :             } else {</span>
+<span class="lineNum">     498 </span><span class="lineCov">        105 :                 linebuf-&gt;state = SERF_LINEBUF_READY;</span>
+<span class="lineNum">     499 </span><span class="lineCov">        105 :             } else {</span>
 <span class="lineNum">     500 </span>            :                 /* no data available, try again later. */
-<span class="lineNum">     501 </span><span class="lineCov">          2 :                 return APR_EAGAIN;</span>
+<span class="lineNum">     501 </span><span class="lineCov">          6 :                 return APR_EAGAIN;</span>
 <span class="lineNum">     502 </span>            :             }
-<span class="lineNum">     503 </span><span class="lineCov">         35 :         }</span>
+<span class="lineNum">     503 </span><span class="lineCov">        105 :         }</span>
 <span class="lineNum">     504 </span>            :         else {
-<span class="lineNum">     505 </span><span class="lineCov">      50951 :             int found;</span>
+<span class="lineNum">     505 </span><span class="lineCov">     152899 :             int found;</span>
 <span class="lineNum">     506 </span>            : 
-<span class="lineNum">     507 </span><span class="lineCov">      50951 :             status = serf_bucket_readline(bucket, acceptable, &amp;found,</span>
+<span class="lineNum">     507 </span><span class="lineCov">     152899 :             status = serf_bucket_readline(bucket, acceptable, &amp;found,</span>
 <span class="lineNum">     508 </span>            :                                           &amp;data, &amp;len);
-<span class="lineNum">     509 </span><span class="lineCov">      56461 :             if (SERF_BUCKET_READ_ERROR(status)) {</span>
+<span class="lineNum">     509 </span><span class="lineCov">     169428 :             if (SERF_BUCKET_READ_ERROR(status)) {</span>
 <span class="lineNum">     510 </span><span class="lineNoCov">          0 :                 return status;</span>
 <span class="lineNum">     511 </span>            :             }
 <span class="lineNum">     512 </span>            :             /* Some bucket types (socket) might need an extra read to find
 <span class="lineNum">     513 </span>            :                out EOF state, so they'll return no data in that read. This
 <span class="lineNum">     514 </span>            :                means we're done reading, return what we got. */
-<span class="lineNum">     515 </span><span class="lineCov">      50953 :             if (APR_STATUS_IS_EOF(status) &amp;&amp; len == 0) {</span>
-<span class="lineNum">     516 </span><span class="lineCov">          1 :                 return status;</span>
+<span class="lineNum">     515 </span><span class="lineCov">     152908 :             if (APR_STATUS_IS_EOF(status) &amp;&amp; len == 0) {</span>
+<span class="lineNum">     516 </span><span class="lineCov">          3 :                 return status;</span>
 <span class="lineNum">     517 </span>            :             }
-<span class="lineNum">     518 </span><span class="lineCov">      50950 :             if (linebuf-&gt;used + len &gt; sizeof(linebuf-&gt;line)) {</span>
+<span class="lineNum">     518 </span><span class="lineCov">     152896 :             if (linebuf-&gt;used + len &gt; sizeof(linebuf-&gt;line)) {</span>
 <span class="lineNum">     519 </span><span class="lineNoCov">          0 :                 return SERF_ERROR_LINE_TOO_LONG;</span>
 <span class="lineNum">     520 </span>            :             }
 <span class="lineNum">     521 </span>            : 
@@ -589,45 +589,45 @@
 <span class="lineNum">     527 </span>            :             /* If we didn't see a newline, then we should mark the line
 <span class="lineNum">     528 </span>            :              * buffer as partially complete.
 <span class="lineNum">     529 </span>            :              */
-<span class="lineNum">     530 </span><span class="lineCov">      50950 :             if (found == SERF_NEWLINE_NONE) {</span>
-<span class="lineNum">     531 </span><span class="lineCov">       1234 :                 linebuf-&gt;state = SERF_LINEBUF_PARTIAL;</span>
-<span class="lineNum">     532 </span><span class="lineCov">       1234 :             }</span>
-<span class="lineNum">     533 </span><span class="lineCov">      49716 :             else if (found == SERF_NEWLINE_CRLF_SPLIT) {</span>
-<span class="lineNum">     534 </span><span class="lineCov">         35 :                 linebuf-&gt;state = SERF_LINEBUF_CRLF_SPLIT;</span>
+<span class="lineNum">     530 </span><span class="lineCov">     152896 :             if (found == SERF_NEWLINE_NONE) {</span>
+<span class="lineNum">     531 </span><span class="lineCov">       3700 :                 linebuf-&gt;state = SERF_LINEBUF_PARTIAL;</span>
+<span class="lineNum">     532 </span><span class="lineCov">       3700 :             }</span>
+<span class="lineNum">     533 </span><span class="lineCov">     149196 :             else if (found == SERF_NEWLINE_CRLF_SPLIT) {</span>
+<span class="lineNum">     534 </span><span class="lineCov">        105 :                 linebuf-&gt;state = SERF_LINEBUF_CRLF_SPLIT;</span>
 <span class="lineNum">     535 </span>            : 
 <span class="lineNum">     536 </span>            :                 /* Toss the partial CR. We won't ever need it. */
-<span class="lineNum">     537 </span><span class="lineCov">         35 :                 --len;</span>
-<span class="lineNum">     538 </span><span class="lineCov">         35 :             }</span>
+<span class="lineNum">     537 </span><span class="lineCov">        105 :                 --len;</span>
+<span class="lineNum">     538 </span><span class="lineCov">        105 :             }</span>
 <span class="lineNum">     539 </span>            :             else {
 <span class="lineNum">     540 </span>            :                 /* We got a newline (of some form). We don't need it
 <span class="lineNum">     541 </span>            :                  * in the line buffer, so back up the length. Then
 <span class="lineNum">     542 </span>            :                  * mark the line as ready.
 <span class="lineNum">     543 </span>            :                  */
-<span class="lineNum">     544 </span><span class="lineCov">      49681 :                 len -= 1 + (found == SERF_NEWLINE_CRLF);</span>
+<span class="lineNum">     544 </span><span class="lineCov">     149091 :                 len -= 1 + (found == SERF_NEWLINE_CRLF);</span>
 <span class="lineNum">     545 </span>            : 
-<span class="lineNum">     546 </span><span class="lineCov">      49681 :                 linebuf-&gt;state = SERF_LINEBUF_READY;</span>
+<span class="lineNum">     546 </span><span class="lineCov">     149091 :                 linebuf-&gt;state = SERF_LINEBUF_READY;</span>
 <span class="lineNum">     547 </span>            :             }
 <span class="lineNum">     548 </span>            : 
 <span class="lineNum">     549 </span>            :             /* ### it would be nice to avoid this copy if at all possible,
 <span class="lineNum">     550 </span>            :                ### and just return the a data/len pair to the caller. we're
 <span class="lineNum">     551 </span>            :                ### keeping it simple for now. */
-<span class="lineNum">     552 </span><span class="lineCov">     152850 :             memcpy(&amp;linebuf-&gt;line[linebuf-&gt;used], data, len);</span>
-<span class="lineNum">     553 </span><span class="lineCov">      50950 :             linebuf-&gt;used += len;</span>
+<span class="lineNum">     552 </span><span class="lineCov">     458688 :             memcpy(&amp;linebuf-&gt;line[linebuf-&gt;used], data, len);</span>
+<span class="lineNum">     553 </span><span class="lineCov">     152896 :             linebuf-&gt;used += len;</span>
 <span class="lineNum">     554 </span>            :         }
 <span class="lineNum">     555 </span>            : 
 <span class="lineNum">     556 </span>            :         /* If we saw anything besides &quot;success. please read again&quot;, then
 <span class="lineNum">     557 </span>            :          * we should return that status. If the line was completed, then
 <span class="lineNum">     558 </span>            :          * we should also return.
 <span class="lineNum">     559 </span>            :          */
-<span class="lineNum">     560 </span><span class="lineCov">      99215 :         if (status || linebuf-&gt;state == SERF_LINEBUF_READY)</span>
-<span class="lineNum">     561 </span><span class="lineCov">      50981 :             return status;</span>
+<span class="lineNum">     560 </span><span class="lineCov">     297736 :         if (status || linebuf-&gt;state == SERF_LINEBUF_READY)</span>
+<span class="lineNum">     561 </span><span class="lineCov">     152989 :             return status;</span>
 <span class="lineNum">     562 </span>            : 
 <span class="lineNum">     563 </span>            :         /* We got APR_SUCCESS and the line buffer is not complete. Let's
 <span class="lineNum">     564 </span>            :          * loop to read some more data.
 <span class="lineNum">     565 </span>            :          */
-<span class="lineNum">     566 </span><span class="lineCov">          4 :     }</span>
+<span class="lineNum">     566 </span><span class="lineCov">         12 :     }</span>
 <span class="lineNum">     567 </span>            :     /* NOTREACHED */
-<span class="lineNum">     568 </span><span class="lineCov">      50984 : }</span>
+<span class="lineNum">     568 </span><span class="lineCov">     152998 : }</span>
 <span class="lineNum">     569 </span>            : 
 <span class="lineNum">     570 </span>            : /* Logging functions.
 <a name="571"><span class="lineNum">     571 </span>            :    Use with one of the [COMP]_VERBOSE defines so that the compiler knows to</a>
@@ -643,11 +643,11 @@
 <span class="lineNum">     581 </span>            :             tm.tm_gmtoff/3600);
 <a name="582"><span class="lineNum">     582 </span><span class="lineNoCov">          0 : }</span></a>
 <span class="lineNum">     583 </span>            : 
-<span class="lineNum">     584 </span><span class="lineCov">      14504 : void serf__log(int verbose_flag, const char *filename, const char *fmt, ...)</span>
+<span class="lineNum">     584 </span><span class="lineCov">      43649 : void serf__log(int verbose_flag, const char *filename, const char *fmt, ...)</span>
 <span class="lineNum">     585 </span>            : {
-<span class="lineNum">     586 </span><span class="lineCov">      14504 :     va_list argp;</span>
+<span class="lineNum">     586 </span><span class="lineCov">      43649 :     va_list argp;</span>
 <span class="lineNum">     587 </span>            : 
-<span class="lineNum">     588 </span><span class="lineCov">      14504 :     if (verbose_flag) {</span>
+<span class="lineNum">     588 </span><span class="lineCov">      43649 :     if (verbose_flag) {</span>
 <span class="lineNum">     589 </span><span class="lineNoCov">          0 :         log_time();</span>
 <span class="lineNum">     590 </span>            : 
 <span class="lineNum">     591 </span><span class="lineNoCov">          0 :         if (filename)</span>
@@ -657,25 +657,25 @@
 <span class="lineNum">     595 </span><span class="lineNoCov">          0 :         vfprintf(stderr, fmt, argp);</span>
 <span class="lineNum">     596 </span><span class="lineNoCov">          0 :         va_end(argp);</span>
 <span class="lineNum">     597 </span><span class="lineNoCov">          0 :     }</span>
-<a name="598"><span class="lineNum">     598 </span><span class="lineCov">      14504 : }</span></a>
+<a name="598"><span class="lineNum">     598 </span><span class="lineCov">      43649 : }</span></a>
 <span class="lineNum">     599 </span>            : 
-<span class="lineNum">     600 </span><span class="lineCov">       3232 : void serf__log_nopref(int verbose_flag, const char *fmt, ...)</span>
+<span class="lineNum">     600 </span><span class="lineCov">       9698 : void serf__log_nopref(int verbose_flag, const char *fmt, ...)</span>
 <span class="lineNum">     601 </span>            : {
-<span class="lineNum">     602 </span><span class="lineCov">       3232 :     va_list argp;</span>
+<span class="lineNum">     602 </span><span class="lineCov">       9698 :     va_list argp;</span>
 <span class="lineNum">     603 </span>            : 
-<span class="lineNum">     604 </span><span class="lineCov">       3232 :     if (verbose_flag) {</span>
+<span class="lineNum">     604 </span><span class="lineCov">       9698 :     if (verbose_flag) {</span>
 <span class="lineNum">     605 </span><span class="lineNoCov">          0 :         va_start(argp, fmt);</span>
 <span class="lineNum">     606 </span><span class="lineNoCov">          0 :         vfprintf(stderr, fmt, argp);</span>
 <span class="lineNum">     607 </span><span class="lineNoCov">          0 :         va_end(argp);</span>
 <span class="lineNum">     608 </span><span class="lineNoCov">          0 :     }</span>
-<a name="609"><span class="lineNum">     609 </span><span class="lineCov">       3232 : }</span></a>
+<a name="609"><span class="lineNum">     609 </span><span class="lineCov">       9698 : }</span></a>
 <span class="lineNum">     610 </span>            : 
-<span class="lineNum">     611 </span><span class="lineCov">       4940 : void serf__log_skt(int verbose_flag, const char *filename, apr_socket_t *skt,</span>
-<span class="lineNum">     612 </span><span class="lineCov">       4940 :                    const char *fmt, ...)</span>
+<span class="lineNum">     611 </span><span class="lineCov">      14823 : void serf__log_skt(int verbose_flag, const char *filename, apr_socket_t *skt,</span>
+<span class="lineNum">     612 </span><span class="lineCov">      14823 :                    const char *fmt, ...)</span>
 <span class="lineNum">     613 </span>            : {
-<span class="lineNum">     614 </span><span class="lineCov">       4940 :     va_list argp;</span>
+<span class="lineNum">     614 </span><span class="lineCov">      14823 :     va_list argp;</span>
 <span class="lineNum">     615 </span>            : 
-<span class="lineNum">     616 </span><span class="lineCov">       4940 :     if (verbose_flag) {</span>
+<span class="lineNum">     616 </span><span class="lineCov">      14823 :     if (verbose_flag) {</span>
 <span class="lineNum">     617 </span><span class="lineNoCov">          0 :         apr_sockaddr_t *sa;</span>
 <span class="lineNum">     618 </span><span class="lineNoCov">          0 :         log_time();</span>
 <span class="lineNum">     619 </span>            : 
@@ -703,7 +703,7 @@
 <span class="lineNum">     641 </span><span class="lineNoCov">          0 :         vfprintf(stderr, fmt, argp);</span>
 <span class="lineNum">     642 </span><span class="lineNoCov">          0 :         va_end(argp);</span>
 <span class="lineNum">     643 </span><span class="lineNoCov">          0 :     }</span>
-<span class="lineNum">     644 </span><span class="lineCov">       4940 : }</span>
+<span class="lineNum">     644 </span><span class="lineCov">      14823 : }</span>
 <span class="lineNum">     645 </span>            : 
 </pre>
       </td>

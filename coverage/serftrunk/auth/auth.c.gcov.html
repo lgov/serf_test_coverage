@@ -85,15 +85,15 @@
 <span class="lineNum">      23 </span>            : #include &lt;apr_lib.h&gt;
 <a name="24"><span class="lineNum">      24 </span>            : </a>
 <span class="lineNum">      25 </span>            : static apr_status_t
-<span class="lineNum">      26 </span><span class="lineCov">         18 : default_auth_response_handler(const serf__authn_scheme_t *scheme,</span>
-<span class="lineNum">      27 </span><span class="lineCov">         18 :                               peer_t peer,</span>
-<span class="lineNum">      28 </span><span class="lineCov">         18 :                               int code,</span>
-<span class="lineNum">      29 </span><span class="lineCov">         18 :                               serf_connection_t *conn,</span>
-<span class="lineNum">      30 </span><span class="lineCov">         18 :                               serf_request_t *request,</span>
-<span class="lineNum">      31 </span><span class="lineCov">         18 :                               serf_bucket_t *response,</span>
-<span class="lineNum">      32 </span><span class="lineCov">         18 :                               apr_pool_t *pool)</span>
+<span class="lineNum">      26 </span><span class="lineCov">         54 : default_auth_response_handler(const serf__authn_scheme_t *scheme,</span>
+<span class="lineNum">      27 </span><span class="lineCov">         54 :                               peer_t peer,</span>
+<span class="lineNum">      28 </span><span class="lineCov">         54 :                               int code,</span>
+<span class="lineNum">      29 </span><span class="lineCov">         54 :                               serf_connection_t *conn,</span>
+<span class="lineNum">      30 </span><span class="lineCov">         54 :                               serf_request_t *request,</span>
+<span class="lineNum">      31 </span><span class="lineCov">         54 :                               serf_bucket_t *response,</span>
+<span class="lineNum">      32 </span><span class="lineCov">         54 :                               apr_pool_t *pool)</span>
 <span class="lineNum">      33 </span>            : {
-<span class="lineNum">      34 </span><span class="lineCov">         18 :     return APR_SUCCESS;</span>
+<span class="lineNum">      34 </span><span class="lineCov">         54 :     return APR_SUCCESS;</span>
 <span class="lineNum">      35 </span>            : }
 <span class="lineNum">      36 </span>            : 
 <span class="lineNum">      37 </span>            : /* These authentication schemes are in order of decreasing security, the topmost
@@ -157,21 +157,21 @@
 <span class="lineNum">      95 </span>            : 
 <a name="96"><span class="lineNum">      96 </span>            : </a>
 <span class="lineNum">      97 </span>            : /* Reads and discards all bytes in the response body. */
-<span class="lineNum">      98 </span><span class="lineCov">         23 : static apr_status_t discard_body(serf_bucket_t *response)</span>
+<span class="lineNum">      98 </span><span class="lineCov">         69 : static apr_status_t discard_body(serf_bucket_t *response)</span>
 <span class="lineNum">      99 </span>            : {
-<span class="lineNum">     100 </span><span class="lineCov">         23 :     apr_status_t status;</span>
-<span class="lineNum">     101 </span><span class="lineCov">         23 :     const char *data;</span>
-<span class="lineNum">     102 </span><span class="lineCov">         23 :     apr_size_t len;</span>
+<span class="lineNum">     100 </span><span class="lineCov">         69 :     apr_status_t status;</span>
+<span class="lineNum">     101 </span><span class="lineCov">         69 :     const char *data;</span>
+<span class="lineNum">     102 </span><span class="lineCov">         69 :     apr_size_t len;</span>
 <span class="lineNum">     103 </span>            : 
-<span class="lineNum">     104 </span><span class="lineCov">         23 :     while (1) {</span>
-<span class="lineNum">     105 </span><span class="lineCov">         69 :         status = serf_bucket_read(response, SERF_READ_ALL_AVAIL, &amp;data, &amp;len);</span>
+<span class="lineNum">     104 </span><span class="lineCov">         69 :     while (1) {</span>
+<span class="lineNum">     105 </span><span class="lineCov">        207 :         status = serf_bucket_read(response, SERF_READ_ALL_AVAIL, &amp;data, &amp;len);</span>
 <span class="lineNum">     106 </span>            : 
-<span class="lineNum">     107 </span><span class="lineCov">         69 :         if (status) {</span>
-<span class="lineNum">     108 </span><span class="lineCov">         23 :             return status;</span>
+<span class="lineNum">     107 </span><span class="lineCov">        207 :         if (status) {</span>
+<span class="lineNum">     108 </span><span class="lineCov">         69 :             return status;</span>
 <span class="lineNum">     109 </span>            :         }
 <span class="lineNum">     110 </span>            : 
 <span class="lineNum">     111 </span>            :         /* feed me */
-<span class="lineNum">     112 </span><span class="lineCov">         46 :     }</span>
+<span class="lineNum">     112 </span><span class="lineCov">        138 :     }</span>
 <span class="lineNum">     113 </span>            : }
 <span class="lineNum">     114 </span>            : 
 <span class="lineNum">     115 </span>            : /**
@@ -181,84 +181,84 @@
 <span class="lineNum">     119 </span>            :  *
 <a name="120"><span class="lineNum">     120 </span>            :  * Returns a non-0 value of a matching handler was found.</a>
 <span class="lineNum">     121 </span>            :  */
-<span class="lineNum">     122 </span><span class="lineCov">         23 : static int handle_auth_headers(int code,</span>
-<span class="lineNum">     123 </span><span class="lineCov">         23 :                                apr_hash_t *hdrs,</span>
-<span class="lineNum">     124 </span><span class="lineCov">         23 :                                serf_request_t *request,</span>
-<span class="lineNum">     125 </span><span class="lineCov">         23 :                                serf_bucket_t *response,</span>
-<span class="lineNum">     126 </span><span class="lineCov">         23 :                                apr_pool_t *pool)</span>
+<span class="lineNum">     122 </span><span class="lineCov">         69 : static int handle_auth_headers(int code,</span>
+<span class="lineNum">     123 </span><span class="lineCov">         69 :                                apr_hash_t *hdrs,</span>
+<span class="lineNum">     124 </span><span class="lineCov">         69 :                                serf_request_t *request,</span>
+<span class="lineNum">     125 </span><span class="lineCov">         69 :                                serf_bucket_t *response,</span>
+<span class="lineNum">     126 </span><span class="lineCov">         69 :                                apr_pool_t *pool)</span>
 <span class="lineNum">     127 </span>            : {
-<span class="lineNum">     128 </span><span class="lineCov">         23 :     const serf__authn_scheme_t *scheme;</span>
-<span class="lineNum">     129 </span><span class="lineCov">         23 :     serf_connection_t *conn = request-&gt;conn;</span>
-<span class="lineNum">     130 </span><span class="lineCov">         23 :     serf_context_t *ctx = conn-&gt;ctx;</span>
-<span class="lineNum">     131 </span><span class="lineCov">         23 :     apr_status_t status;</span>
+<span class="lineNum">     128 </span><span class="lineCov">         69 :     const serf__authn_scheme_t *scheme;</span>
+<span class="lineNum">     129 </span><span class="lineCov">         69 :     serf_connection_t *conn = request-&gt;conn;</span>
+<span class="lineNum">     130 </span><span class="lineCov">         69 :     serf_context_t *ctx = conn-&gt;ctx;</span>
+<span class="lineNum">     131 </span><span class="lineCov">         69 :     apr_status_t status;</span>
 <span class="lineNum">     132 </span>            : 
-<span class="lineNum">     133 </span><span class="lineCov">         23 :     status = SERF_ERROR_AUTHN_NOT_SUPPORTED;</span>
+<span class="lineNum">     133 </span><span class="lineCov">         69 :     status = SERF_ERROR_AUTHN_NOT_SUPPORTED;</span>
 <span class="lineNum">     134 </span>            : 
 <span class="lineNum">     135 </span>            :     /* Find the matching authentication handler.
 <span class="lineNum">     136 </span>            :        Note that we don't reuse the auth scheme stored in the context,
 <span class="lineNum">     137 </span>            :        as that may have changed. (ex. fallback from ntlm to basic.) */
-<span class="lineNum">     138 </span><span class="lineCov">        132 :     for (scheme = serf_authn_schemes; scheme-&gt;name != 0; ++scheme) {</span>
-<span class="lineNum">     139 </span><span class="lineCov">         64 :         const char *auth_hdr;</span>
-<span class="lineNum">     140 </span><span class="lineCov">         64 :         serf__auth_handler_func_t handler;</span>
-<span class="lineNum">     141 </span><span class="lineCov">         64 :         serf__authn_info_t *authn_info;</span>
+<span class="lineNum">     138 </span><span class="lineCov">        396 :     for (scheme = serf_authn_schemes; scheme-&gt;name != 0; ++scheme) {</span>
+<span class="lineNum">     139 </span><span class="lineCov">        192 :         const char *auth_hdr;</span>
+<span class="lineNum">     140 </span><span class="lineCov">        192 :         serf__auth_handler_func_t handler;</span>
+<span class="lineNum">     141 </span><span class="lineCov">        192 :         serf__authn_info_t *authn_info;</span>
 <span class="lineNum">     142 </span>            : 
-<span class="lineNum">     143 </span><span class="lineCov">         64 :         if (! (ctx-&gt;authn_types &amp; scheme-&gt;type))</span>
-<span class="lineNum">     144 </span><span class="lineCov">         38 :             continue;</span>
+<span class="lineNum">     143 </span><span class="lineCov">        192 :         if (! (ctx-&gt;authn_types &amp; scheme-&gt;type))</span>
+<span class="lineNum">     144 </span><span class="lineCov">        114 :             continue;</span>
 <span class="lineNum">     145 </span>            : 
-<span class="lineNum">     146 </span><span class="lineCov">         26 :         serf__log_skt(AUTH_VERBOSE, __FILE__, conn-&gt;skt,</span>
+<span class="lineNum">     146 </span><span class="lineCov">         78 :         serf__log_skt(AUTH_VERBOSE, __FILE__, conn-&gt;skt,</span>
 <span class="lineNum">     147 </span>            :                       &quot;Client supports: %s\n&quot;, scheme-&gt;name);
 <span class="lineNum">     148 </span>            : 
-<span class="lineNum">     149 </span><span class="lineCov">         26 :         auth_hdr = apr_hash_get(hdrs, scheme-&gt;key, APR_HASH_KEY_STRING);</span>
+<span class="lineNum">     149 </span><span class="lineCov">         78 :         auth_hdr = apr_hash_get(hdrs, scheme-&gt;key, APR_HASH_KEY_STRING);</span>
 <span class="lineNum">     150 </span>            : 
-<span class="lineNum">     151 </span><span class="lineCov">         26 :         if (!auth_hdr)</span>
-<span class="lineNum">     152 </span><span class="lineCov">          5 :             continue;</span>
+<span class="lineNum">     151 </span><span class="lineCov">         78 :         if (!auth_hdr)</span>
+<span class="lineNum">     152 </span><span class="lineCov">         15 :             continue;</span>
 <span class="lineNum">     153 </span>            : 
-<span class="lineNum">     154 </span><span class="lineCov">         21 :         if (code == 401) {</span>
-<span class="lineNum">     155 </span><span class="lineCov">         11 :             authn_info = serf__get_authn_info_for_server(conn);</span>
-<span class="lineNum">     156 </span><span class="lineCov">         11 :         } else {</span>
-<span class="lineNum">     157 </span><span class="lineCov">         10 :             authn_info = &amp;ctx-&gt;proxy_authn_info;</span>
+<span class="lineNum">     154 </span><span class="lineCov">         63 :         if (code == 401) {</span>
+<span class="lineNum">     155 </span><span class="lineCov">         33 :             authn_info = serf__get_authn_info_for_server(conn);</span>
+<span class="lineNum">     156 </span><span class="lineCov">         33 :         } else {</span>
+<span class="lineNum">     157 </span><span class="lineCov">         30 :             authn_info = &amp;ctx-&gt;proxy_authn_info;</span>
 <span class="lineNum">     158 </span>            :         }
 <span class="lineNum">     159 </span>            : 
-<span class="lineNum">     160 </span><span class="lineCov">         21 :         if (authn_info-&gt;failed_authn_types &amp; scheme-&gt;type) {</span>
+<span class="lineNum">     160 </span><span class="lineCov">         63 :         if (authn_info-&gt;failed_authn_types &amp; scheme-&gt;type) {</span>
 <span class="lineNum">     161 </span>            :             /* Skip this authn type since we already tried it before. */
 <span class="lineNum">     162 </span><span class="lineNoCov">          0 :             continue;</span>
 <span class="lineNum">     163 </span>            :         }
 <span class="lineNum">     164 </span>            : 
 <span class="lineNum">     165 </span>            :         /* Found a matching scheme */
-<span class="lineNum">     166 </span><span class="lineCov">         21 :         status = APR_SUCCESS;</span>
+<span class="lineNum">     166 </span><span class="lineCov">         63 :         status = APR_SUCCESS;</span>
 <span class="lineNum">     167 </span>            : 
-<span class="lineNum">     168 </span><span class="lineCov">         21 :         handler = scheme-&gt;handle_func;</span>
+<span class="lineNum">     168 </span><span class="lineCov">         63 :         handler = scheme-&gt;handle_func;</span>
 <span class="lineNum">     169 </span>            : 
-<span class="lineNum">     170 </span><span class="lineCov">         21 :         serf__log_skt(AUTH_VERBOSE, __FILE__, conn-&gt;skt,</span>
+<span class="lineNum">     170 </span><span class="lineCov">         63 :         serf__log_skt(AUTH_VERBOSE, __FILE__, conn-&gt;skt,</span>
 <span class="lineNum">     171 </span>            :                       &quot;... matched: %s\n&quot;, scheme-&gt;name);
 <span class="lineNum">     172 </span>            : 
 <span class="lineNum">     173 </span>            :         /* If this is the first time we use this scheme on this context and/or
 <span class="lineNum">     174 </span>            :            this connection, make sure to initialize the authentication handler 
 <span class="lineNum">     175 </span>            :            first. */
-<span class="lineNum">     176 </span><span class="lineCov">         21 :         if (authn_info-&gt;scheme != scheme) {</span>
-<span class="lineNum">     177 </span><span class="lineCov">         13 :             status = scheme-&gt;init_ctx_func(code, ctx, ctx-&gt;pool);</span>
-<span class="lineNum">     178 </span><span class="lineCov">         13 :             if (!status) {</span>
-<span class="lineNum">     179 </span><span class="lineCov">         13 :                 status = scheme-&gt;init_conn_func(scheme, code, conn,</span>
+<span class="lineNum">     176 </span><span class="lineCov">         63 :         if (authn_info-&gt;scheme != scheme) {</span>
+<span class="lineNum">     177 </span><span class="lineCov">         39 :             status = scheme-&gt;init_ctx_func(code, ctx, ctx-&gt;pool);</span>
+<span class="lineNum">     178 </span><span class="lineCov">         39 :             if (!status) {</span>
+<span class="lineNum">     179 </span><span class="lineCov">         39 :                 status = scheme-&gt;init_conn_func(scheme, code, conn,</span>
 <span class="lineNum">     180 </span>            :                                                 conn-&gt;pool);
-<span class="lineNum">     181 </span><span class="lineCov">         13 :                 if (!status)</span>
-<span class="lineNum">     182 </span><span class="lineCov">         13 :                     authn_info-&gt;scheme = scheme;</span>
+<span class="lineNum">     181 </span><span class="lineCov">         39 :                 if (!status)</span>
+<span class="lineNum">     182 </span><span class="lineCov">         39 :                     authn_info-&gt;scheme = scheme;</span>
 <span class="lineNum">     183 </span>            :                 else
 <span class="lineNum">     184 </span><span class="lineNoCov">          0 :                     authn_info-&gt;scheme = NULL;</span>
-<span class="lineNum">     185 </span><span class="lineCov">         13 :             }</span>
-<span class="lineNum">     186 </span><span class="lineCov">         13 :         }</span>
+<span class="lineNum">     185 </span><span class="lineCov">         39 :             }</span>
+<span class="lineNum">     186 </span><span class="lineCov">         39 :         }</span>
 <span class="lineNum">     187 </span>            : 
-<span class="lineNum">     188 </span><span class="lineCov">         21 :         if (!status) {</span>
-<span class="lineNum">     189 </span><span class="lineCov">         21 :             const char *auth_attr = strchr(auth_hdr, ' ');</span>
-<span class="lineNum">     190 </span><span class="lineCov">         21 :             if (auth_attr) {</span>
-<span class="lineNum">     191 </span><span class="lineCov">         21 :                 auth_attr++;</span>
-<span class="lineNum">     192 </span><span class="lineCov">         21 :             }</span>
+<span class="lineNum">     188 </span><span class="lineCov">         63 :         if (!status) {</span>
+<span class="lineNum">     189 </span><span class="lineCov">         63 :             const char *auth_attr = strchr(auth_hdr, ' ');</span>
+<span class="lineNum">     190 </span><span class="lineCov">         63 :             if (auth_attr) {</span>
+<span class="lineNum">     191 </span><span class="lineCov">         63 :                 auth_attr++;</span>
+<span class="lineNum">     192 </span><span class="lineCov">         63 :             }</span>
 <span class="lineNum">     193 </span>            : 
-<span class="lineNum">     194 </span><span class="lineCov">         21 :             status = handler(code, request, response,</span>
+<span class="lineNum">     194 </span><span class="lineCov">         63 :             status = handler(code, request, response,</span>
 <span class="lineNum">     195 </span>            :                              auth_hdr, auth_attr, ctx-&gt;pool);
-<span class="lineNum">     196 </span><span class="lineCov">         21 :         }</span>
+<span class="lineNum">     196 </span><span class="lineCov">         63 :         }</span>
 <span class="lineNum">     197 </span>            : 
-<span class="lineNum">     198 </span><span class="lineCov">         21 :         if (status == APR_SUCCESS)</span>
-<span class="lineNum">     199 </span><span class="lineCov">         21 :             break;</span>
+<span class="lineNum">     198 </span><span class="lineCov">         63 :         if (status == APR_SUCCESS)</span>
+<span class="lineNum">     199 </span><span class="lineCov">         63 :             break;</span>
 <span class="lineNum">     200 </span>            : 
 <span class="lineNum">     201 </span>            :         /* No success authenticating with this scheme, try the next.
 <span class="lineNum">     202 </span>            :            If no more authn schemes are found the status of this scheme will be
@@ -274,7 +274,7 @@
 <span class="lineNum">     212 </span><span class="lineNoCov">          0 :         authn_info-&gt;failed_authn_types |= scheme-&gt;type;</span>
 <span class="lineNum">     213 </span><span class="lineNoCov">          0 :     }</span>
 <span class="lineNum">     214 </span>            : 
-<span class="lineNum">     215 </span><span class="lineCov">         23 :     return status;</span>
+<span class="lineNum">     215 </span><span class="lineCov">         69 :     return status;</span>
 <span class="lineNum">     216 </span>            : }
 <span class="lineNum">     217 </span>            : 
 <span class="lineNum">     218 </span>            : /**
@@ -286,58 +286,58 @@
 <span class="lineNum">     224 </span>            :     apr_hash_t *hdrs;
 <a name="225"><span class="lineNum">     225 </span>            : } auth_baton_t;</a>
 <span class="lineNum">     226 </span>            : 
-<span class="lineNum">     227 </span><span class="lineCov">         54 : static int store_header_in_dict(void *baton,</span>
-<span class="lineNum">     228 </span><span class="lineCov">         54 :                                 const char *key,</span>
-<span class="lineNum">     229 </span><span class="lineCov">         54 :                                 const char *header)</span>
+<span class="lineNum">     227 </span><span class="lineCov">        162 : static int store_header_in_dict(void *baton,</span>
+<span class="lineNum">     228 </span><span class="lineCov">        162 :                                 const char *key,</span>
+<span class="lineNum">     229 </span><span class="lineCov">        162 :                                 const char *header)</span>
 <span class="lineNum">     230 </span>            : {
-<span class="lineNum">     231 </span><span class="lineCov">         54 :     auth_baton_t *ab = baton;</span>
-<span class="lineNum">     232 </span><span class="lineCov">         54 :     const char *auth_attr;</span>
-<span class="lineNum">     233 </span><span class="lineCov">         54 :     char *auth_name, *c;</span>
+<span class="lineNum">     231 </span><span class="lineCov">        162 :     auth_baton_t *ab = baton;</span>
+<span class="lineNum">     232 </span><span class="lineCov">        162 :     const char *auth_attr;</span>
+<span class="lineNum">     233 </span><span class="lineCov">        162 :     char *auth_name, *c;</span>
 <span class="lineNum">     234 </span>            : 
 <span class="lineNum">     235 </span>            :     /* We're only interested in xxxx-Authenticate headers. */
-<span class="lineNum">     236 </span><span class="lineCov">         54 :     if (strcmp(key, ab-&gt;header) != 0)</span>
-<span class="lineNum">     237 </span><span class="lineCov">         29 :         return 0;</span>
+<span class="lineNum">     236 </span><span class="lineCov">        162 :     if (strcmp(key, ab-&gt;header) != 0)</span>
+<span class="lineNum">     237 </span><span class="lineCov">         87 :         return 0;</span>
 <span class="lineNum">     238 </span>            : 
 <span class="lineNum">     239 </span>            :     /* Extract the authentication scheme name.  */
-<span class="lineNum">     240 </span><span class="lineCov">         25 :     auth_attr = strchr(header, ' ');</span>
-<span class="lineNum">     241 </span><span class="lineCov">         25 :     if (auth_attr) {</span>
-<span class="lineNum">     242 </span><span class="lineCov">         25 :         auth_name = apr_pstrmemdup(ab-&gt;pool, header, auth_attr - header);</span>
-<span class="lineNum">     243 </span><span class="lineCov">         25 :     }</span>
+<span class="lineNum">     240 </span><span class="lineCov">         75 :     auth_attr = strchr(header, ' ');</span>
+<span class="lineNum">     241 </span><span class="lineCov">         75 :     if (auth_attr) {</span>
+<span class="lineNum">     242 </span><span class="lineCov">         75 :         auth_name = apr_pstrmemdup(ab-&gt;pool, header, auth_attr - header);</span>
+<span class="lineNum">     243 </span><span class="lineCov">         75 :     }</span>
 <span class="lineNum">     244 </span>            :     else
 <span class="lineNum">     245 </span><span class="lineNoCov">          0 :         auth_name = apr_pstrmemdup(ab-&gt;pool, header, strlen(header));</span>
 <span class="lineNum">     246 </span>            : 
 <span class="lineNum">     247 </span>            :     /* Convert scheme name to lower case to enable case insensitive matching. */
-<span class="lineNum">     248 </span><span class="lineCov">        334 :     for (c = auth_name; *c != '\0'; c++)</span>
-<span class="lineNum">     249 </span><span class="lineCov">        142 :         *c = (char)apr_tolower(*c);</span>
+<span class="lineNum">     248 </span><span class="lineCov">       1002 :     for (c = auth_name; *c != '\0'; c++)</span>
+<span class="lineNum">     249 </span><span class="lineCov">        426 :         *c = (char)apr_tolower(*c);</span>
 <span class="lineNum">     250 </span>            : 
-<span class="lineNum">     251 </span><span class="lineCov">         25 :     apr_hash_set(ab-&gt;hdrs, auth_name, APR_HASH_KEY_STRING,</span>
-<span class="lineNum">     252 </span><span class="lineCov">         25 :                  apr_pstrdup(ab-&gt;pool, header));</span>
+<span class="lineNum">     251 </span><span class="lineCov">         75 :     apr_hash_set(ab-&gt;hdrs, auth_name, APR_HASH_KEY_STRING,</span>
+<span class="lineNum">     252 </span><span class="lineCov">         75 :                  apr_pstrdup(ab-&gt;pool, header));</span>
 <span class="lineNum">     253 </span>            : 
-<span class="lineNum">     254 </span><span class="lineCov">         25 :     return 0;</span>
-<span class="lineNum">     255 </span><span class="lineCov">         54 : }</span>
+<span class="lineNum">     254 </span><span class="lineCov">         75 :     return 0;</span>
+<span class="lineNum">     255 </span><span class="lineCov">        162 : }</span>
 <span class="lineNum">     256 </span>            : 
 <span class="lineNum">     257 </span>            : /* Dispatch authentication handling. This function matches the possible
 <a name="258"><span class="lineNum">     258 </span>            :    authentication mechanisms with those available. Server and proxy</a>
 <span class="lineNum">     259 </span>            :    authentication are evaluated separately. */
-<span class="lineNum">     260 </span><span class="lineCov">         23 : static apr_status_t dispatch_auth(int code,</span>
-<span class="lineNum">     261 </span><span class="lineCov">         23 :                                   serf_request_t *request,</span>
-<span class="lineNum">     262 </span><span class="lineCov">         23 :                                   serf_bucket_t *response,</span>
-<span class="lineNum">     263 </span><span class="lineCov">         23 :                                   apr_pool_t *pool)</span>
+<span class="lineNum">     260 </span><span class="lineCov">         69 : static apr_status_t dispatch_auth(int code,</span>
+<span class="lineNum">     261 </span><span class="lineCov">         69 :                                   serf_request_t *request,</span>
+<span class="lineNum">     262 </span><span class="lineCov">         69 :                                   serf_bucket_t *response,</span>
+<span class="lineNum">     263 </span><span class="lineCov">         69 :                                   apr_pool_t *pool)</span>
 <span class="lineNum">     264 </span>            : {
-<span class="lineNum">     265 </span><span class="lineCov">         23 :     serf_bucket_t *hdrs;</span>
+<span class="lineNum">     265 </span><span class="lineCov">         69 :     serf_bucket_t *hdrs;</span>
 <span class="lineNum">     266 </span>            : 
-<span class="lineNum">     267 </span><span class="lineCov">         33 :     if (code == 401 || code == 407) {</span>
-<span class="lineNum">     268 </span><span class="lineCov">         23 :         auth_baton_t ab = { 0 };</span>
+<span class="lineNum">     267 </span><span class="lineCov">         99 :     if (code == 401 || code == 407) {</span>
+<span class="lineNum">     268 </span><span class="lineCov">         69 :         auth_baton_t ab = { 0 };</span>
 <span class="lineNum">     269 </span>            : 
-<span class="lineNum">     270 </span><span class="lineCov">         23 :         ab.hdrs = apr_hash_make(pool);</span>
-<span class="lineNum">     271 </span><span class="lineCov">         23 :         ab.pool = pool;</span>
+<span class="lineNum">     270 </span><span class="lineCov">         69 :         ab.hdrs = apr_hash_make(pool);</span>
+<span class="lineNum">     271 </span><span class="lineCov">         69 :         ab.pool = pool;</span>
 <span class="lineNum">     272 </span>            : 
-<span class="lineNum">     273 </span><span class="lineCov">         23 :         if (code == 401)</span>
-<span class="lineNum">     274 </span><span class="lineCov">         13 :             ab.header = &quot;WWW-Authenticate&quot;;</span>
+<span class="lineNum">     273 </span><span class="lineCov">         69 :         if (code == 401)</span>
+<span class="lineNum">     274 </span><span class="lineCov">         39 :             ab.header = &quot;WWW-Authenticate&quot;;</span>
 <span class="lineNum">     275 </span>            :         else
-<span class="lineNum">     276 </span><span class="lineCov">         10 :             ab.header = &quot;Proxy-Authenticate&quot;;</span>
+<span class="lineNum">     276 </span><span class="lineCov">         30 :             ab.header = &quot;Proxy-Authenticate&quot;;</span>
 <span class="lineNum">     277 </span>            : 
-<span class="lineNum">     278 </span><span class="lineCov">         23 :         hdrs = serf_bucket_response_get_headers(response);</span>
+<span class="lineNum">     278 </span><span class="lineCov">         69 :         hdrs = serf_bucket_response_get_headers(response);</span>
 <span class="lineNum">     279 </span>            : 
 <span class="lineNum">     280 </span>            : #if AUTH_VERBOSE
 <span class="lineNum">     281 </span>            :         {
@@ -362,46 +362,46 @@
 <span class="lineNum">     300 </span>            :            and handle each header in the response, looking for one that we can
 <span class="lineNum">     301 </span>            :            work with.
 <span class="lineNum">     302 </span>            :         */
-<span class="lineNum">     303 </span><span class="lineCov">         23 :         serf_bucket_headers_do(hdrs,</span>
+<span class="lineNum">     303 </span><span class="lineCov">         69 :         serf_bucket_headers_do(hdrs,</span>
 <span class="lineNum">     304 </span>            :                                store_header_in_dict,
 <span class="lineNum">     305 </span>            :                                &amp;ab);
-<span class="lineNum">     306 </span><span class="lineCov">         23 :         if (apr_hash_count(ab.hdrs) == 0)</span>
+<span class="lineNum">     306 </span><span class="lineCov">         69 :         if (apr_hash_count(ab.hdrs) == 0)</span>
 <span class="lineNum">     307 </span><span class="lineNoCov">          0 :             return SERF_ERROR_AUTHN_FAILED;</span>
 <span class="lineNum">     308 </span>            : 
 <span class="lineNum">     309 </span>            :         /* Iterate over all authentication schemes, in order of decreasing
 <span class="lineNum">     310 </span>            :            security. Try to find a authentication schema the server support. */
-<span class="lineNum">     311 </span><span class="lineCov">         23 :         return handle_auth_headers(code, ab.hdrs,</span>
+<span class="lineNum">     311 </span><span class="lineCov">         69 :         return handle_auth_headers(code, ab.hdrs,</span>
 <span class="lineNum">     312 </span>            :                                    request, response, pool);
 <span class="lineNum">     313 </span>            :     }
 <span class="lineNum">     314 </span>            : 
 <span class="lineNum">     315 </span><span class="lineNoCov">          0 :     return APR_SUCCESS;</span>
-<span class="lineNum">     316 </span><span class="lineCov">         23 : }</span>
+<span class="lineNum">     316 </span><span class="lineCov">         69 : }</span>
 <span class="lineNum">     317 </span>            : 
 <a name="318"><span class="lineNum">     318 </span>            : /* Read the headers of the response and try the available</a>
 <span class="lineNum">     319 </span>            :    handlers if authentication or validation is needed. */
-<span class="lineNum">     320 </span><span class="lineCov">         54 : apr_status_t serf__handle_auth_response(int *consumed_response,</span>
-<span class="lineNum">     321 </span><span class="lineCov">         54 :                                         serf_request_t *request,</span>
-<span class="lineNum">     322 </span><span class="lineCov">         54 :                                         serf_bucket_t *response,</span>
-<span class="lineNum">     323 </span><span class="lineCov">         54 :                                         apr_pool_t *pool)</span>
+<span class="lineNum">     320 </span><span class="lineCov">        162 : apr_status_t serf__handle_auth_response(int *consumed_response,</span>
+<span class="lineNum">     321 </span><span class="lineCov">        162 :                                         serf_request_t *request,</span>
+<span class="lineNum">     322 </span><span class="lineCov">        162 :                                         serf_bucket_t *response,</span>
+<span class="lineNum">     323 </span><span class="lineCov">        162 :                                         apr_pool_t *pool)</span>
 <span class="lineNum">     324 </span>            : {
-<span class="lineNum">     325 </span><span class="lineCov">         54 :     apr_status_t status;</span>
-<span class="lineNum">     326 </span><span class="lineCov">         54 :     serf_status_line sl;</span>
+<span class="lineNum">     325 </span><span class="lineCov">        162 :     apr_status_t status;</span>
+<span class="lineNum">     326 </span><span class="lineCov">        162 :     serf_status_line sl;</span>
 <span class="lineNum">     327 </span>            : 
-<span class="lineNum">     328 </span><span class="lineCov">         54 :     *consumed_response = 0;</span>
+<span class="lineNum">     328 </span><span class="lineCov">        162 :     *consumed_response = 0;</span>
 <span class="lineNum">     329 </span>            : 
 <span class="lineNum">     330 </span>            :     /* TODO: the response bucket was created by the application, not at all
 <span class="lineNum">     331 </span>            :        guaranteed that this is of type response_bucket!! */
-<span class="lineNum">     332 </span><span class="lineCov">         54 :     status = serf_bucket_response_status(response, &amp;sl);</span>
-<span class="lineNum">     333 </span><span class="lineCov">         74 :     if (SERF_BUCKET_READ_ERROR(status)) {</span>
+<span class="lineNum">     332 </span><span class="lineCov">        162 :     status = serf_bucket_response_status(response, &amp;sl);</span>
+<span class="lineNum">     333 </span><span class="lineCov">        222 :     if (SERF_BUCKET_READ_ERROR(status)) {</span>
 <span class="lineNum">     334 </span><span class="lineNoCov">          0 :         return status;</span>
 <span class="lineNum">     335 </span>            :     }
-<span class="lineNum">     336 </span><span class="lineCov">         74 :     if (!sl.version &amp;&amp; (APR_STATUS_IS_EOF(status) ||</span>
+<span class="lineNum">     336 </span><span class="lineCov">        222 :     if (!sl.version &amp;&amp; (APR_STATUS_IS_EOF(status) ||</span>
 <span class="lineNum">     337 </span>            :                         APR_STATUS_IS_EAGAIN(status))) {
-<span class="lineNum">     338 </span><span class="lineCov">         10 :         return status;</span>
+<span class="lineNum">     338 </span><span class="lineCov">         30 :         return status;</span>
 <span class="lineNum">     339 </span>            :     }
 <span class="lineNum">     340 </span>            : 
-<span class="lineNum">     341 </span><span class="lineCov">         44 :     status = serf_bucket_response_wait_for_headers(response);</span>
-<span class="lineNum">     342 </span><span class="lineCov">         44 :     if (status) {</span>
+<span class="lineNum">     341 </span><span class="lineCov">        132 :     status = serf_bucket_response_wait_for_headers(response);</span>
+<span class="lineNum">     342 </span><span class="lineCov">        132 :     if (status) {</span>
 <span class="lineNum">     343 </span><span class="lineNoCov">          0 :         if (!APR_STATUS_IS_EOF(status)) {</span>
 <span class="lineNum">     344 </span><span class="lineNoCov">          0 :             return status;</span>
 <span class="lineNum">     345 </span>            :         }
@@ -412,56 +412,56 @@
 <span class="lineNum">     350 </span><span class="lineNoCov">          0 :         return APR_SUCCESS;</span>
 <span class="lineNum">     351 </span>            :     }
 <span class="lineNum">     352 </span>            : 
-<span class="lineNum">     353 </span><span class="lineCov">         75 :     if (sl.code == 401 || sl.code == 407) {</span>
+<span class="lineNum">     353 </span><span class="lineCov">        225 :     if (sl.code == 401 || sl.code == 407) {</span>
 <span class="lineNum">     354 </span>            :         /* Authentication requested. */
 <span class="lineNum">     355 </span>            : 
 <span class="lineNum">     356 </span>            :         /* Don't bother handling the authentication request if the response
 <span class="lineNum">     357 </span>            :            wasn't received completely yet. Serf will call serf__handle_auth_response
 <span class="lineNum">     358 </span>            :            again when more data is received. */
-<span class="lineNum">     359 </span><span class="lineCov">         23 :         status = discard_body(response);</span>
-<span class="lineNum">     360 </span><span class="lineCov">         23 :         *consumed_response = 1;</span>
+<span class="lineNum">     359 </span><span class="lineCov">         69 :         status = discard_body(response);</span>
+<span class="lineNum">     360 </span><span class="lineCov">         69 :         *consumed_response = 1;</span>
 <span class="lineNum">     361 </span>            :         
 <span class="lineNum">     362 </span>            :         /* Discard all response body before processing authentication. */
-<span class="lineNum">     363 </span><span class="lineCov">         23 :         if (!APR_STATUS_IS_EOF(status)) {</span>
+<span class="lineNum">     363 </span><span class="lineCov">         69 :         if (!APR_STATUS_IS_EOF(status)) {</span>
 <span class="lineNum">     364 </span><span class="lineNoCov">          0 :             return status;</span>
 <span class="lineNum">     365 </span>            :         }
 <span class="lineNum">     366 </span>            : 
-<span class="lineNum">     367 </span><span class="lineCov">         23 :         status = dispatch_auth(sl.code, request, response, pool);</span>
-<span class="lineNum">     368 </span><span class="lineCov">         23 :         if (status != APR_SUCCESS) {</span>
-<span class="lineNum">     369 </span><span class="lineCov">          2 :             return status;</span>
+<span class="lineNum">     367 </span><span class="lineCov">         69 :         status = dispatch_auth(sl.code, request, response, pool);</span>
+<span class="lineNum">     368 </span><span class="lineCov">         69 :         if (status != APR_SUCCESS) {</span>
+<span class="lineNum">     369 </span><span class="lineCov">          6 :             return status;</span>
 <span class="lineNum">     370 </span>            :         }
 <span class="lineNum">     371 </span>            : 
 <span class="lineNum">     372 </span>            :         /* Requeue the request with the necessary auth headers. */
 <span class="lineNum">     373 </span>            :         /* ### application doesn't know about this request! we just drop it
 <span class="lineNum">     374 </span>            :            ### on the floor.  */
-<span class="lineNum">     375 </span><span class="lineCov">         21 :         (void) serf__request_requeue(request);</span>
+<span class="lineNum">     375 </span><span class="lineCov">         63 :         (void) serf__request_requeue(request);</span>
 <span class="lineNum">     376 </span>            : 
-<span class="lineNum">     377 </span><span class="lineCov">         21 :         return APR_EOF;</span>
+<span class="lineNum">     377 </span><span class="lineCov">         63 :         return APR_EOF;</span>
 <span class="lineNum">     378 </span>            :     } else {
-<span class="lineNum">     379 </span><span class="lineCov">         21 :         serf__validate_response_func_t validate_resp;</span>
-<span class="lineNum">     380 </span><span class="lineCov">         21 :         serf_connection_t *conn = request-&gt;conn;</span>
-<span class="lineNum">     381 </span><span class="lineCov">         21 :         serf_context_t *ctx = conn-&gt;ctx;</span>
-<span class="lineNum">     382 </span><span class="lineCov">         21 :         serf__authn_info_t *authn_info;</span>
-<span class="lineNum">     383 </span><span class="lineCov">         21 :         apr_status_t resp_status = APR_SUCCESS;</span>
+<span class="lineNum">     379 </span><span class="lineCov">         63 :         serf__validate_response_func_t validate_resp;</span>
+<span class="lineNum">     380 </span><span class="lineCov">         63 :         serf_connection_t *conn = request-&gt;conn;</span>
+<span class="lineNum">     381 </span><span class="lineCov">         63 :         serf_context_t *ctx = conn-&gt;ctx;</span>
+<span class="lineNum">     382 </span><span class="lineCov">         63 :         serf__authn_info_t *authn_info;</span>
+<span class="lineNum">     383 </span><span class="lineCov">         63 :         apr_status_t resp_status = APR_SUCCESS;</span>
 <span class="lineNum">     384 </span>            : 
 <span class="lineNum">     385 </span>            : 
 <span class="lineNum">     386 </span>            :         /* Validate the response server authn headers. */
-<span class="lineNum">     387 </span><span class="lineCov">         21 :         authn_info = serf__get_authn_info_for_server(conn);</span>
-<span class="lineNum">     388 </span><span class="lineCov">         21 :         if (authn_info-&gt;scheme) {</span>
-<span class="lineNum">     389 </span><span class="lineCov">         16 :             validate_resp = authn_info-&gt;scheme-&gt;validate_response_func;</span>
-<span class="lineNum">     390 </span><span class="lineCov">         16 :             resp_status = validate_resp(authn_info-&gt;scheme, HOST, sl.code,</span>
+<span class="lineNum">     387 </span><span class="lineCov">         63 :         authn_info = serf__get_authn_info_for_server(conn);</span>
+<span class="lineNum">     388 </span><span class="lineCov">         63 :         if (authn_info-&gt;scheme) {</span>
+<span class="lineNum">     389 </span><span class="lineCov">         48 :             validate_resp = authn_info-&gt;scheme-&gt;validate_response_func;</span>
+<span class="lineNum">     390 </span><span class="lineCov">         48 :             resp_status = validate_resp(authn_info-&gt;scheme, HOST, sl.code,</span>
 <span class="lineNum">     391 </span>            :                                         conn, request, response, pool);
-<span class="lineNum">     392 </span><span class="lineCov">         16 :         }</span>
+<span class="lineNum">     392 </span><span class="lineCov">         48 :         }</span>
 <span class="lineNum">     393 </span>            : 
 <span class="lineNum">     394 </span>            :         /* Validate the response proxy authn headers. */
-<span class="lineNum">     395 </span><span class="lineCov">         21 :         authn_info = &amp;ctx-&gt;proxy_authn_info;</span>
-<span class="lineNum">     396 </span><span class="lineCov">         42 :         if (!resp_status &amp;&amp; authn_info-&gt;scheme) {</span>
-<span class="lineNum">     397 </span><span class="lineCov">          9 :             validate_resp = authn_info-&gt;scheme-&gt;validate_response_func;</span>
-<span class="lineNum">     398 </span><span class="lineCov">          9 :             resp_status = validate_resp(authn_info-&gt;scheme, PROXY, sl.code,</span>
+<span class="lineNum">     395 </span><span class="lineCov">         63 :         authn_info = &amp;ctx-&gt;proxy_authn_info;</span>
+<span class="lineNum">     396 </span><span class="lineCov">        126 :         if (!resp_status &amp;&amp; authn_info-&gt;scheme) {</span>
+<span class="lineNum">     397 </span><span class="lineCov">         27 :             validate_resp = authn_info-&gt;scheme-&gt;validate_response_func;</span>
+<span class="lineNum">     398 </span><span class="lineCov">         27 :             resp_status = validate_resp(authn_info-&gt;scheme, PROXY, sl.code,</span>
 <span class="lineNum">     399 </span>            :                                         conn, request, response, pool);
-<span class="lineNum">     400 </span><span class="lineCov">          9 :         }</span>
+<span class="lineNum">     400 </span><span class="lineCov">         27 :         }</span>
 <span class="lineNum">     401 </span>            : 
-<span class="lineNum">     402 </span><span class="lineCov">         21 :         if (resp_status) {</span>
+<span class="lineNum">     402 </span><span class="lineCov">         63 :         if (resp_status) {</span>
 <span class="lineNum">     403 </span>            :             /* If there was an error in the final step of the authentication,
 <span class="lineNum">     404 </span>            :                consider the reponse body as invalid and discard it. */
 <span class="lineNum">     405 </span><span class="lineNoCov">          0 :             status = discard_body(response);</span>
@@ -474,72 +474,72 @@
 <span class="lineNum">     412 </span>            :         }
 <span class="lineNum">     413 </span>            :     }
 <span class="lineNum">     414 </span>            : 
-<span class="lineNum">     415 </span><span class="lineCov">         21 :     return APR_SUCCESS;</span>
-<span class="lineNum">     416 </span><span class="lineCov">         54 : }</span>
+<span class="lineNum">     415 </span><span class="lineCov">         63 :     return APR_SUCCESS;</span>
+<span class="lineNum">     416 </span><span class="lineCov">        162 : }</span>
 <span class="lineNum">     417 </span>            : 
 <span class="lineNum">     418 </span>            : /**
 <span class="lineNum">     419 </span>            :  * base64 encode the authentication data and build an authentication
 <span class="lineNum">     420 </span>            :  * header in this format:
 <a name="421"><span class="lineNum">     421 </span>            :  * [SCHEME] [BASE64 of auth DATA]</a>
 <span class="lineNum">     422 </span>            :  */
-<span class="lineNum">     423 </span><span class="lineCov">         16 : void serf__encode_auth_header(const char **header,</span>
-<span class="lineNum">     424 </span><span class="lineCov">         16 :                               const char *scheme,</span>
-<span class="lineNum">     425 </span><span class="lineCov">         16 :                               const char *data, apr_size_t data_len,</span>
-<span class="lineNum">     426 </span><span class="lineCov">         16 :                               apr_pool_t *pool)</span>
+<span class="lineNum">     423 </span><span class="lineCov">         48 : void serf__encode_auth_header(const char **header,</span>
+<span class="lineNum">     424 </span><span class="lineCov">         48 :                               const char *scheme,</span>
+<span class="lineNum">     425 </span><span class="lineCov">         48 :                               const char *data, apr_size_t data_len,</span>
+<span class="lineNum">     426 </span><span class="lineCov">         48 :                               apr_pool_t *pool)</span>
 <span class="lineNum">     427 </span>            : {
-<span class="lineNum">     428 </span><span class="lineCov">         16 :     apr_size_t encoded_len, scheme_len;</span>
-<span class="lineNum">     429 </span><span class="lineCov">         16 :     char *ptr;</span>
+<span class="lineNum">     428 </span><span class="lineCov">         48 :     apr_size_t encoded_len, scheme_len;</span>
+<span class="lineNum">     429 </span><span class="lineCov">         48 :     char *ptr;</span>
 <span class="lineNum">     430 </span>            : 
-<span class="lineNum">     431 </span><span class="lineCov">         16 :     encoded_len = apr_base64_encode_len(data_len);</span>
-<span class="lineNum">     432 </span><span class="lineCov">         16 :     scheme_len = strlen(scheme);</span>
+<span class="lineNum">     431 </span><span class="lineCov">         48 :     encoded_len = apr_base64_encode_len(data_len);</span>
+<span class="lineNum">     432 </span><span class="lineCov">         48 :     scheme_len = strlen(scheme);</span>
 <span class="lineNum">     433 </span>            : 
-<span class="lineNum">     434 </span><span class="lineCov">         16 :     ptr = apr_palloc(pool, encoded_len + scheme_len + 1);</span>
-<span class="lineNum">     435 </span><span class="lineCov">         16 :     *header = ptr;</span>
+<span class="lineNum">     434 </span><span class="lineCov">         48 :     ptr = apr_palloc(pool, encoded_len + scheme_len + 1);</span>
+<span class="lineNum">     435 </span><span class="lineCov">         48 :     *header = ptr;</span>
 <span class="lineNum">     436 </span>            : 
-<span class="lineNum">     437 </span><span class="lineCov">         16 :     apr_cpystrn(ptr, scheme, scheme_len + 1);</span>
-<span class="lineNum">     438 </span><span class="lineCov">         16 :     ptr += scheme_len;</span>
-<span class="lineNum">     439 </span><span class="lineCov">         16 :     *ptr++ = ' ';</span>
+<span class="lineNum">     437 </span><span class="lineCov">         48 :     apr_cpystrn(ptr, scheme, scheme_len + 1);</span>
+<span class="lineNum">     438 </span><span class="lineCov">         48 :     ptr += scheme_len;</span>
+<span class="lineNum">     439 </span><span class="lineCov">         48 :     *ptr++ = ' ';</span>
 <span class="lineNum">     440 </span>            : 
-<span class="lineNum">     441 </span><span class="lineCov">         16 :     apr_base64_encode(ptr, data, data_len);</span>
-<a name="442"><span class="lineNum">     442 </span><span class="lineCov">         16 : }</span></a>
+<span class="lineNum">     441 </span><span class="lineCov">         48 :     apr_base64_encode(ptr, data, data_len);</span>
+<a name="442"><span class="lineNum">     442 </span><span class="lineCov">         48 : }</span></a>
 <span class="lineNum">     443 </span>            : 
-<span class="lineNum">     444 </span><span class="lineCov">         21 : const char *serf__construct_realm(peer_t peer,</span>
-<span class="lineNum">     445 </span><span class="lineCov">         21 :                                   serf_connection_t *conn,</span>
-<span class="lineNum">     446 </span><span class="lineCov">         21 :                                   const char *realm_name,</span>
-<span class="lineNum">     447 </span><span class="lineCov">         21 :                                   apr_pool_t *pool)</span>
+<span class="lineNum">     444 </span><span class="lineCov">         63 : const char *serf__construct_realm(peer_t peer,</span>
+<span class="lineNum">     445 </span><span class="lineCov">         63 :                                   serf_connection_t *conn,</span>
+<span class="lineNum">     446 </span><span class="lineCov">         63 :                                   const char *realm_name,</span>
+<span class="lineNum">     447 </span><span class="lineCov">         63 :                                   apr_pool_t *pool)</span>
 <span class="lineNum">     448 </span>            : {
-<span class="lineNum">     449 </span><span class="lineCov">         21 :     if (peer == HOST) {</span>
-<span class="lineNum">     450 </span><span class="lineCov">         11 :         return apr_psprintf(pool, &quot;&lt;%s://%s:%d&gt; %s&quot;,</span>
+<span class="lineNum">     449 </span><span class="lineCov">         63 :     if (peer == HOST) {</span>
+<span class="lineNum">     450 </span><span class="lineCov">         33 :         return apr_psprintf(pool, &quot;&lt;%s://%s:%d&gt; %s&quot;,</span>
 <span class="lineNum">     451 </span>            :                             conn-&gt;host_info.scheme,
 <span class="lineNum">     452 </span>            :                             conn-&gt;host_info.hostname,
 <span class="lineNum">     453 </span>            :                             conn-&gt;host_info.port,
 <span class="lineNum">     454 </span>            :                             realm_name);
 <span class="lineNum">     455 </span>            :     } else {
-<span class="lineNum">     456 </span><span class="lineCov">         10 :         serf_context_t *ctx = conn-&gt;ctx;</span>
+<span class="lineNum">     456 </span><span class="lineCov">         30 :         serf_context_t *ctx = conn-&gt;ctx;</span>
 <span class="lineNum">     457 </span>            : 
-<span class="lineNum">     458 </span><span class="lineCov">         10 :         return apr_psprintf(pool, &quot;&lt;http://%s:%d&gt; %s&quot;,</span>
+<span class="lineNum">     458 </span><span class="lineCov">         30 :         return apr_psprintf(pool, &quot;&lt;http://%s:%d&gt; %s&quot;,</span>
 <span class="lineNum">     459 </span>            :                             ctx-&gt;proxy_address-&gt;hostname,
 <span class="lineNum">     460 </span>            :                             ctx-&gt;proxy_address-&gt;port,
 <span class="lineNum">     461 </span>            :                             realm_name);
 <span class="lineNum">     462 </span>            :     }
-<a name="463"><span class="lineNum">     463 </span><span class="lineCov">         21 : }</span></a>
+<a name="463"><span class="lineNum">     463 </span><span class="lineCov">         63 : }</span></a>
 <span class="lineNum">     464 </span>            : 
-<span class="lineNum">     465 </span><span class="lineCov">        200 : serf__authn_info_t *serf__get_authn_info_for_server(serf_connection_t *conn)</span>
+<span class="lineNum">     465 </span><span class="lineCov">        600 : serf__authn_info_t *serf__get_authn_info_for_server(serf_connection_t *conn)</span>
 <span class="lineNum">     466 </span>            : {
-<span class="lineNum">     467 </span><span class="lineCov">        200 :     serf_context_t *ctx = conn-&gt;ctx;</span>
-<span class="lineNum">     468 </span><span class="lineCov">        200 :     serf__authn_info_t *authn_info;</span>
+<span class="lineNum">     467 </span><span class="lineCov">        600 :     serf_context_t *ctx = conn-&gt;ctx;</span>
+<span class="lineNum">     468 </span><span class="lineCov">        600 :     serf__authn_info_t *authn_info;</span>
 <span class="lineNum">     469 </span>            : 
-<span class="lineNum">     470 </span><span class="lineCov">        200 :     authn_info = apr_hash_get(ctx-&gt;server_authn_info, conn-&gt;host_url,</span>
+<span class="lineNum">     470 </span><span class="lineCov">        600 :     authn_info = apr_hash_get(ctx-&gt;server_authn_info, conn-&gt;host_url,</span>
 <span class="lineNum">     471 </span>            :                               APR_HASH_KEY_STRING);
 <span class="lineNum">     472 </span>            : 
-<span class="lineNum">     473 </span><span class="lineCov">        200 :     if (!authn_info) {</span>
-<span class="lineNum">     474 </span><span class="lineCov">         36 :         authn_info = apr_pcalloc(ctx-&gt;pool, sizeof(serf__authn_info_t));</span>
-<span class="lineNum">     475 </span><span class="lineCov">         36 :         apr_hash_set(ctx-&gt;server_authn_info,</span>
-<span class="lineNum">     476 </span><span class="lineCov">         36 :                      apr_pstrdup(ctx-&gt;pool, conn-&gt;host_url),</span>
+<span class="lineNum">     473 </span><span class="lineCov">        600 :     if (!authn_info) {</span>
+<span class="lineNum">     474 </span><span class="lineCov">        108 :         authn_info = apr_pcalloc(ctx-&gt;pool, sizeof(serf__authn_info_t));</span>
+<span class="lineNum">     475 </span><span class="lineCov">        108 :         apr_hash_set(ctx-&gt;server_authn_info,</span>
+<span class="lineNum">     476 </span><span class="lineCov">        108 :                      apr_pstrdup(ctx-&gt;pool, conn-&gt;host_url),</span>
 <span class="lineNum">     477 </span>            :                      APR_HASH_KEY_STRING, authn_info);
-<span class="lineNum">     478 </span><span class="lineCov">         36 :     }</span>
+<span class="lineNum">     478 </span><span class="lineCov">        108 :     }</span>
 <span class="lineNum">     479 </span>            : 
-<span class="lineNum">     480 </span><span class="lineCov">        200 :     return authn_info;</span>
+<span class="lineNum">     480 </span><span class="lineCov">        600 :     return authn_info;</span>
 <span class="lineNum">     481 </span>            : }
 </pre>
       </td>

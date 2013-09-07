@@ -117,25 +117,25 @@
 <a name="55"><span class="lineNum">      55 </span>            : </a>
 <span class="lineNum">      56 </span>            : 
 <span class="lineNum">      57 </span>            : serf_bucket_t *serf_bucket_headers_create(
-<span class="lineNum">      58 </span><span class="lineCov">       1672 :     serf_bucket_alloc_t *allocator)</span>
+<span class="lineNum">      58 </span><span class="lineCov">       5021 :     serf_bucket_alloc_t *allocator)</span>
 <span class="lineNum">      59 </span>            : {
-<span class="lineNum">      60 </span><span class="lineCov">       1672 :     headers_context_t *ctx;</span>
+<span class="lineNum">      60 </span><span class="lineCov">       5021 :     headers_context_t *ctx;</span>
 <span class="lineNum">      61 </span>            : 
-<span class="lineNum">      62 </span><span class="lineCov">       1672 :     ctx = serf_bucket_mem_alloc(allocator, sizeof(*ctx));</span>
-<span class="lineNum">      63 </span><span class="lineCov">       1672 :     ctx-&gt;list = NULL;</span>
-<span class="lineNum">      64 </span><span class="lineCov">       1672 :     ctx-&gt;last = NULL;</span>
-<span class="lineNum">      65 </span><span class="lineCov">       1672 :     ctx-&gt;state = READ_START;</span>
+<span class="lineNum">      62 </span><span class="lineCov">       5021 :     ctx = serf_bucket_mem_alloc(allocator, sizeof(*ctx));</span>
+<span class="lineNum">      63 </span><span class="lineCov">       5021 :     ctx-&gt;list = NULL;</span>
+<span class="lineNum">      64 </span><span class="lineCov">       5021 :     ctx-&gt;last = NULL;</span>
+<span class="lineNum">      65 </span><span class="lineCov">       5021 :     ctx-&gt;state = READ_START;</span>
 <span class="lineNum">      66 </span>            : 
-<span class="lineNum">      67 </span><span class="lineCov">       1672 :     return serf_bucket_create(&amp;serf_bucket_type_headers, allocator, ctx);</span>
+<span class="lineNum">      67 </span><span class="lineCov">       5021 :     return serf_bucket_create(&amp;serf_bucket_type_headers, allocator, ctx);</span>
 <a name="68"><span class="lineNum">      68 </span>            : }</a>
 <span class="lineNum">      69 </span>            : 
 <span class="lineNum">      70 </span>            : void serf_bucket_headers_setx(
-<span class="lineNum">      71 </span><span class="lineCov">      39757 :     serf_bucket_t *bkt,</span>
-<span class="lineNum">      72 </span><span class="lineCov">      39757 :     const char *header, apr_size_t header_size, int header_copy,</span>
-<span class="lineNum">      73 </span><span class="lineCov">      39757 :     const char *value, apr_size_t value_size, int value_copy)</span>
+<span class="lineNum">      71 </span><span class="lineCov">     119297 :     serf_bucket_t *bkt,</span>
+<span class="lineNum">      72 </span><span class="lineCov">     119297 :     const char *header, apr_size_t header_size, int header_copy,</span>
+<span class="lineNum">      73 </span><span class="lineCov">     119297 :     const char *value, apr_size_t value_size, int value_copy)</span>
 <span class="lineNum">      74 </span>            : {
-<span class="lineNum">      75 </span><span class="lineCov">      39757 :     headers_context_t *ctx = bkt-&gt;data;</span>
-<span class="lineNum">      76 </span><span class="lineCov">      39757 :     header_list_t *hdr;</span>
+<span class="lineNum">      75 </span><span class="lineCov">     119297 :     headers_context_t *ctx = bkt-&gt;data;</span>
+<span class="lineNum">      76 </span><span class="lineCov">     119297 :     header_list_t *hdr;</span>
 <span class="lineNum">      77 </span>            : 
 <span class="lineNum">      78 </span>            : #if 0
 <span class="lineNum">      79 </span>            :     /* ### include this? */
@@ -145,46 +145,46 @@
 <span class="lineNum">      83 </span>            :     }
 <span class="lineNum">      84 </span>            : #endif
 <span class="lineNum">      85 </span>            : 
-<span class="lineNum">      86 </span><span class="lineCov">      39757 :     hdr = serf_bucket_mem_alloc(bkt-&gt;allocator, sizeof(*hdr));</span>
-<span class="lineNum">      87 </span><span class="lineCov">      39757 :     hdr-&gt;header_size = header_size;</span>
-<span class="lineNum">      88 </span><span class="lineCov">      39757 :     hdr-&gt;value_size = value_size;</span>
-<span class="lineNum">      89 </span><span class="lineCov">      39757 :     hdr-&gt;alloc_flags = 0;</span>
-<span class="lineNum">      90 </span><span class="lineCov">      39757 :     hdr-&gt;next = NULL;</span>
+<span class="lineNum">      86 </span><span class="lineCov">     119297 :     hdr = serf_bucket_mem_alloc(bkt-&gt;allocator, sizeof(*hdr));</span>
+<span class="lineNum">      87 </span><span class="lineCov">     119297 :     hdr-&gt;header_size = header_size;</span>
+<span class="lineNum">      88 </span><span class="lineCov">     119297 :     hdr-&gt;value_size = value_size;</span>
+<span class="lineNum">      89 </span><span class="lineCov">     119297 :     hdr-&gt;alloc_flags = 0;</span>
+<span class="lineNum">      90 </span><span class="lineCov">     119297 :     hdr-&gt;next = NULL;</span>
 <span class="lineNum">      91 </span>            : 
-<span class="lineNum">      92 </span><span class="lineCov">      39757 :     if (header_copy) {</span>
-<span class="lineNum">      93 </span><span class="lineCov">      39534 :         hdr-&gt;header = serf_bstrmemdup(bkt-&gt;allocator, header, header_size);</span>
-<span class="lineNum">      94 </span><span class="lineCov">      39534 :         hdr-&gt;alloc_flags |= ALLOC_HEADER;</span>
-<span class="lineNum">      95 </span><span class="lineCov">      39534 :     }</span>
+<span class="lineNum">      92 </span><span class="lineCov">     119297 :     if (header_copy) {</span>
+<span class="lineNum">      93 </span><span class="lineCov">     118628 :         hdr-&gt;header = serf_bstrmemdup(bkt-&gt;allocator, header, header_size);</span>
+<span class="lineNum">      94 </span><span class="lineCov">     118628 :         hdr-&gt;alloc_flags |= ALLOC_HEADER;</span>
+<span class="lineNum">      95 </span><span class="lineCov">     118628 :     }</span>
 <span class="lineNum">      96 </span>            :     else {
-<span class="lineNum">      97 </span><span class="lineCov">        223 :         hdr-&gt;header = header;</span>
+<span class="lineNum">      97 </span><span class="lineCov">        669 :         hdr-&gt;header = header;</span>
 <span class="lineNum">      98 </span>            :     }
 <span class="lineNum">      99 </span>            : 
-<span class="lineNum">     100 </span><span class="lineCov">      39757 :     if (value_copy) {</span>
-<span class="lineNum">     101 </span><span class="lineCov">      39544 :         hdr-&gt;value = serf_bstrmemdup(bkt-&gt;allocator, value, value_size);</span>
-<span class="lineNum">     102 </span><span class="lineCov">      39544 :         hdr-&gt;alloc_flags |= ALLOC_VALUE;</span>
-<span class="lineNum">     103 </span><span class="lineCov">      39544 :     }</span>
+<span class="lineNum">     100 </span><span class="lineCov">     119297 :     if (value_copy) {</span>
+<span class="lineNum">     101 </span><span class="lineCov">     118658 :         hdr-&gt;value = serf_bstrmemdup(bkt-&gt;allocator, value, value_size);</span>
+<span class="lineNum">     102 </span><span class="lineCov">     118658 :         hdr-&gt;alloc_flags |= ALLOC_VALUE;</span>
+<span class="lineNum">     103 </span><span class="lineCov">     118658 :     }</span>
 <span class="lineNum">     104 </span>            :     else {
-<span class="lineNum">     105 </span><span class="lineCov">        213 :         hdr-&gt;value = value;</span>
+<span class="lineNum">     105 </span><span class="lineCov">        639 :         hdr-&gt;value = value;</span>
 <span class="lineNum">     106 </span>            :     }
 <span class="lineNum">     107 </span>            : 
 <span class="lineNum">     108 </span>            :     /* Add the new header at the end of the list. */
-<span class="lineNum">     109 </span><span class="lineCov">      39757 :     if (ctx-&gt;last)</span>
-<span class="lineNum">     110 </span><span class="lineCov">      38085 :         ctx-&gt;last-&gt;next = hdr;</span>
+<span class="lineNum">     109 </span><span class="lineCov">     119297 :     if (ctx-&gt;last)</span>
+<span class="lineNum">     110 </span><span class="lineCov">     114276 :         ctx-&gt;last-&gt;next = hdr;</span>
 <span class="lineNum">     111 </span>            :     else
-<span class="lineNum">     112 </span><span class="lineCov">       1672 :         ctx-&gt;list = hdr;</span>
+<span class="lineNum">     112 </span><span class="lineCov">       5021 :         ctx-&gt;list = hdr;</span>
 <span class="lineNum">     113 </span>            : 
-<span class="lineNum">     114 </span><span class="lineCov">      39757 :     ctx-&gt;last = hdr;</span>
-<a name="115"><span class="lineNum">     115 </span><span class="lineCov">      39757 : }</span></a>
+<span class="lineNum">     114 </span><span class="lineCov">     119297 :     ctx-&gt;last = hdr;</span>
+<a name="115"><span class="lineNum">     115 </span><span class="lineCov">     119297 : }</span></a>
 <span class="lineNum">     116 </span>            : 
 <span class="lineNum">     117 </span>            : void serf_bucket_headers_set(
-<span class="lineNum">     118 </span><span class="lineCov">         10 :     serf_bucket_t *headers_bucket,</span>
-<span class="lineNum">     119 </span><span class="lineCov">         10 :     const char *header,</span>
-<span class="lineNum">     120 </span><span class="lineCov">         10 :     const char *value)</span>
+<span class="lineNum">     118 </span><span class="lineCov">         30 :     serf_bucket_t *headers_bucket,</span>
+<span class="lineNum">     119 </span><span class="lineCov">         30 :     const char *header,</span>
+<span class="lineNum">     120 </span><span class="lineCov">         30 :     const char *value)</span>
 <span class="lineNum">     121 </span>            : {
-<span class="lineNum">     122 </span><span class="lineCov">         10 :     serf_bucket_headers_setx(headers_bucket,</span>
-<span class="lineNum">     123 </span><span class="lineCov">         10 :                              header, strlen(header), 0,</span>
-<span class="lineNum">     124 </span><span class="lineCov">         10 :                              value, strlen(value), 1);</span>
-<a name="125"><span class="lineNum">     125 </span><span class="lineCov">         10 : }</span></a>
+<span class="lineNum">     122 </span><span class="lineCov">         30 :     serf_bucket_headers_setx(headers_bucket,</span>
+<span class="lineNum">     123 </span><span class="lineCov">         30 :                              header, strlen(header), 0,</span>
+<span class="lineNum">     124 </span><span class="lineCov">         30 :                              value, strlen(value), 1);</span>
+<a name="125"><span class="lineNum">     125 </span><span class="lineCov">         30 : }</span></a>
 <span class="lineNum">     126 </span>            : 
 <span class="lineNum">     127 </span>            : void serf_bucket_headers_setc(
 <span class="lineNum">     128 </span><span class="lineNoCov">          0 :     serf_bucket_t *headers_bucket,</span>
@@ -197,28 +197,28 @@
 <a name="135"><span class="lineNum">     135 </span><span class="lineNoCov">          0 : }</span></a>
 <span class="lineNum">     136 </span>            : 
 <span class="lineNum">     137 </span>            : void serf_bucket_headers_setn(
-<span class="lineNum">     138 </span><span class="lineCov">        213 :     serf_bucket_t *headers_bucket,</span>
-<span class="lineNum">     139 </span><span class="lineCov">        213 :     const char *header,</span>
-<span class="lineNum">     140 </span><span class="lineCov">        213 :     const char *value)</span>
+<span class="lineNum">     138 </span><span class="lineCov">        639 :     serf_bucket_t *headers_bucket,</span>
+<span class="lineNum">     139 </span><span class="lineCov">        639 :     const char *header,</span>
+<span class="lineNum">     140 </span><span class="lineCov">        639 :     const char *value)</span>
 <span class="lineNum">     141 </span>            : {
-<span class="lineNum">     142 </span><span class="lineCov">        213 :     serf_bucket_headers_setx(headers_bucket,</span>
-<span class="lineNum">     143 </span><span class="lineCov">        213 :                              header, strlen(header), 0,</span>
-<span class="lineNum">     144 </span><span class="lineCov">        213 :                              value, strlen(value), 0);</span>
-<a name="145"><span class="lineNum">     145 </span><span class="lineCov">        213 : }</span></a>
+<span class="lineNum">     142 </span><span class="lineCov">        639 :     serf_bucket_headers_setx(headers_bucket,</span>
+<span class="lineNum">     143 </span><span class="lineCov">        639 :                              header, strlen(header), 0,</span>
+<span class="lineNum">     144 </span><span class="lineCov">        639 :                              value, strlen(value), 0);</span>
+<a name="145"><span class="lineNum">     145 </span><span class="lineCov">        639 : }</span></a>
 <span class="lineNum">     146 </span>            : 
 <span class="lineNum">     147 </span>            : const char *serf_bucket_headers_get(
-<span class="lineNum">     148 </span><span class="lineCov">       4799 :     serf_bucket_t *headers_bucket,</span>
-<span class="lineNum">     149 </span><span class="lineCov">       4799 :     const char *header)</span>
+<span class="lineNum">     148 </span><span class="lineCov">      14415 :     serf_bucket_t *headers_bucket,</span>
+<span class="lineNum">     149 </span><span class="lineCov">      14415 :     const char *header)</span>
 <span class="lineNum">     150 </span>            : {
-<span class="lineNum">     151 </span><span class="lineCov">       4799 :     headers_context_t *ctx = headers_bucket-&gt;data;</span>
-<span class="lineNum">     152 </span><span class="lineCov">       4799 :     header_list_t *found = ctx-&gt;list;</span>
-<span class="lineNum">     153 </span><span class="lineCov">       4799 :     const char *val = NULL;</span>
-<span class="lineNum">     154 </span><span class="lineCov">       4799 :     int value_size = 0;</span>
-<span class="lineNum">     155 </span><span class="lineCov">       4799 :     int val_alloc = 0;</span>
+<span class="lineNum">     151 </span><span class="lineCov">      14415 :     headers_context_t *ctx = headers_bucket-&gt;data;</span>
+<span class="lineNum">     152 </span><span class="lineCov">      14415 :     header_list_t *found = ctx-&gt;list;</span>
+<span class="lineNum">     153 </span><span class="lineCov">      14415 :     const char *val = NULL;</span>
+<span class="lineNum">     154 </span><span class="lineCov">      14415 :     int value_size = 0;</span>
+<span class="lineNum">     155 </span><span class="lineCov">      14415 :     int val_alloc = 0;</span>
 <span class="lineNum">     156 </span>            : 
-<span class="lineNum">     157 </span><span class="lineCov">     128325 :     while (found) {</span>
-<span class="lineNum">     158 </span><span class="lineCov">     118727 :         if (strcasecmp(found-&gt;header, header) == 0) {</span>
-<span class="lineNum">     159 </span><span class="lineCov">       1588 :             if (val) {</span>
+<span class="lineNum">     157 </span><span class="lineCov">     385096 :     while (found) {</span>
+<span class="lineNum">     158 </span><span class="lineCov">     356266 :         if (strcasecmp(found-&gt;header, header) == 0) {</span>
+<span class="lineNum">     159 </span><span class="lineCov">       4771 :             if (val) {</span>
 <span class="lineNum">     160 </span>            :                 /* ### this is BROKEN. the caller doesn't know that it should
 <span class="lineNum">     161 </span>            :                    ### free the result.  */
 <span class="lineNum">     162 </span>            : 
@@ -230,106 +230,106 @@
 <span class="lineNum">     168 </span>            : 
 <span class="lineNum">     169 </span>            :                 /* The &quot;+1&quot; is for the comma; the +1 in the alloc
 <span class="lineNum">     170 </span>            :                    call is for the terminating '\0' */
-<span class="lineNum">     171 </span><span class="lineCov">          5 :                 apr_size_t new_size = found-&gt;value_size + value_size + 1;</span>
-<span class="lineNum">     172 </span><span class="lineCov">          5 :                 char *new_val = serf_bucket_mem_alloc(headers_bucket-&gt;allocator,</span>
+<span class="lineNum">     171 </span><span class="lineCov">         15 :                 apr_size_t new_size = found-&gt;value_size + value_size + 1;</span>
+<span class="lineNum">     172 </span><span class="lineCov">         15 :                 char *new_val = serf_bucket_mem_alloc(headers_bucket-&gt;allocator,</span>
 <span class="lineNum">     173 </span>            :                                                       new_size + 1);
-<span class="lineNum">     174 </span><span class="lineCov">         15 :                 memcpy(new_val, val, value_size);</span>
-<span class="lineNum">     175 </span><span class="lineCov">          5 :                 new_val[value_size] = ',';</span>
-<span class="lineNum">     176 </span><span class="lineCov">         15 :                 memcpy(new_val + value_size + 1, found-&gt;value,</span>
+<span class="lineNum">     174 </span><span class="lineCov">         45 :                 memcpy(new_val, val, value_size);</span>
+<span class="lineNum">     175 </span><span class="lineCov">         15 :                 new_val[value_size] = ',';</span>
+<span class="lineNum">     176 </span><span class="lineCov">         45 :                 memcpy(new_val + value_size + 1, found-&gt;value,</span>
 <span class="lineNum">     177 </span>            :                        found-&gt;value_size);
-<span class="lineNum">     178 </span><span class="lineCov">          5 :                 new_val[new_size] = '\0';</span>
+<span class="lineNum">     178 </span><span class="lineCov">         15 :                 new_val[new_size] = '\0';</span>
 <span class="lineNum">     179 </span>            :                 /* Copy the new value over the already existing value. */
-<span class="lineNum">     180 </span><span class="lineCov">          5 :                 if (val_alloc)</span>
-<span class="lineNum">     181 </span><span class="lineCov">          2 :                     serf_bucket_mem_free(headers_bucket-&gt;allocator, (void*)val);</span>
-<span class="lineNum">     182 </span><span class="lineCov">          5 :                 val_alloc |= ALLOC_VALUE;</span>
-<span class="lineNum">     183 </span><span class="lineCov">          5 :                 val = new_val;</span>
-<span class="lineNum">     184 </span><span class="lineCov">          5 :                 value_size = new_size;</span>
-<span class="lineNum">     185 </span><span class="lineCov">          5 :             }</span>
+<span class="lineNum">     180 </span><span class="lineCov">         15 :                 if (val_alloc)</span>
+<span class="lineNum">     181 </span><span class="lineCov">          6 :                     serf_bucket_mem_free(headers_bucket-&gt;allocator, (void*)val);</span>
+<span class="lineNum">     182 </span><span class="lineCov">         15 :                 val_alloc |= ALLOC_VALUE;</span>
+<span class="lineNum">     183 </span><span class="lineCov">         15 :                 val = new_val;</span>
+<span class="lineNum">     184 </span><span class="lineCov">         15 :                 value_size = new_size;</span>
+<span class="lineNum">     185 </span><span class="lineCov">         15 :             }</span>
 <span class="lineNum">     186 </span>            :             else {
-<span class="lineNum">     187 </span><span class="lineCov">       1583 :                 val = found-&gt;value;</span>
-<span class="lineNum">     188 </span><span class="lineCov">       1583 :                 value_size = found-&gt;value_size;</span>
+<span class="lineNum">     187 </span><span class="lineCov">       4756 :                 val = found-&gt;value;</span>
+<span class="lineNum">     188 </span><span class="lineCov">       4756 :                 value_size = found-&gt;value_size;</span>
 <span class="lineNum">     189 </span>            :             }
-<span class="lineNum">     190 </span><span class="lineCov">       1588 :         }</span>
-<span class="lineNum">     191 </span><span class="lineCov">     118727 :         found = found-&gt;next;</span>
-<span class="lineNum">     192 </span><span class="lineCov">     118727 :     }</span>
+<span class="lineNum">     190 </span><span class="lineCov">       4771 :         }</span>
+<span class="lineNum">     191 </span><span class="lineCov">     356266 :         found = found-&gt;next;</span>
+<span class="lineNum">     192 </span><span class="lineCov">     356266 :     }</span>
 <span class="lineNum">     193 </span>            : 
-<span class="lineNum">     194 </span><span class="lineCov">       4799 :     return val;</span>
+<span class="lineNum">     194 </span><span class="lineCov">      14415 :     return val;</span>
 <a name="195"><span class="lineNum">     195 </span>            : }</a>
 <span class="lineNum">     196 </span>            : 
 <span class="lineNum">     197 </span>            : void serf_bucket_headers_do(
-<span class="lineNum">     198 </span><span class="lineCov">         24 :     serf_bucket_t *headers_bucket,</span>
-<span class="lineNum">     199 </span><span class="lineCov">         24 :     serf_bucket_headers_do_callback_fn_t func,</span>
-<span class="lineNum">     200 </span><span class="lineCov">         24 :     void *baton)</span>
+<span class="lineNum">     198 </span><span class="lineCov">         72 :     serf_bucket_t *headers_bucket,</span>
+<span class="lineNum">     199 </span><span class="lineCov">         72 :     serf_bucket_headers_do_callback_fn_t func,</span>
+<span class="lineNum">     200 </span><span class="lineCov">         72 :     void *baton)</span>
 <span class="lineNum">     201 </span>            : {
-<span class="lineNum">     202 </span><span class="lineCov">         24 :     headers_context_t *ctx = headers_bucket-&gt;data;</span>
-<span class="lineNum">     203 </span><span class="lineCov">         24 :     header_list_t *scan = ctx-&gt;list;</span>
+<span class="lineNum">     202 </span><span class="lineCov">         72 :     headers_context_t *ctx = headers_bucket-&gt;data;</span>
+<span class="lineNum">     203 </span><span class="lineCov">         72 :     header_list_t *scan = ctx-&gt;list;</span>
 <span class="lineNum">     204 </span>            : 
-<span class="lineNum">     205 </span><span class="lineCov">        107 :     while (scan) {</span>
-<span class="lineNum">     206 </span><span class="lineCov">         59 :         if (func(baton, scan-&gt;header, scan-&gt;value) != 0) {</span>
+<span class="lineNum">     205 </span><span class="lineCov">        321 :     while (scan) {</span>
+<span class="lineNum">     206 </span><span class="lineCov">        177 :         if (func(baton, scan-&gt;header, scan-&gt;value) != 0) {</span>
 <span class="lineNum">     207 </span><span class="lineNoCov">          0 :             break;</span>
 <span class="lineNum">     208 </span>            :         }
-<span class="lineNum">     209 </span><span class="lineCov">         59 :         scan = scan-&gt;next;</span>
-<span class="lineNum">     210 </span><span class="lineCov">         59 :     }</span>
-<a name="211"><span class="lineNum">     211 </span><span class="lineCov">         24 : }</span></a>
+<span class="lineNum">     209 </span><span class="lineCov">        177 :         scan = scan-&gt;next;</span>
+<span class="lineNum">     210 </span><span class="lineCov">        177 :     }</span>
+<a name="211"><span class="lineNum">     211 </span><span class="lineCov">         72 : }</span></a>
 <span class="lineNum">     212 </span>            : 
-<span class="lineNum">     213 </span><span class="lineCov">        197 : static void serf_headers_destroy_and_data(serf_bucket_t *bucket)</span>
+<span class="lineNum">     213 </span><span class="lineCov">        596 : static void serf_headers_destroy_and_data(serf_bucket_t *bucket)</span>
 <span class="lineNum">     214 </span>            : {
-<span class="lineNum">     215 </span><span class="lineCov">        197 :     headers_context_t *ctx = bucket-&gt;data;</span>
-<span class="lineNum">     216 </span><span class="lineCov">        197 :     header_list_t *scan = ctx-&gt;list;</span>
+<span class="lineNum">     215 </span><span class="lineCov">        596 :     headers_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">     216 </span><span class="lineCov">        596 :     header_list_t *scan = ctx-&gt;list;</span>
 <span class="lineNum">     217 </span>            : 
-<span class="lineNum">     218 </span><span class="lineCov">        743 :     while (scan) {</span>
-<span class="lineNum">     219 </span><span class="lineCov">        349 :         header_list_t *next_hdr = scan-&gt;next;</span>
+<span class="lineNum">     218 </span><span class="lineCov">       2265 :     while (scan) {</span>
+<span class="lineNum">     219 </span><span class="lineCov">       1073 :         header_list_t *next_hdr = scan-&gt;next;</span>
 <span class="lineNum">     220 </span>            : 
-<span class="lineNum">     221 </span><span class="lineCov">        349 :         if (scan-&gt;alloc_flags &amp; ALLOC_HEADER)</span>
-<span class="lineNum">     222 </span><span class="lineCov">        136 :             serf_bucket_mem_free(bucket-&gt;allocator, (void *)scan-&gt;header);</span>
-<span class="lineNum">     223 </span><span class="lineCov">        349 :         if (scan-&gt;alloc_flags &amp; ALLOC_VALUE)</span>
-<span class="lineNum">     224 </span><span class="lineCov">        136 :             serf_bucket_mem_free(bucket-&gt;allocator, (void *)scan-&gt;value);</span>
-<span class="lineNum">     225 </span><span class="lineCov">        349 :         serf_bucket_mem_free(bucket-&gt;allocator, scan);</span>
+<span class="lineNum">     221 </span><span class="lineCov">       1073 :         if (scan-&gt;alloc_flags &amp; ALLOC_HEADER)</span>
+<span class="lineNum">     222 </span><span class="lineCov">        434 :             serf_bucket_mem_free(bucket-&gt;allocator, (void *)scan-&gt;header);</span>
+<span class="lineNum">     223 </span><span class="lineCov">       1073 :         if (scan-&gt;alloc_flags &amp; ALLOC_VALUE)</span>
+<span class="lineNum">     224 </span><span class="lineCov">        434 :             serf_bucket_mem_free(bucket-&gt;allocator, (void *)scan-&gt;value);</span>
+<span class="lineNum">     225 </span><span class="lineCov">       1073 :         serf_bucket_mem_free(bucket-&gt;allocator, scan);</span>
 <span class="lineNum">     226 </span>            : 
-<span class="lineNum">     227 </span><span class="lineCov">        349 :         scan = next_hdr;</span>
-<span class="lineNum">     228 </span><span class="lineCov">        349 :     }</span>
+<span class="lineNum">     227 </span><span class="lineCov">       1073 :         scan = next_hdr;</span>
+<span class="lineNum">     228 </span><span class="lineCov">       1073 :     }</span>
 <span class="lineNum">     229 </span>            : 
-<span class="lineNum">     230 </span><span class="lineCov">        197 :     serf_default_destroy_and_data(bucket);</span>
-<a name="231"><span class="lineNum">     231 </span><span class="lineCov">        197 : }</span></a>
+<span class="lineNum">     230 </span><span class="lineCov">        596 :     serf_default_destroy_and_data(bucket);</span>
+<a name="231"><span class="lineNum">     231 </span><span class="lineCov">        596 : }</span></a>
 <span class="lineNum">     232 </span>            : 
 <span class="lineNum">     233 </span>            : static void select_value(
-<span class="lineNum">     234 </span><span class="lineCov">        971 :     headers_context_t *ctx,</span>
-<span class="lineNum">     235 </span><span class="lineCov">        971 :     const char **value,</span>
-<span class="lineNum">     236 </span><span class="lineCov">        971 :     apr_size_t *len)</span>
+<span class="lineNum">     234 </span><span class="lineCov">       2913 :     headers_context_t *ctx,</span>
+<span class="lineNum">     235 </span><span class="lineCov">       2913 :     const char **value,</span>
+<span class="lineNum">     236 </span><span class="lineCov">       2913 :     apr_size_t *len)</span>
 <span class="lineNum">     237 </span>            : {
-<span class="lineNum">     238 </span><span class="lineCov">        971 :     const char *v;</span>
-<span class="lineNum">     239 </span><span class="lineCov">        971 :     apr_size_t l;</span>
+<span class="lineNum">     238 </span><span class="lineCov">       2913 :     const char *v;</span>
+<span class="lineNum">     239 </span><span class="lineCov">       2913 :     apr_size_t l;</span>
 <span class="lineNum">     240 </span>            : 
-<span class="lineNum">     241 </span><span class="lineCov">        971 :     if (ctx-&gt;state == READ_START) {</span>
-<span class="lineNum">     242 </span><span class="lineCov">        103 :         if (ctx-&gt;list == NULL) {</span>
+<span class="lineNum">     241 </span><span class="lineCov">       2913 :     if (ctx-&gt;state == READ_START) {</span>
+<span class="lineNum">     242 </span><span class="lineCov">        309 :         if (ctx-&gt;list == NULL) {</span>
 <span class="lineNum">     243 </span>            :             /* No headers. Move straight to the TERM state. */
 <span class="lineNum">     244 </span><span class="lineNoCov">          0 :             ctx-&gt;state = READ_TERM;</span>
 <span class="lineNum">     245 </span><span class="lineNoCov">          0 :         }</span>
 <span class="lineNum">     246 </span>            :         else {
-<span class="lineNum">     247 </span><span class="lineCov">        103 :             ctx-&gt;state = READ_HEADER;</span>
-<span class="lineNum">     248 </span><span class="lineCov">        103 :             ctx-&gt;cur_read = ctx-&gt;list;</span>
+<span class="lineNum">     247 </span><span class="lineCov">        309 :             ctx-&gt;state = READ_HEADER;</span>
+<span class="lineNum">     248 </span><span class="lineCov">        309 :             ctx-&gt;cur_read = ctx-&gt;list;</span>
 <span class="lineNum">     249 </span>            :         }
-<span class="lineNum">     250 </span><span class="lineCov">        103 :         ctx-&gt;amt_read = 0;</span>
-<span class="lineNum">     251 </span><span class="lineCov">        103 :     }</span>
+<span class="lineNum">     250 </span><span class="lineCov">        309 :         ctx-&gt;amt_read = 0;</span>
+<span class="lineNum">     251 </span><span class="lineCov">        309 :     }</span>
 <span class="lineNum">     252 </span>            : 
-<span class="lineNum">     253 </span><span class="lineCov">        971 :     switch (ctx-&gt;state) {</span>
+<span class="lineNum">     253 </span><span class="lineCov">       2913 :     switch (ctx-&gt;state) {</span>
 <span class="lineNum">     254 </span>            :     case READ_HEADER:
-<span class="lineNum">     255 </span><span class="lineCov">        217 :         v = ctx-&gt;cur_read-&gt;header;</span>
-<span class="lineNum">     256 </span><span class="lineCov">        217 :         l = ctx-&gt;cur_read-&gt;header_size;</span>
-<span class="lineNum">     257 </span><span class="lineCov">        217 :         break;</span>
+<span class="lineNum">     255 </span><span class="lineCov">        651 :         v = ctx-&gt;cur_read-&gt;header;</span>
+<span class="lineNum">     256 </span><span class="lineCov">        651 :         l = ctx-&gt;cur_read-&gt;header_size;</span>
+<span class="lineNum">     257 </span><span class="lineCov">        651 :         break;</span>
 <span class="lineNum">     258 </span>            :     case READ_SEP:
-<span class="lineNum">     259 </span><span class="lineCov">        217 :         v = &quot;: &quot;;</span>
-<span class="lineNum">     260 </span><span class="lineCov">        217 :         l = 2;</span>
-<span class="lineNum">     261 </span><span class="lineCov">        217 :         break;</span>
+<span class="lineNum">     259 </span><span class="lineCov">        651 :         v = &quot;: &quot;;</span>
+<span class="lineNum">     260 </span><span class="lineCov">        651 :         l = 2;</span>
+<span class="lineNum">     261 </span><span class="lineCov">        651 :         break;</span>
 <span class="lineNum">     262 </span>            :     case READ_VALUE:
-<span class="lineNum">     263 </span><span class="lineCov">        217 :         v = ctx-&gt;cur_read-&gt;value;</span>
-<span class="lineNum">     264 </span><span class="lineCov">        217 :         l = ctx-&gt;cur_read-&gt;value_size;</span>
-<span class="lineNum">     265 </span><span class="lineCov">        217 :         break;</span>
+<span class="lineNum">     263 </span><span class="lineCov">        651 :         v = ctx-&gt;cur_read-&gt;value;</span>
+<span class="lineNum">     264 </span><span class="lineCov">        651 :         l = ctx-&gt;cur_read-&gt;value_size;</span>
+<span class="lineNum">     265 </span><span class="lineCov">        651 :         break;</span>
 <span class="lineNum">     266 </span>            :     case READ_CRLF:
 <span class="lineNum">     267 </span>            :     case READ_TERM:
-<span class="lineNum">     268 </span><span class="lineCov">        320 :         v = &quot;\r\n&quot;;</span>
-<span class="lineNum">     269 </span><span class="lineCov">        320 :         l = 2;</span>
-<span class="lineNum">     270 </span><span class="lineCov">        320 :         break;</span>
+<span class="lineNum">     268 </span><span class="lineCov">        960 :         v = &quot;\r\n&quot;;</span>
+<span class="lineNum">     269 </span><span class="lineCov">        960 :         l = 2;</span>
+<span class="lineNum">     270 </span><span class="lineCov">        960 :         break;</span>
 <span class="lineNum">     271 </span>            :     case READ_DONE:
 <span class="lineNum">     272 </span><span class="lineNoCov">          0 :         *len = 0;</span>
 <span class="lineNum">     273 </span><span class="lineNoCov">          0 :         return;</span>
@@ -338,34 +338,34 @@
 <span class="lineNum">     276 </span><span class="lineNoCov">          0 :         return;</span>
 <span class="lineNum">     277 </span>            :     }
 <span class="lineNum">     278 </span>            : 
-<span class="lineNum">     279 </span><span class="lineCov">        971 :     *value = v + ctx-&gt;amt_read;</span>
-<span class="lineNum">     280 </span><span class="lineCov">        971 :     *len = l - ctx-&gt;amt_read;</span>
-<span class="lineNum">     281 </span><span class="lineCov">       1942 : }</span>
+<span class="lineNum">     279 </span><span class="lineCov">       2913 :     *value = v + ctx-&gt;amt_read;</span>
+<span class="lineNum">     280 </span><span class="lineCov">       2913 :     *len = l - ctx-&gt;amt_read;</span>
+<span class="lineNum">     281 </span><span class="lineCov">       5826 : }</span>
 <a name="282"><span class="lineNum">     282 </span>            : </a>
 <span class="lineNum">     283 </span>            : /* the current data chunk has been read/consumed. move our internal state. */
-<span class="lineNum">     284 </span><span class="lineCov">        971 : static apr_status_t consume_chunk(headers_context_t *ctx)</span>
+<span class="lineNum">     284 </span><span class="lineCov">       2913 : static apr_status_t consume_chunk(headers_context_t *ctx)</span>
 <span class="lineNum">     285 </span>            : {
 <span class="lineNum">     286 </span>            :     /* move to the next state, resetting the amount read. */
-<span class="lineNum">     287 </span><span class="lineCov">        971 :     ++ctx-&gt;state;</span>
-<span class="lineNum">     288 </span><span class="lineCov">        971 :     ctx-&gt;amt_read = 0;</span>
+<span class="lineNum">     287 </span><span class="lineCov">       2913 :     ++ctx-&gt;state;</span>
+<span class="lineNum">     288 </span><span class="lineCov">       2913 :     ctx-&gt;amt_read = 0;</span>
 <span class="lineNum">     289 </span>            : 
 <span class="lineNum">     290 </span>            :     /* just sent the terminator and moved to DONE. signal completion. */
-<span class="lineNum">     291 </span><span class="lineCov">        971 :     if (ctx-&gt;state == READ_DONE)</span>
-<span class="lineNum">     292 </span><span class="lineCov">        103 :         return APR_EOF;</span>
+<span class="lineNum">     291 </span><span class="lineCov">       2913 :     if (ctx-&gt;state == READ_DONE)</span>
+<span class="lineNum">     292 </span><span class="lineCov">        309 :         return APR_EOF;</span>
 <span class="lineNum">     293 </span>            : 
 <span class="lineNum">     294 </span>            :     /* end of this header. move to the next one. */
-<span class="lineNum">     295 </span><span class="lineCov">        868 :     if (ctx-&gt;state == READ_TERM) {</span>
-<span class="lineNum">     296 </span><span class="lineCov">        217 :         ctx-&gt;cur_read = ctx-&gt;cur_read-&gt;next;</span>
-<span class="lineNum">     297 </span><span class="lineCov">        217 :         if (ctx-&gt;cur_read != NULL) {</span>
+<span class="lineNum">     295 </span><span class="lineCov">       2604 :     if (ctx-&gt;state == READ_TERM) {</span>
+<span class="lineNum">     296 </span><span class="lineCov">        651 :         ctx-&gt;cur_read = ctx-&gt;cur_read-&gt;next;</span>
+<span class="lineNum">     297 </span><span class="lineCov">        651 :         if (ctx-&gt;cur_read != NULL) {</span>
 <span class="lineNum">     298 </span>            :             /* We've got another head to send. Reset the read state. */
-<span class="lineNum">     299 </span><span class="lineCov">        114 :             ctx-&gt;state = READ_HEADER;</span>
-<span class="lineNum">     300 </span><span class="lineCov">        114 :         }</span>
+<span class="lineNum">     299 </span><span class="lineCov">        342 :             ctx-&gt;state = READ_HEADER;</span>
+<span class="lineNum">     300 </span><span class="lineCov">        342 :         }</span>
 <span class="lineNum">     301 </span>            :         /* else leave in READ_TERM */
-<span class="lineNum">     302 </span><span class="lineCov">        217 :     }</span>
+<span class="lineNum">     302 </span><span class="lineCov">        651 :     }</span>
 <span class="lineNum">     303 </span>            : 
 <span class="lineNum">     304 </span>            :     /* there is more data which can be read immediately. */
-<span class="lineNum">     305 </span><span class="lineCov">        868 :     return APR_SUCCESS;</span>
-<a name="306"><span class="lineNum">     306 </span><span class="lineCov">        971 : }</span></a>
+<span class="lineNum">     305 </span><span class="lineCov">       2604 :     return APR_SUCCESS;</span>
+<a name="306"><span class="lineNum">     306 </span><span class="lineCov">       2913 : }</span></a>
 <span class="lineNum">     307 </span>            : 
 <span class="lineNum">     308 </span><span class="lineNoCov">          0 : static apr_status_t serf_headers_peek(serf_bucket_t *bucket,</span>
 <span class="lineNum">     309 </span><span class="lineNoCov">          0 :                                       const char **data,</span>
@@ -382,25 +382,25 @@
 <span class="lineNum">     320 </span><span class="lineNoCov">          0 :     return APR_SUCCESS;</span>
 <a name="321"><span class="lineNum">     321 </span><span class="lineNoCov">          0 : }</span></a>
 <span class="lineNum">     322 </span>            : 
-<span class="lineNum">     323 </span><span class="lineCov">        971 : static apr_status_t serf_headers_read(serf_bucket_t *bucket,</span>
-<span class="lineNum">     324 </span><span class="lineCov">        971 :                                       apr_size_t requested,</span>
-<span class="lineNum">     325 </span><span class="lineCov">        971 :                                       const char **data, apr_size_t *len)</span>
+<span class="lineNum">     323 </span><span class="lineCov">       2913 : static apr_status_t serf_headers_read(serf_bucket_t *bucket,</span>
+<span class="lineNum">     324 </span><span class="lineCov">       2913 :                                       apr_size_t requested,</span>
+<span class="lineNum">     325 </span><span class="lineCov">       2913 :                                       const char **data, apr_size_t *len)</span>
 <span class="lineNum">     326 </span>            : {
-<span class="lineNum">     327 </span><span class="lineCov">        971 :     headers_context_t *ctx = bucket-&gt;data;</span>
-<span class="lineNum">     328 </span><span class="lineCov">        971 :     apr_size_t avail;</span>
+<span class="lineNum">     327 </span><span class="lineCov">       2913 :     headers_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">     328 </span><span class="lineCov">       2913 :     apr_size_t avail;</span>
 <span class="lineNum">     329 </span>            : 
-<span class="lineNum">     330 </span><span class="lineCov">        971 :     select_value(ctx, data, &amp;avail);</span>
-<span class="lineNum">     331 </span><span class="lineCov">        971 :     if (ctx-&gt;state == READ_DONE) {</span>
+<span class="lineNum">     330 </span><span class="lineCov">       2913 :     select_value(ctx, data, &amp;avail);</span>
+<span class="lineNum">     331 </span><span class="lineCov">       2913 :     if (ctx-&gt;state == READ_DONE) {</span>
 <span class="lineNum">     332 </span><span class="lineNoCov">          0 :         *len = avail;</span>
 <span class="lineNum">     333 </span><span class="lineNoCov">          0 :         return APR_EOF;</span>
 <span class="lineNum">     334 </span>            :     }
 <span class="lineNum">     335 </span>            : 
-<span class="lineNum">     336 </span><span class="lineCov">        971 :     if (requested &gt;= avail) {</span>
+<span class="lineNum">     336 </span><span class="lineCov">       2913 :     if (requested &gt;= avail) {</span>
 <span class="lineNum">     337 </span>            :         /* return everything from this chunk */
-<span class="lineNum">     338 </span><span class="lineCov">        971 :         *len = avail;</span>
+<span class="lineNum">     338 </span><span class="lineCov">       2913 :         *len = avail;</span>
 <span class="lineNum">     339 </span>            : 
 <span class="lineNum">     340 </span>            :         /* we consumed this chunk. advance the state. */
-<span class="lineNum">     341 </span><span class="lineCov">        971 :         return consume_chunk(ctx);</span>
+<span class="lineNum">     341 </span><span class="lineCov">       2913 :         return consume_chunk(ctx);</span>
 <span class="lineNum">     342 </span>            :     }
 <span class="lineNum">     343 </span>            : 
 <span class="lineNum">     344 </span>            :     /* return just the amount requested, and advance our pointer */
@@ -409,7 +409,7 @@
 <span class="lineNum">     347 </span>            : 
 <span class="lineNum">     348 </span>            :     /* there is more that can be read immediately */
 <span class="lineNum">     349 </span><span class="lineNoCov">          0 :     return APR_SUCCESS;</span>
-<a name="350"><span class="lineNum">     350 </span><span class="lineCov">        971 : }</span></a>
+<a name="350"><span class="lineNum">     350 </span><span class="lineCov">       2913 : }</span></a>
 <span class="lineNum">     351 </span>            : 
 <span class="lineNum">     352 </span><span class="lineNoCov">          0 : static apr_status_t serf_headers_readline(serf_bucket_t *bucket,</span>
 <span class="lineNum">     353 </span><span class="lineNoCov">          0 :                                           int acceptable, int *found,</span>
@@ -437,52 +437,52 @@
 <span class="lineNum">     375 </span><span class="lineNoCov">          0 :     return status;</span>
 <a name="376"><span class="lineNum">     376 </span><span class="lineNoCov">          0 : }</span></a>
 <span class="lineNum">     377 </span>            : 
-<span class="lineNum">     378 </span><span class="lineCov">        110 : static apr_status_t serf_headers_read_iovec(serf_bucket_t *bucket,</span>
-<span class="lineNum">     379 </span><span class="lineCov">        110 :                                             apr_size_t requested,</span>
-<span class="lineNum">     380 </span><span class="lineCov">        110 :                                             int vecs_size,</span>
-<span class="lineNum">     381 </span><span class="lineCov">        110 :                                             struct iovec *vecs,</span>
-<span class="lineNum">     382 </span><span class="lineCov">        110 :                                             int *vecs_used)</span>
+<span class="lineNum">     378 </span><span class="lineCov">        330 : static apr_status_t serf_headers_read_iovec(serf_bucket_t *bucket,</span>
+<span class="lineNum">     379 </span><span class="lineCov">        330 :                                             apr_size_t requested,</span>
+<span class="lineNum">     380 </span><span class="lineCov">        330 :                                             int vecs_size,</span>
+<span class="lineNum">     381 </span><span class="lineCov">        330 :                                             struct iovec *vecs,</span>
+<span class="lineNum">     382 </span><span class="lineCov">        330 :                                             int *vecs_used)</span>
 <span class="lineNum">     383 </span>            : {
-<span class="lineNum">     384 </span><span class="lineCov">        110 :     apr_size_t avail = requested;</span>
-<span class="lineNum">     385 </span><span class="lineCov">        110 :     int i;</span>
+<span class="lineNum">     384 </span><span class="lineCov">        330 :     apr_size_t avail = requested;</span>
+<span class="lineNum">     385 </span><span class="lineCov">        330 :     int i;</span>
 <span class="lineNum">     386 </span>            : 
-<span class="lineNum">     387 </span><span class="lineCov">        110 :     *vecs_used = 0;</span>
+<span class="lineNum">     387 </span><span class="lineCov">        330 :     *vecs_used = 0;</span>
 <span class="lineNum">     388 </span>            : 
-<span class="lineNum">     389 </span><span class="lineCov">       1940 :     for (i = 0; i &lt; vecs_size; i++) {</span>
-<span class="lineNum">     390 </span><span class="lineCov">        962 :         const char *data;</span>
-<span class="lineNum">     391 </span><span class="lineCov">        962 :         apr_size_t len;</span>
-<span class="lineNum">     392 </span><span class="lineCov">        962 :         apr_status_t status;</span>
+<span class="lineNum">     389 </span><span class="lineCov">       5820 :     for (i = 0; i &lt; vecs_size; i++) {</span>
+<span class="lineNum">     390 </span><span class="lineCov">       2886 :         const char *data;</span>
+<span class="lineNum">     391 </span><span class="lineCov">       2886 :         apr_size_t len;</span>
+<span class="lineNum">     392 </span><span class="lineCov">       2886 :         apr_status_t status;</span>
 <span class="lineNum">     393 </span>            : 
 <span class="lineNum">     394 </span>            :         /* Calling read() would not be a safe opt in the general case, but it
 <span class="lineNum">     395 </span>            :          * is here for the header bucket as it only frees all of the header
 <span class="lineNum">     396 </span>            :          * keys and values when the entire bucket goes away - not on a
 <span class="lineNum">     397 </span>            :          * per-read() basis as is normally the case.
 <span class="lineNum">     398 </span>            :          */
-<span class="lineNum">     399 </span><span class="lineCov">        962 :         status = serf_headers_read(bucket, avail, &amp;data, &amp;len);</span>
+<span class="lineNum">     399 </span><span class="lineCov">       2886 :         status = serf_headers_read(bucket, avail, &amp;data, &amp;len);</span>
 <span class="lineNum">     400 </span>            : 
-<span class="lineNum">     401 </span><span class="lineCov">        962 :         if (len) {</span>
-<span class="lineNum">     402 </span><span class="lineCov">        962 :             vecs[*vecs_used].iov_base = (char*)data;</span>
-<span class="lineNum">     403 </span><span class="lineCov">        962 :             vecs[*vecs_used].iov_len = len;</span>
+<span class="lineNum">     401 </span><span class="lineCov">       2886 :         if (len) {</span>
+<span class="lineNum">     402 </span><span class="lineCov">       2886 :             vecs[*vecs_used].iov_base = (char*)data;</span>
+<span class="lineNum">     403 </span><span class="lineCov">       2886 :             vecs[*vecs_used].iov_len = len;</span>
 <span class="lineNum">     404 </span>            : 
-<span class="lineNum">     405 </span><span class="lineCov">        962 :             (*vecs_used)++;</span>
+<span class="lineNum">     405 </span><span class="lineCov">       2886 :             (*vecs_used)++;</span>
 <span class="lineNum">     406 </span>            : 
-<span class="lineNum">     407 </span><span class="lineCov">        962 :             if (avail != SERF_READ_ALL_AVAIL) {</span>
-<span class="lineNum">     408 </span><span class="lineCov">        183 :                 avail -= len;</span>
+<span class="lineNum">     407 </span><span class="lineCov">       2886 :             if (avail != SERF_READ_ALL_AVAIL) {</span>
+<span class="lineNum">     408 </span><span class="lineCov">        549 :                 avail -= len;</span>
 <span class="lineNum">     409 </span>            : 
 <span class="lineNum">     410 </span>            :                 /* If we reach 0, then read()'s status will suffice.  */
-<span class="lineNum">     411 </span><span class="lineCov">        183 :                 if (avail == 0) {</span>
+<span class="lineNum">     411 </span><span class="lineCov">        549 :                 if (avail == 0) {</span>
 <span class="lineNum">     412 </span><span class="lineNoCov">          0 :                     return status;</span>
 <span class="lineNum">     413 </span>            :                 }
-<span class="lineNum">     414 </span><span class="lineCov">        183 :             }</span>
-<span class="lineNum">     415 </span><span class="lineCov">        962 :         }</span>
+<span class="lineNum">     414 </span><span class="lineCov">        549 :             }</span>
+<span class="lineNum">     415 </span><span class="lineCov">       2886 :         }</span>
 <span class="lineNum">     416 </span>            : 
-<span class="lineNum">     417 </span><span class="lineCov">        962 :         if (status) {</span>
-<span class="lineNum">     418 </span><span class="lineCov">        102 :             return status;</span>
+<span class="lineNum">     417 </span><span class="lineCov">       2886 :         if (status) {</span>
+<span class="lineNum">     418 </span><span class="lineCov">        306 :             return status;</span>
 <span class="lineNum">     419 </span>            :         }
-<span class="lineNum">     420 </span><span class="lineCov">        860 :     }</span>
+<span class="lineNum">     420 </span><span class="lineCov">       2580 :     }</span>
 <span class="lineNum">     421 </span>            : 
-<span class="lineNum">     422 </span><span class="lineCov">          8 :     return APR_SUCCESS;</span>
-<span class="lineNum">     423 </span><span class="lineCov">        110 : }</span>
+<span class="lineNum">     422 </span><span class="lineCov">         24 :     return APR_SUCCESS;</span>
+<span class="lineNum">     423 </span><span class="lineCov">        330 : }</span>
 <span class="lineNum">     424 </span>            : 
 <span class="lineNum">     425 </span>            : const serf_bucket_type_t serf_bucket_type_headers = {
 <span class="lineNum">     426 </span>            :     &quot;HEADERS&quot;,

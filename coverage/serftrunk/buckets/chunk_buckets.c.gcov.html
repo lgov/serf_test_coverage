@@ -99,48 +99,48 @@
 <a name="37"><span class="lineNum">      37 </span>            : </a>
 <span class="lineNum">      38 </span>            : 
 <span class="lineNum">      39 </span>            : serf_bucket_t *serf_bucket_chunk_create(
-<span class="lineNum">      40 </span><span class="lineCov">         84 :     serf_bucket_t *stream, serf_bucket_alloc_t *allocator)</span>
+<span class="lineNum">      40 </span><span class="lineCov">        252 :     serf_bucket_t *stream, serf_bucket_alloc_t *allocator)</span>
 <span class="lineNum">      41 </span>            : {
-<span class="lineNum">      42 </span><span class="lineCov">         84 :     chunk_context_t *ctx;</span>
+<span class="lineNum">      42 </span><span class="lineCov">        252 :     chunk_context_t *ctx;</span>
 <span class="lineNum">      43 </span>            : 
-<span class="lineNum">      44 </span><span class="lineCov">         84 :     ctx = serf_bucket_mem_alloc(allocator, sizeof(*ctx));</span>
-<span class="lineNum">      45 </span><span class="lineCov">         84 :     ctx-&gt;state = STATE_FETCH;</span>
-<span class="lineNum">      46 </span><span class="lineCov">         84 :     ctx-&gt;chunk = serf_bucket_aggregate_create(allocator);</span>
-<span class="lineNum">      47 </span><span class="lineCov">         84 :     ctx-&gt;stream = stream;</span>
+<span class="lineNum">      44 </span><span class="lineCov">        252 :     ctx = serf_bucket_mem_alloc(allocator, sizeof(*ctx));</span>
+<span class="lineNum">      45 </span><span class="lineCov">        252 :     ctx-&gt;state = STATE_FETCH;</span>
+<span class="lineNum">      46 </span><span class="lineCov">        252 :     ctx-&gt;chunk = serf_bucket_aggregate_create(allocator);</span>
+<span class="lineNum">      47 </span><span class="lineCov">        252 :     ctx-&gt;stream = stream;</span>
 <span class="lineNum">      48 </span>            : 
-<span class="lineNum">      49 </span><span class="lineCov">         84 :     return serf_bucket_create(&amp;serf_bucket_type_chunk, allocator, ctx);</span>
+<span class="lineNum">      49 </span><span class="lineCov">        252 :     return serf_bucket_create(&amp;serf_bucket_type_chunk, allocator, ctx);</span>
 <span class="lineNum">      50 </span>            : }
 <span class="lineNum">      51 </span>            : 
 <a name="52"><span class="lineNum">      52 </span>            : #define CRLF &quot;\r\n&quot;</a>
 <span class="lineNum">      53 </span>            : 
-<span class="lineNum">      54 </span><span class="lineCov">         84 : static apr_status_t create_chunk(serf_bucket_t *bucket)</span>
+<span class="lineNum">      54 </span><span class="lineCov">        252 : static apr_status_t create_chunk(serf_bucket_t *bucket)</span>
 <span class="lineNum">      55 </span>            : {
-<span class="lineNum">      56 </span><span class="lineCov">         84 :     chunk_context_t *ctx = bucket-&gt;data;</span>
-<span class="lineNum">      57 </span><span class="lineCov">         84 :     serf_bucket_t *simple_bkt;</span>
-<span class="lineNum">      58 </span><span class="lineCov">         84 :     apr_size_t chunk_len;</span>
-<span class="lineNum">      59 </span><span class="lineCov">         84 :     apr_size_t stream_len;</span>
-<span class="lineNum">      60 </span><span class="lineCov">         84 :     struct iovec vecs[66]; /* 64 + chunk trailer + EOF trailer = 66 */</span>
-<span class="lineNum">      61 </span><span class="lineCov">         84 :     int vecs_read;</span>
-<span class="lineNum">      62 </span><span class="lineCov">         84 :     int i;</span>
+<span class="lineNum">      56 </span><span class="lineCov">        252 :     chunk_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">      57 </span><span class="lineCov">        252 :     serf_bucket_t *simple_bkt;</span>
+<span class="lineNum">      58 </span><span class="lineCov">        252 :     apr_size_t chunk_len;</span>
+<span class="lineNum">      59 </span><span class="lineCov">        252 :     apr_size_t stream_len;</span>
+<span class="lineNum">      60 </span><span class="lineCov">        252 :     struct iovec vecs[66]; /* 64 + chunk trailer + EOF trailer = 66 */</span>
+<span class="lineNum">      61 </span><span class="lineCov">        252 :     int vecs_read;</span>
+<span class="lineNum">      62 </span><span class="lineCov">        252 :     int i;</span>
 <span class="lineNum">      63 </span>            : 
-<span class="lineNum">      64 </span><span class="lineCov">         84 :     if (ctx-&gt;state != STATE_FETCH) {</span>
+<span class="lineNum">      64 </span><span class="lineCov">        252 :     if (ctx-&gt;state != STATE_FETCH) {</span>
 <span class="lineNum">      65 </span><span class="lineNoCov">          0 :         return APR_SUCCESS;</span>
 <span class="lineNum">      66 </span>            :     }
 <span class="lineNum">      67 </span>            : 
 <span class="lineNum">      68 </span>            :     ctx-&gt;last_status =
-<span class="lineNum">      69 </span><span class="lineCov">         84 :         serf_bucket_read_iovec(ctx-&gt;stream, SERF_READ_ALL_AVAIL,</span>
+<span class="lineNum">      69 </span><span class="lineCov">        252 :         serf_bucket_read_iovec(ctx-&gt;stream, SERF_READ_ALL_AVAIL,</span>
 <span class="lineNum">      70 </span>            :                                64, vecs, &amp;vecs_read);
 <span class="lineNum">      71 </span>            : 
-<span class="lineNum">      72 </span><span class="lineCov">        168 :     if (SERF_BUCKET_READ_ERROR(ctx-&gt;last_status)) {</span>
+<span class="lineNum">      72 </span><span class="lineCov">        504 :     if (SERF_BUCKET_READ_ERROR(ctx-&gt;last_status)) {</span>
 <span class="lineNum">      73 </span>            :         /* Uh-oh. */
 <span class="lineNum">      74 </span><span class="lineNoCov">          0 :         return ctx-&gt;last_status;</span>
 <span class="lineNum">      75 </span>            :     }
 <span class="lineNum">      76 </span>            : 
 <span class="lineNum">      77 </span>            :     /* Count the length of the data we read. */
-<span class="lineNum">      78 </span><span class="lineCov">         84 :     stream_len = 0;</span>
-<span class="lineNum">      79 </span><span class="lineCov">        336 :     for (i = 0; i &lt; vecs_read; i++) {</span>
-<span class="lineNum">      80 </span><span class="lineCov">         84 :         stream_len += vecs[i].iov_len;</span>
-<span class="lineNum">      81 </span><span class="lineCov">         84 :     }</span>
+<span class="lineNum">      78 </span><span class="lineCov">        252 :     stream_len = 0;</span>
+<span class="lineNum">      79 </span><span class="lineCov">       1008 :     for (i = 0; i &lt; vecs_read; i++) {</span>
+<span class="lineNum">      80 </span><span class="lineCov">        252 :         stream_len += vecs[i].iov_len;</span>
+<span class="lineNum">      81 </span><span class="lineCov">        252 :     }</span>
 <span class="lineNum">      82 </span>            : 
 <span class="lineNum">      83 </span>            :     /* assert: stream_len in hex &lt; sizeof(ctx-&gt;chunk_hdr) */
 <span class="lineNum">      84 </span>            : 
@@ -149,41 +149,41 @@
 <span class="lineNum">      87 </span>            :      * EOF chunk to be interpreted by the server as a new request.  So,
 <span class="lineNum">      88 </span>            :      * we'll only do this if we have something to write.
 <span class="lineNum">      89 </span>            :      */
-<span class="lineNum">      90 </span><span class="lineCov">         84 :     if (stream_len) {</span>
+<span class="lineNum">      90 </span><span class="lineCov">        252 :     if (stream_len) {</span>
 <span class="lineNum">      91 </span>            :         /* Build the chunk header. */
-<span class="lineNum">      92 </span><span class="lineCov">         84 :         chunk_len = apr_snprintf(ctx-&gt;chunk_hdr, sizeof(ctx-&gt;chunk_hdr),</span>
+<span class="lineNum">      92 </span><span class="lineCov">        252 :         chunk_len = apr_snprintf(ctx-&gt;chunk_hdr, sizeof(ctx-&gt;chunk_hdr),</span>
 <span class="lineNum">      93 </span>            :                                  &quot;%&quot; APR_UINT64_T_HEX_FMT CRLF,
 <span class="lineNum">      94 </span>            :                                  (apr_uint64_t)stream_len);
 <span class="lineNum">      95 </span>            : 
 <span class="lineNum">      96 </span>            :         /* Create a copy of the chunk header so we can have multiple chunks
 <span class="lineNum">      97 </span>            :          * in the pipeline at the same time.
 <span class="lineNum">      98 </span>            :          */
-<span class="lineNum">      99 </span><span class="lineCov">         84 :         simple_bkt = serf_bucket_simple_copy_create(ctx-&gt;chunk_hdr, chunk_len,</span>
+<span class="lineNum">      99 </span><span class="lineCov">        252 :         simple_bkt = serf_bucket_simple_copy_create(ctx-&gt;chunk_hdr, chunk_len,</span>
 <span class="lineNum">     100 </span>            :                                                     bucket-&gt;allocator);
-<span class="lineNum">     101 </span><span class="lineCov">         84 :         serf_bucket_aggregate_append(ctx-&gt;chunk, simple_bkt);</span>
+<span class="lineNum">     101 </span><span class="lineCov">        252 :         serf_bucket_aggregate_append(ctx-&gt;chunk, simple_bkt);</span>
 <span class="lineNum">     102 </span>            : 
 <span class="lineNum">     103 </span>            :         /* Insert the chunk footer. */
-<span class="lineNum">     104 </span><span class="lineCov">         84 :         vecs[vecs_read].iov_base = CRLF;</span>
-<span class="lineNum">     105 </span><span class="lineCov">         84 :         vecs[vecs_read++].iov_len = sizeof(CRLF) - 1;</span>
-<span class="lineNum">     106 </span><span class="lineCov">         84 :     }</span>
+<span class="lineNum">     104 </span><span class="lineCov">        252 :         vecs[vecs_read].iov_base = CRLF;</span>
+<span class="lineNum">     105 </span><span class="lineCov">        252 :         vecs[vecs_read++].iov_len = sizeof(CRLF) - 1;</span>
+<span class="lineNum">     106 </span><span class="lineCov">        252 :     }</span>
 <span class="lineNum">     107 </span>            : 
 <span class="lineNum">     108 </span>            :     /* We've reached the end of the line for the stream. */
-<span class="lineNum">     109 </span><span class="lineCov">         84 :     if (APR_STATUS_IS_EOF(ctx-&gt;last_status)) {</span>
+<span class="lineNum">     109 </span><span class="lineCov">        252 :     if (APR_STATUS_IS_EOF(ctx-&gt;last_status)) {</span>
 <span class="lineNum">     110 </span>            :         /* Insert the chunk footer. */
-<span class="lineNum">     111 </span><span class="lineCov">         84 :         vecs[vecs_read].iov_base = &quot;0&quot; CRLF CRLF;</span>
-<span class="lineNum">     112 </span><span class="lineCov">         84 :         vecs[vecs_read++].iov_len = sizeof(&quot;0&quot; CRLF CRLF) - 1;</span>
+<span class="lineNum">     111 </span><span class="lineCov">        252 :         vecs[vecs_read].iov_base = &quot;0&quot; CRLF CRLF;</span>
+<span class="lineNum">     112 </span><span class="lineCov">        252 :         vecs[vecs_read++].iov_len = sizeof(&quot;0&quot; CRLF CRLF) - 1;</span>
 <span class="lineNum">     113 </span>            : 
-<span class="lineNum">     114 </span><span class="lineCov">         84 :         ctx-&gt;state = STATE_EOF;</span>
-<span class="lineNum">     115 </span><span class="lineCov">         84 :     }</span>
+<span class="lineNum">     114 </span><span class="lineCov">        252 :         ctx-&gt;state = STATE_EOF;</span>
+<span class="lineNum">     115 </span><span class="lineCov">        252 :     }</span>
 <span class="lineNum">     116 </span>            :     else {
 <span class="lineNum">     117 </span>            :         /* Okay, we can return data.  */
 <span class="lineNum">     118 </span><span class="lineNoCov">          0 :         ctx-&gt;state = STATE_CHUNK;</span>
 <span class="lineNum">     119 </span>            :     }
 <span class="lineNum">     120 </span>            : 
-<span class="lineNum">     121 </span><span class="lineCov">         84 :     serf_bucket_aggregate_append_iovec(ctx-&gt;chunk, vecs, vecs_read);</span>
+<span class="lineNum">     121 </span><span class="lineCov">        252 :     serf_bucket_aggregate_append_iovec(ctx-&gt;chunk, vecs, vecs_read);</span>
 <span class="lineNum">     122 </span>            : 
-<span class="lineNum">     123 </span><span class="lineCov">         84 :     return APR_SUCCESS;</span>
-<a name="124"><span class="lineNum">     124 </span><span class="lineCov">         84 : }</span></a>
+<span class="lineNum">     123 </span><span class="lineCov">        252 :     return APR_SUCCESS;</span>
+<a name="124"><span class="lineNum">     124 </span><span class="lineCov">        252 : }</span></a>
 <span class="lineNum">     125 </span>            : 
 <span class="lineNum">     126 </span><span class="lineNoCov">          0 : static apr_status_t serf_chunk_read(serf_bucket_t *bucket,</span>
 <span class="lineNum">     127 </span><span class="lineNoCov">          0 :                                     apr_size_t requested,</span>
@@ -229,34 +229,34 @@
 <span class="lineNum">     167 </span><span class="lineNoCov">          0 :     return status;</span>
 <a name="168"><span class="lineNum">     168 </span>            : }</a>
 <span class="lineNum">     169 </span>            : 
-<span class="lineNum">     170 </span><span class="lineCov">         84 : static apr_status_t serf_chunk_read_iovec(serf_bucket_t *bucket,</span>
-<span class="lineNum">     171 </span><span class="lineCov">         84 :                                           apr_size_t requested,</span>
-<span class="lineNum">     172 </span><span class="lineCov">         84 :                                           int vecs_size,</span>
-<span class="lineNum">     173 </span><span class="lineCov">         84 :                                           struct iovec *vecs,</span>
-<span class="lineNum">     174 </span><span class="lineCov">         84 :                                           int *vecs_used)</span>
+<span class="lineNum">     170 </span><span class="lineCov">        252 : static apr_status_t serf_chunk_read_iovec(serf_bucket_t *bucket,</span>
+<span class="lineNum">     171 </span><span class="lineCov">        252 :                                           apr_size_t requested,</span>
+<span class="lineNum">     172 </span><span class="lineCov">        252 :                                           int vecs_size,</span>
+<span class="lineNum">     173 </span><span class="lineCov">        252 :                                           struct iovec *vecs,</span>
+<span class="lineNum">     174 </span><span class="lineCov">        252 :                                           int *vecs_used)</span>
 <span class="lineNum">     175 </span>            : {
-<span class="lineNum">     176 </span><span class="lineCov">         84 :     chunk_context_t *ctx = bucket-&gt;data;</span>
-<span class="lineNum">     177 </span><span class="lineCov">         84 :     apr_status_t status;</span>
+<span class="lineNum">     176 </span><span class="lineCov">        252 :     chunk_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">     177 </span><span class="lineCov">        252 :     apr_status_t status;</span>
 <span class="lineNum">     178 </span>            : 
 <span class="lineNum">     179 </span>            :     /* Before proceeding, we need to fetch some data from the stream. */
-<span class="lineNum">     180 </span><span class="lineCov">         84 :     if (ctx-&gt;state == STATE_FETCH) {</span>
-<span class="lineNum">     181 </span><span class="lineCov">         84 :         status = create_chunk(bucket);</span>
-<span class="lineNum">     182 </span><span class="lineCov">         84 :         if (status) {</span>
+<span class="lineNum">     180 </span><span class="lineCov">        252 :     if (ctx-&gt;state == STATE_FETCH) {</span>
+<span class="lineNum">     181 </span><span class="lineCov">        252 :         status = create_chunk(bucket);</span>
+<span class="lineNum">     182 </span><span class="lineCov">        252 :         if (status) {</span>
 <span class="lineNum">     183 </span><span class="lineNoCov">          0 :             return status;</span>
 <span class="lineNum">     184 </span>            :         }
-<span class="lineNum">     185 </span><span class="lineCov">         84 :     }</span>
+<span class="lineNum">     185 </span><span class="lineCov">        252 :     }</span>
 <span class="lineNum">     186 </span>            : 
-<span class="lineNum">     187 </span><span class="lineCov">         84 :     status = serf_bucket_read_iovec(ctx-&gt;chunk, requested, vecs_size, vecs,</span>
+<span class="lineNum">     187 </span><span class="lineCov">        252 :     status = serf_bucket_read_iovec(ctx-&gt;chunk, requested, vecs_size, vecs,</span>
 <span class="lineNum">     188 </span>            :                                     vecs_used);
 <span class="lineNum">     189 </span>            : 
 <span class="lineNum">     190 </span>            :     /* Mask EOF from aggregate bucket. */
-<span class="lineNum">     191 </span><span class="lineCov">        168 :     if (APR_STATUS_IS_EOF(status) &amp;&amp; ctx-&gt;state == STATE_CHUNK) {</span>
+<span class="lineNum">     191 </span><span class="lineCov">        504 :     if (APR_STATUS_IS_EOF(status) &amp;&amp; ctx-&gt;state == STATE_CHUNK) {</span>
 <span class="lineNum">     192 </span><span class="lineNoCov">          0 :         status = ctx-&gt;last_status;</span>
 <span class="lineNum">     193 </span><span class="lineNoCov">          0 :         ctx-&gt;state = STATE_FETCH;</span>
 <span class="lineNum">     194 </span><span class="lineNoCov">          0 :     }</span>
 <span class="lineNum">     195 </span>            : 
-<span class="lineNum">     196 </span><span class="lineCov">         84 :     return status;</span>
-<a name="197"><span class="lineNum">     197 </span><span class="lineCov">         84 : }</span></a>
+<span class="lineNum">     196 </span><span class="lineCov">        252 :     return status;</span>
+<a name="197"><span class="lineNum">     197 </span><span class="lineCov">        252 : }</span></a>
 <span class="lineNum">     198 </span>            : 
 <span class="lineNum">     199 </span><span class="lineNoCov">          0 : static apr_status_t serf_chunk_peek(serf_bucket_t *bucket,</span>
 <span class="lineNum">     200 </span><span class="lineNoCov">          0 :                                      const char **data,</span>
@@ -275,15 +275,15 @@
 <span class="lineNum">     213 </span><span class="lineNoCov">          0 :     return status;</span>
 <a name="214"><span class="lineNum">     214 </span>            : }</a>
 <span class="lineNum">     215 </span>            : 
-<span class="lineNum">     216 </span><span class="lineCov">         84 : static void serf_chunk_destroy(serf_bucket_t *bucket)</span>
+<span class="lineNum">     216 </span><span class="lineCov">        252 : static void serf_chunk_destroy(serf_bucket_t *bucket)</span>
 <span class="lineNum">     217 </span>            : {
-<span class="lineNum">     218 </span><span class="lineCov">         84 :     chunk_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">     218 </span><span class="lineCov">        252 :     chunk_context_t *ctx = bucket-&gt;data;</span>
 <span class="lineNum">     219 </span>            : 
-<span class="lineNum">     220 </span><span class="lineCov">         84 :     serf_bucket_destroy(ctx-&gt;stream);</span>
-<span class="lineNum">     221 </span><span class="lineCov">         84 :     serf_bucket_destroy(ctx-&gt;chunk);</span>
+<span class="lineNum">     220 </span><span class="lineCov">        252 :     serf_bucket_destroy(ctx-&gt;stream);</span>
+<span class="lineNum">     221 </span><span class="lineCov">        252 :     serf_bucket_destroy(ctx-&gt;chunk);</span>
 <span class="lineNum">     222 </span>            : 
-<span class="lineNum">     223 </span><span class="lineCov">         84 :     serf_default_destroy_and_data(bucket);</span>
-<span class="lineNum">     224 </span><span class="lineCov">         84 : }</span>
+<span class="lineNum">     223 </span><span class="lineCov">        252 :     serf_default_destroy_and_data(bucket);</span>
+<span class="lineNum">     224 </span><span class="lineCov">        252 : }</span>
 <span class="lineNum">     225 </span>            : 
 <span class="lineNum">     226 </span>            : const serf_bucket_type_t serf_bucket_type_chunk = {
 <span class="lineNum">     227 </span>            :     &quot;CHUNK&quot;,

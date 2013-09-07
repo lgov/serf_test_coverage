@@ -87,24 +87,24 @@
 <a name="25"><span class="lineNum">      25 </span>            : </a>
 <span class="lineNum">      26 </span>            : 
 <span class="lineNum">      27 </span>            : serf_bucket_t *serf_bucket_barrier_create(
-<span class="lineNum">      28 </span><span class="lineCov">       1659 :     serf_bucket_t *stream,</span>
-<span class="lineNum">      29 </span><span class="lineCov">       1659 :     serf_bucket_alloc_t *allocator)</span>
+<span class="lineNum">      28 </span><span class="lineCov">       4987 :     serf_bucket_t *stream,</span>
+<span class="lineNum">      29 </span><span class="lineCov">       4987 :     serf_bucket_alloc_t *allocator)</span>
 <span class="lineNum">      30 </span>            : {
-<span class="lineNum">      31 </span><span class="lineCov">       1659 :     barrier_context_t *ctx;</span>
+<span class="lineNum">      31 </span><span class="lineCov">       4987 :     barrier_context_t *ctx;</span>
 <span class="lineNum">      32 </span>            : 
-<span class="lineNum">      33 </span><span class="lineCov">       1659 :     ctx = serf_bucket_mem_alloc(allocator, sizeof(*ctx));</span>
-<span class="lineNum">      34 </span><span class="lineCov">       1659 :     ctx-&gt;stream = stream;</span>
+<span class="lineNum">      33 </span><span class="lineCov">       4987 :     ctx = serf_bucket_mem_alloc(allocator, sizeof(*ctx));</span>
+<span class="lineNum">      34 </span><span class="lineCov">       4987 :     ctx-&gt;stream = stream;</span>
 <span class="lineNum">      35 </span>            : 
-<span class="lineNum">      36 </span><span class="lineCov">       1659 :     return serf_bucket_create(&amp;serf_bucket_type_barrier, allocator, ctx);</span>
+<span class="lineNum">      36 </span><span class="lineCov">       4987 :     return serf_bucket_create(&amp;serf_bucket_type_barrier, allocator, ctx);</span>
 <a name="37"><span class="lineNum">      37 </span>            : }</a>
 <span class="lineNum">      38 </span>            : 
-<span class="lineNum">      39 </span><span class="lineCov">      18137 : static apr_status_t serf_barrier_read(serf_bucket_t *bucket,</span>
-<span class="lineNum">      40 </span><span class="lineCov">      18137 :                                      apr_size_t requested,</span>
-<span class="lineNum">      41 </span><span class="lineCov">      18137 :                                      const char **data, apr_size_t *len)</span>
+<span class="lineNum">      39 </span><span class="lineCov">      54421 : static apr_status_t serf_barrier_read(serf_bucket_t *bucket,</span>
+<span class="lineNum">      40 </span><span class="lineCov">      54421 :                                      apr_size_t requested,</span>
+<span class="lineNum">      41 </span><span class="lineCov">      54421 :                                      const char **data, apr_size_t *len)</span>
 <span class="lineNum">      42 </span>            : {
-<span class="lineNum">      43 </span><span class="lineCov">      18137 :     barrier_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">      43 </span><span class="lineCov">      54421 :     barrier_context_t *ctx = bucket-&gt;data;</span>
 <span class="lineNum">      44 </span>            : 
-<span class="lineNum">      45 </span><span class="lineCov">      18137 :     return serf_bucket_read(ctx-&gt;stream, requested, data, len);</span>
+<span class="lineNum">      45 </span><span class="lineCov">      54421 :     return serf_bucket_read(ctx-&gt;stream, requested, data, len);</span>
 <a name="46"><span class="lineNum">      46 </span>            : }</a>
 <span class="lineNum">      47 </span>            : 
 <span class="lineNum">      48 </span><span class="lineNoCov">          0 : static apr_status_t serf_barrier_read_iovec(serf_bucket_t *bucket,</span>
@@ -118,25 +118,25 @@
 <span class="lineNum">      56 </span>            :                                   vecs_used);
 <a name="57"><span class="lineNum">      57 </span>            : }</a>
 <span class="lineNum">      58 </span>            : 
-<span class="lineNum">      59 </span><span class="lineCov">       7058 : static apr_status_t serf_barrier_readline(serf_bucket_t *bucket,</span>
-<span class="lineNum">      60 </span><span class="lineCov">       7058 :                                          int acceptable, int *found,</span>
-<span class="lineNum">      61 </span><span class="lineCov">       7058 :                                          const char **data, apr_size_t *len)</span>
+<span class="lineNum">      59 </span><span class="lineCov">      21229 : static apr_status_t serf_barrier_readline(serf_bucket_t *bucket,</span>
+<span class="lineNum">      60 </span><span class="lineCov">      21229 :                                          int acceptable, int *found,</span>
+<span class="lineNum">      61 </span><span class="lineCov">      21229 :                                          const char **data, apr_size_t *len)</span>
 <span class="lineNum">      62 </span>            : {
-<span class="lineNum">      63 </span><span class="lineCov">       7058 :     barrier_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">      63 </span><span class="lineCov">      21229 :     barrier_context_t *ctx = bucket-&gt;data;</span>
 <span class="lineNum">      64 </span>            : 
-<span class="lineNum">      65 </span><span class="lineCov">       7058 :     return serf_bucket_readline(ctx-&gt;stream, acceptable, found, data, len);</span>
+<span class="lineNum">      65 </span><span class="lineCov">      21229 :     return serf_bucket_readline(ctx-&gt;stream, acceptable, found, data, len);</span>
 <a name="66"><span class="lineNum">      66 </span>            : }</a>
 <span class="lineNum">      67 </span>            : 
-<span class="lineNum">      68 </span><span class="lineCov">          5 : static apr_status_t serf_barrier_peek(serf_bucket_t *bucket,</span>
-<span class="lineNum">      69 </span><span class="lineCov">          5 :                                      const char **data,</span>
-<span class="lineNum">      70 </span><span class="lineCov">          5 :                                      apr_size_t *len)</span>
+<span class="lineNum">      68 </span><span class="lineCov">         15 : static apr_status_t serf_barrier_peek(serf_bucket_t *bucket,</span>
+<span class="lineNum">      69 </span><span class="lineCov">         15 :                                      const char **data,</span>
+<span class="lineNum">      70 </span><span class="lineCov">         15 :                                      apr_size_t *len)</span>
 <span class="lineNum">      71 </span>            : {
-<span class="lineNum">      72 </span><span class="lineCov">          5 :     barrier_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">      72 </span><span class="lineCov">         15 :     barrier_context_t *ctx = bucket-&gt;data;</span>
 <span class="lineNum">      73 </span>            : 
-<span class="lineNum">      74 </span><span class="lineCov">          5 :     return serf_bucket_peek(ctx-&gt;stream, data, len);</span>
+<span class="lineNum">      74 </span><span class="lineCov">         15 :     return serf_bucket_peek(ctx-&gt;stream, data, len);</span>
 <a name="75"><span class="lineNum">      75 </span>            : }</a>
 <span class="lineNum">      76 </span>            : 
-<span class="lineNum">      77 </span><span class="lineCov">        190 : static void serf_barrier_destroy(serf_bucket_t *bucket)</span>
+<span class="lineNum">      77 </span><span class="lineCov">        580 : static void serf_barrier_destroy(serf_bucket_t *bucket)</span>
 <span class="lineNum">      78 </span>            : {
 <span class="lineNum">      79 </span>            :     /* The intent of this bucket is not to let our wrapped buckets be
 <span class="lineNum">      80 </span>            :      * destroyed. */
@@ -144,8 +144,8 @@
 <span class="lineNum">      82 </span>            :     /* The option is for us to go ahead and 'eat' this bucket now,
 <span class="lineNum">      83 </span>            :      * or just ignore the deletion entirely.
 <span class="lineNum">      84 </span>            :      */
-<span class="lineNum">      85 </span><span class="lineCov">        190 :     serf_default_destroy_and_data(bucket);</span>
-<a name="86"><span class="lineNum">      86 </span><span class="lineCov">        190 : }</span></a>
+<span class="lineNum">      85 </span><span class="lineCov">        580 :     serf_default_destroy_and_data(bucket);</span>
+<a name="86"><span class="lineNum">      86 </span><span class="lineCov">        580 : }</span></a>
 <span class="lineNum">      87 </span>            : 
 <span class="lineNum">      88 </span><span class="lineNoCov">          0 : static apr_uint64_t serf_barrier_get_remaining(serf_bucket_t *bucket)</span>
 <span class="lineNum">      89 </span>            : {

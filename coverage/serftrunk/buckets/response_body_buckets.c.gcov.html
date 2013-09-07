@@ -31,9 +31,9 @@
             <td class="headerValue">coverage.info</td>
             <td></td>
             <td class="headerItem">Lines:</td>
-            <td class="headerCovTableEntry">32</td>
+            <td class="headerCovTableEntry">34</td>
             <td class="headerCovTableEntry">58</td>
-            <td class="headerCovTableEntryLo">55.2 %</td>
+            <td class="headerCovTableEntryLo">58.6 %</td>
           </tr>
           <tr>
             <td class="headerItem">Date:</td>
@@ -94,51 +94,51 @@
 <a name="32"><span class="lineNum">      32 </span>            : } body_context_t;</a>
 <span class="lineNum">      33 </span>            : 
 <span class="lineNum">      34 </span>            : serf_bucket_t *serf_bucket_response_body_create(
-<span class="lineNum">      35 </span><span class="lineCov">          6 :     serf_bucket_t *stream, apr_uint64_t len, serf_bucket_alloc_t *allocator)</span>
+<span class="lineNum">      35 </span><span class="lineCov">         20 :     serf_bucket_t *stream, apr_uint64_t len, serf_bucket_alloc_t *allocator)</span>
 <span class="lineNum">      36 </span>            : {
-<span class="lineNum">      37 </span><span class="lineCov">          6 :     body_context_t *ctx;</span>
+<span class="lineNum">      37 </span><span class="lineCov">         20 :     body_context_t *ctx;</span>
 <span class="lineNum">      38 </span>            : 
-<span class="lineNum">      39 </span><span class="lineCov">          6 :     ctx = serf_bucket_mem_alloc(allocator, sizeof(*ctx));</span>
-<span class="lineNum">      40 </span><span class="lineCov">          6 :     ctx-&gt;stream = stream;</span>
-<span class="lineNum">      41 </span><span class="lineCov">          6 :     ctx-&gt;remaining = len;</span>
+<span class="lineNum">      39 </span><span class="lineCov">         20 :     ctx = serf_bucket_mem_alloc(allocator, sizeof(*ctx));</span>
+<span class="lineNum">      40 </span><span class="lineCov">         20 :     ctx-&gt;stream = stream;</span>
+<span class="lineNum">      41 </span><span class="lineCov">         20 :     ctx-&gt;remaining = len;</span>
 <span class="lineNum">      42 </span>            : 
-<span class="lineNum">      43 </span><span class="lineCov">          6 :     return serf_bucket_create(&amp;serf_bucket_type_response_body, allocator, ctx);</span>
+<span class="lineNum">      43 </span><span class="lineCov">         20 :     return serf_bucket_create(&amp;serf_bucket_type_response_body, allocator, ctx);</span>
 <a name="44"><span class="lineNum">      44 </span>            : }</a>
 <span class="lineNum">      45 </span>            : 
-<span class="lineNum">      46 </span><span class="lineCov">          6 : static apr_status_t serf_response_body_read(serf_bucket_t *bucket,</span>
-<span class="lineNum">      47 </span><span class="lineCov">          6 :                                             apr_size_t requested,</span>
-<span class="lineNum">      48 </span><span class="lineCov">          6 :                                             const char **data,</span>
-<span class="lineNum">      49 </span><span class="lineCov">          6 :                                             apr_size_t *len)</span>
+<span class="lineNum">      46 </span><span class="lineCov">         22 : static apr_status_t serf_response_body_read(serf_bucket_t *bucket,</span>
+<span class="lineNum">      47 </span><span class="lineCov">         22 :                                             apr_size_t requested,</span>
+<span class="lineNum">      48 </span><span class="lineCov">         22 :                                             const char **data,</span>
+<span class="lineNum">      49 </span><span class="lineCov">         22 :                                             apr_size_t *len)</span>
 <span class="lineNum">      50 </span>            : {
-<span class="lineNum">      51 </span><span class="lineCov">          6 :     body_context_t *ctx = bucket-&gt;data;</span>
-<span class="lineNum">      52 </span><span class="lineCov">          6 :     apr_status_t status;</span>
+<span class="lineNum">      51 </span><span class="lineCov">         22 :     body_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">      52 </span><span class="lineCov">         22 :     apr_status_t status;</span>
 <span class="lineNum">      53 </span>            : 
-<span class="lineNum">      54 </span><span class="lineCov">          6 :     if (!ctx-&gt;remaining) {</span>
-<span class="lineNum">      55 </span><span class="lineNoCov">          0 :         *len = 0;</span>
-<span class="lineNum">      56 </span><span class="lineNoCov">          0 :         return APR_EOF;</span>
+<span class="lineNum">      54 </span><span class="lineCov">         22 :     if (!ctx-&gt;remaining) {</span>
+<span class="lineNum">      55 </span><span class="lineCov">          1 :         *len = 0;</span>
+<span class="lineNum">      56 </span><span class="lineCov">          1 :         return APR_EOF;</span>
 <span class="lineNum">      57 </span>            :     }
 <span class="lineNum">      58 </span>            : 
-<span class="lineNum">      59 </span><span class="lineCov">          8 :     if (requested == SERF_READ_ALL_AVAIL || requested &gt; ctx-&gt;remaining) {</span>
-<span class="lineNum">      60 </span><span class="lineCov">          6 :         if (ctx-&gt;remaining &lt;= REQUESTED_MAX) {</span>
-<span class="lineNum">      61 </span><span class="lineCov">          6 :             requested = (apr_size_t) ctx-&gt;remaining;</span>
-<span class="lineNum">      62 </span><span class="lineCov">          6 :         } else {</span>
+<span class="lineNum">      59 </span><span class="lineCov">         30 :     if (requested == SERF_READ_ALL_AVAIL || requested &gt; ctx-&gt;remaining) {</span>
+<span class="lineNum">      60 </span><span class="lineCov">         20 :         if (ctx-&gt;remaining &lt;= REQUESTED_MAX) {</span>
+<span class="lineNum">      61 </span><span class="lineCov">         20 :             requested = (apr_size_t) ctx-&gt;remaining;</span>
+<span class="lineNum">      62 </span><span class="lineCov">         20 :         } else {</span>
 <span class="lineNum">      63 </span><span class="lineNoCov">          0 :             requested = REQUESTED_MAX;</span>
 <span class="lineNum">      64 </span>            :         }
-<span class="lineNum">      65 </span><span class="lineCov">          6 :     }</span>
+<span class="lineNum">      65 </span><span class="lineCov">         20 :     }</span>
 <span class="lineNum">      66 </span>            : 
-<span class="lineNum">      67 </span><span class="lineCov">          6 :     status = serf_bucket_read(ctx-&gt;stream, requested, data, len);</span>
+<span class="lineNum">      67 </span><span class="lineCov">         21 :     status = serf_bucket_read(ctx-&gt;stream, requested, data, len);</span>
 <span class="lineNum">      68 </span>            : 
-<span class="lineNum">      69 </span><span class="lineCov">         12 :     if (!SERF_BUCKET_READ_ERROR(status)) {</span>
-<span class="lineNum">      70 </span><span class="lineCov">          6 :         ctx-&gt;remaining -= *len;</span>
-<span class="lineNum">      71 </span><span class="lineCov">          6 :     }</span>
+<span class="lineNum">      69 </span><span class="lineCov">         41 :     if (!SERF_BUCKET_READ_ERROR(status)) {</span>
+<span class="lineNum">      70 </span><span class="lineCov">         21 :         ctx-&gt;remaining -= *len;</span>
+<span class="lineNum">      71 </span><span class="lineCov">         21 :     }</span>
 <span class="lineNum">      72 </span>            : 
-<span class="lineNum">      73 </span><span class="lineCov">         10 :     if (APR_STATUS_IS_EOF(status) &amp;&amp; ctx-&gt;remaining &gt; 0) {</span>
+<span class="lineNum">      73 </span><span class="lineCov">         35 :     if (APR_STATUS_IS_EOF(status) &amp;&amp; ctx-&gt;remaining &gt; 0) {</span>
 <span class="lineNum">      74 </span>            :         /* The server sent less data than expected. */
-<span class="lineNum">      75 </span><span class="lineCov">          1 :         status = SERF_ERROR_TRUNCATED_HTTP_RESPONSE;</span>
-<span class="lineNum">      76 </span><span class="lineCov">          1 :     }</span>
+<span class="lineNum">      75 </span><span class="lineCov">          3 :         status = SERF_ERROR_TRUNCATED_HTTP_RESPONSE;</span>
+<span class="lineNum">      76 </span><span class="lineCov">          3 :     }</span>
 <span class="lineNum">      77 </span>            : 
-<span class="lineNum">      78 </span><span class="lineCov">          6 :     return status;</span>
-<a name="79"><span class="lineNum">      79 </span><span class="lineCov">          6 : }</span></a>
+<span class="lineNum">      78 </span><span class="lineCov">         21 :     return status;</span>
+<a name="79"><span class="lineNum">      79 </span><span class="lineCov">         22 : }</span></a>
 <span class="lineNum">      80 </span>            : 
 <span class="lineNum">      81 </span><span class="lineNoCov">          0 : static apr_status_t serf_response_body_readline(serf_bucket_t *bucket,</span>
 <span class="lineNum">      82 </span><span class="lineNoCov">          0 :                                                 int acceptable, int *found,</span>
@@ -176,14 +176,14 @@
 <span class="lineNum">     114 </span><span class="lineNoCov">          0 :     return serf_bucket_peek(ctx-&gt;stream, data, len);</span>
 <a name="115"><span class="lineNum">     115 </span>            : }</a>
 <span class="lineNum">     116 </span>            : 
-<span class="lineNum">     117 </span><span class="lineCov">          1 : static void serf_response_body_destroy(serf_bucket_t *bucket)</span>
+<span class="lineNum">     117 </span><span class="lineCov">          5 : static void serf_response_body_destroy(serf_bucket_t *bucket)</span>
 <span class="lineNum">     118 </span>            : {
-<span class="lineNum">     119 </span><span class="lineCov">          1 :     body_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">     119 </span><span class="lineCov">          5 :     body_context_t *ctx = bucket-&gt;data;</span>
 <span class="lineNum">     120 </span>            : 
-<span class="lineNum">     121 </span><span class="lineCov">          1 :     serf_bucket_destroy(ctx-&gt;stream);</span>
+<span class="lineNum">     121 </span><span class="lineCov">          5 :     serf_bucket_destroy(ctx-&gt;stream);</span>
 <span class="lineNum">     122 </span>            : 
-<span class="lineNum">     123 </span><span class="lineCov">          1 :     serf_default_destroy_and_data(bucket);</span>
-<span class="lineNum">     124 </span><span class="lineCov">          1 : }</span>
+<span class="lineNum">     123 </span><span class="lineCov">          5 :     serf_default_destroy_and_data(bucket);</span>
+<span class="lineNum">     124 </span><span class="lineCov">          5 : }</span>
 <span class="lineNum">     125 </span>            : 
 <span class="lineNum">     126 </span>            : const serf_bucket_type_t serf_bucket_type_response_body = {
 <span class="lineNum">     127 </span>            :     &quot;RESPONSE_BODY&quot;,
