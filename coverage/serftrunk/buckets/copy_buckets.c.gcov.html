@@ -1,0 +1,262 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - serftrunk/buckets/copy_buckets.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">serftrunk/buckets</a> - copy_buckets.c<span style="font-size: 80%;"> (source / <a href="copy_buckets.c.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">56</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2013-09-07</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">8</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* Copyright 2013 Justin Erenkrantz and Greg Stein</a>
+<span class="lineNum">       2 </span>            :  *
+<span class="lineNum">       3 </span>            :  * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+<span class="lineNum">       4 </span>            :  * you may not use this file except in compliance with the License.
+<span class="lineNum">       5 </span>            :  * You may obtain a copy of the License at
+<span class="lineNum">       6 </span>            :  *
+<span class="lineNum">       7 </span>            :  *     http://www.apache.org/licenses/LICENSE-2.0
+<span class="lineNum">       8 </span>            :  *
+<span class="lineNum">       9 </span>            :  * Unless required by applicable law or agreed to in writing, software
+<span class="lineNum">      10 </span>            :  * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+<span class="lineNum">      11 </span>            :  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+<span class="lineNum">      12 </span>            :  * See the License for the specific language governing permissions and
+<span class="lineNum">      13 </span>            :  * limitations under the License.
+<span class="lineNum">      14 </span>            :  */
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : #include &lt;apr_pools.h&gt;
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : #include &quot;serf.h&quot;
+<span class="lineNum">      19 </span>            : #include &quot;serf_bucket_util.h&quot;
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : #define IOVEC_HOLD_COUNT 16
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : typedef struct {
+<span class="lineNum">      25 </span>            :     serf_bucket_t *wrapped;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            :     /* When reading, this defines the amount of data that we should grab
+<span class="lineNum">      28 </span>            :        from the wrapped bucket.  */
+<span class="lineNum">      29 </span>            :     apr_size_t min_size;
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span>            :     /* In order to reach MIN_SIZE, we may sometimes make copies of the
+<span class="lineNum">      32 </span>            :        data to reach that size. HOLD_BUF (if not NULL) is a buffer of
+<span class="lineNum">      33 </span>            :        MIN_SIZE length to hold/concatenate that data.
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            :        HOLD_BUF remains NULL until the buffer is actually required.  */
+<span class="lineNum">      36 </span>            :     char *hold_buf;
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span>            : } copy_context_t;
+<a name="39"><span class="lineNum">      39 </span>            : </a>
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : serf_bucket_t *serf_bucket_copy_create(
+<span class="lineNum">      42 </span><span class="lineNoCov">          0 :     serf_bucket_t *wrapped,</span>
+<span class="lineNum">      43 </span><span class="lineNoCov">          0 :     apr_size_t min_size,</span>
+<span class="lineNum">      44 </span><span class="lineNoCov">          0 :     serf_bucket_alloc_t *allocator)</span>
+<span class="lineNum">      45 </span>            : {
+<span class="lineNum">      46 </span><span class="lineNoCov">          0 :     copy_context_t *ctx;</span>
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 :     ctx = serf_bucket_mem_alloc(allocator, sizeof(*ctx));</span>
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 :     ctx-&gt;wrapped = wrapped;</span>
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 :     ctx-&gt;min_size = min_size;</span>
+<span class="lineNum">      51 </span><span class="lineNoCov">          0 :     ctx-&gt;hold_buf = NULL;</span>
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :     return serf_bucket_create(&amp;serf_bucket_type_copy, allocator, ctx);</span>
+<a name="54"><span class="lineNum">      54 </span>            : }</a>
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 : static apr_status_t serf_copy_read(serf_bucket_t *bucket,</span>
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :                                    apr_size_t requested,</span>
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :                                    const char **data, apr_size_t *len)</span>
+<span class="lineNum">      59 </span>            : {
+<span class="lineNum">      60 </span>            :     /* ### peek to see how much is easily available. if it is MIN_SIZE,
+<span class="lineNum">      61 </span>            :        ### then a read() would (likely) get that same amount. otherwise,
+<span class="lineNum">      62 </span>            :        ### we should read an iovec and concatenate the result.  */
+<span class="lineNum">      63 </span>            : 
+<span class="lineNum">      64 </span>            :     /* ### fix this return code  */
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :     return APR_SUCCESS;</span>
+<span class="lineNum">      66 </span>            : }
+<a name="67"><span class="lineNum">      67 </span>            : </a>
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 : static apr_status_t serf_copy_readline(serf_bucket_t *bucket,</span>
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :                                        int acceptable, int *found,</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :                                        const char **data, apr_size_t *len)</span>
+<span class="lineNum">      72 </span>            : {
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :     copy_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">      74 </span>            : 
+<span class="lineNum">      75 </span>            :     /* Disregard MIN_SIZE. a &quot;line&quot; could very well be shorter. Just
+<span class="lineNum">      76 </span>            :        delegate this to the wrapped bucket.  */
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :     return serf_bucket_readline(ctx-&gt;wrapped, acceptable, found, data, len);</span>
+<span class="lineNum">      79 </span>            : }
+<a name="80"><span class="lineNum">      80 </span>            : </a>
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 : static apr_status_t serf_copy_read_iovec(serf_bucket_t *bucket,</span>
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :                                          apr_size_t requested,</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :                                          int vecs_size,</span>
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :                                          struct iovec *vecs,</span>
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :                                          int *vecs_used)</span>
+<span class="lineNum">      87 </span>            : {
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :     copy_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :     apr_status_t status;</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :     apr_size_t total;</span>
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :     int i;</span>
+<span class="lineNum">      92 </span>            : 
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :     status = serf_bucket_read_iovec(bucket, requested,</span>
+<span class="lineNum">      94 </span>            :                                     vecs_size, vecs, vecs_used);
+<span class="lineNum">      95 </span>            : 
+<span class="lineNum">      96 </span>            :     /* There are four possible results:
+<span class="lineNum">      97 </span>            : 
+<span class="lineNum">      98 </span>            :        EOF: if the wrapped bucket is done, then we must be done, too. it is
+<span class="lineNum">      99 </span>            :             quite possible we'll return less than MIN_SIZE, but with EOF, there
+<span class="lineNum">     100 </span>            :             is no way we'll be able to return that.
+<span class="lineNum">     101 </span>            :        EAGAIN: we cannot possibly read more (right now), so return. whatever
+<span class="lineNum">     102 </span>            :                was read, it is all we have, whether we met MIN_SIZE or not.
+<span class="lineNum">     103 </span>            :        error: any other error will prevent us from further work; return it.
+<span class="lineNum">     104 </span>            :        SUCCESS: we read a portion, and the bucket says we can read more.
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span>            :        For all but SUCCESS, we simply return the status. We're done now.  */
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :     if (status)</span>
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :         return status;</span>
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span>            :     /* How much was read on this pass?  */
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :     for (total = 0, i = *vecs_used; i-- &gt; 0; )</span>
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :         total += vecs[i].iov_len;</span>
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span>            :     /* The IOVEC holds at least MIN_SIZE data, so we're good. Or, it
+<span class="lineNum">     115 </span>            :        holds precisely the amount requested, so we shouldn't try to
+<span class="lineNum">     116 </span>            :        gather/accumulate more data.  */
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :     if (total &gt;= ctx-&gt;min_size || total == requested)</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :         return APR_SUCCESS;</span>
+<span class="lineNum">     119 </span>            :     /* TOTAL &lt; REQUESTED. TOTAL &lt; MIN_SIZE. We should try and fetch more.  */
+<span class="lineNum">     120 </span>            : 
+<span class="lineNum">     121 </span>            :     /* Copy what we have into our buffer. Then continue reading to get at
+<span class="lineNum">     122 </span>            :        least MIN_SIZE or REQUESTED bytes of data.  */
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span>            :     /* ### copy into HOLD_BUF. then read/append some more.  */
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span>            :     /* ### point vecs[0] at HOLD_BUF.  */
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :     return status;</span>
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 : }</span>
+<a name="130"><span class="lineNum">     130 </span>            : </a>
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span>            : static apr_status_t serf_copy_read_for_sendfile(
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :     serf_bucket_t *bucket,</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :     apr_size_t requested,</span>
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :     apr_hdtr_t *hdtr,</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :     apr_file_t **file,</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :     apr_off_t *offset,</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :     apr_size_t *len)</span>
+<span class="lineNum">     139 </span>            : {
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :     copy_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :     return serf_bucket_read_for_sendfile(ctx-&gt;wrapped, requested,</span>
+<span class="lineNum">     143 </span>            :                                          hdtr, file, offset, len);
+<span class="lineNum">     144 </span>            : }
+<a name="145"><span class="lineNum">     145 </span>            : </a>
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span>            : static serf_bucket_t *serf_copy_read_bucket(
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :     serf_bucket_t *bucket,</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :     const serf_bucket_type_t *type)</span>
+<span class="lineNum">     150 </span>            : {
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :     copy_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :     return serf_bucket_read_bucket(ctx-&gt;wrapped, type);</span>
+<span class="lineNum">     154 </span>            : }
+<a name="155"><span class="lineNum">     155 </span>            : </a>
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 : static apr_status_t serf_copy_peek(serf_bucket_t *bucket,</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :                                    const char **data,</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :                                    apr_size_t *len)</span>
+<span class="lineNum">     160 </span>            : {
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :     copy_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">     162 </span>            : 
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :     return serf_bucket_peek(ctx-&gt;wrapped, data, len);</span>
+<span class="lineNum">     164 </span>            : }
+<a name="165"><span class="lineNum">     165 </span>            : </a>
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 : static void serf_copy_destroy(serf_bucket_t *bucket)</span>
+<span class="lineNum">     168 </span>            : {
+<span class="lineNum">     169 </span>            : /*    copy_context_t *ctx = bucket-&gt;data;*/
+<span class="lineNum">     170 </span>            : 
+<span class="lineNum">     171 </span>            :     /* ### kill the HOLD_BUF  */
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :     serf_default_destroy_and_data(bucket);</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span>            : const serf_bucket_type_t serf_bucket_type_copy = {
+<span class="lineNum">     178 </span>            :     &quot;COPY&quot;,
+<span class="lineNum">     179 </span>            :     serf_copy_read,
+<span class="lineNum">     180 </span>            :     serf_copy_readline,
+<span class="lineNum">     181 </span>            :     serf_copy_read_iovec,
+<span class="lineNum">     182 </span>            :     serf_copy_read_for_sendfile,
+<span class="lineNum">     183 </span>            :     serf_copy_read_bucket,
+<span class="lineNum">     184 </span>            :     serf_copy_peek,
+<span class="lineNum">     185 </span>            :     serf_copy_destroy,
+<span class="lineNum">     186 </span>            : };
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

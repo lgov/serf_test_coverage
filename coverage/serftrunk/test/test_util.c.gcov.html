@@ -1,0 +1,680 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - serftrunk/test/test_util.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">serftrunk/test</a> - test_util.c<span style="font-size: 80%;"> (source / <a href="test_util.c.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">315</td>
+            <td class="headerCovTableEntry">329</td>
+            <td class="headerCovTableEntryHi">95.7 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2013-09-07</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">23</td>
+            <td class="headerCovTableEntry">23</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* Copyright 2002-2007 Justin Erenkrantz and Greg Stein</a>
+<span class="lineNum">       2 </span>            :  *
+<span class="lineNum">       3 </span>            :  * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+<span class="lineNum">       4 </span>            :  * you may not use this file except in compliance with the License.
+<span class="lineNum">       5 </span>            :  * You may obtain a copy of the License at
+<span class="lineNum">       6 </span>            :  *
+<span class="lineNum">       7 </span>            :  *     http://www.apache.org/licenses/LICENSE-2.0
+<span class="lineNum">       8 </span>            :  *
+<span class="lineNum">       9 </span>            :  * Unless required by applicable law or agreed to in writing, software
+<span class="lineNum">      10 </span>            :  * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+<span class="lineNum">      11 </span>            :  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+<span class="lineNum">      12 </span>            :  * See the License for the specific language governing permissions and
+<span class="lineNum">      13 </span>            :  * limitations under the License.
+<span class="lineNum">      14 </span>            :  */
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : #include &quot;apr.h&quot;
+<span class="lineNum">      17 </span>            : #include &quot;apr_pools.h&quot;
+<span class="lineNum">      18 </span>            : #include &lt;apr_strings.h&gt;
+<span class="lineNum">      19 </span>            : 
+<span class="lineNum">      20 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : #include &quot;serf.h&quot;
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : #include &quot;test_serf.h&quot;
+<span class="lineNum">      25 </span>            : #include &quot;server/test_server.h&quot;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : /*****************************************************************************/
+<span class="lineNum">      29 </span>            : /* Server setup function(s)
+<span class="lineNum">      30 </span>            :  */
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : #define HTTP_SERV_URL  &quot;http://localhost:&quot; SERV_PORT_STR
+<span class="lineNum">      33 </span>            : #define HTTPS_SERV_URL &quot;https://localhost:&quot; SERV_PORT_STR
+<a name="34"><span class="lineNum">      34 </span>            : </a>
+<span class="lineNum">      35 </span>            : /* cleanup for conn */
+<span class="lineNum">      36 </span><span class="lineCov">         36 : static apr_status_t cleanup_conn(void *baton)</span>
+<span class="lineNum">      37 </span>            : {
+<span class="lineNum">      38 </span><span class="lineCov">         36 :     serf_connection_t *conn = baton;</span>
+<span class="lineNum">      39 </span>            : 
+<span class="lineNum">      40 </span><span class="lineCov">         36 :     serf_connection_close(conn);</span>
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span><span class="lineCov">         36 :     return APR_SUCCESS;</span>
+<a name="43"><span class="lineNum">      43 </span>            : }</a>
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span><span class="lineCov">         36 : static apr_status_t default_server_address(apr_sockaddr_t **address,</span>
+<span class="lineNum">      46 </span><span class="lineCov">         36 :                                            apr_pool_t *pool)</span>
+<span class="lineNum">      47 </span>            : {
+<span class="lineNum">      48 </span><span class="lineCov">         36 :     return apr_sockaddr_info_get(address,</span>
+<span class="lineNum">      49 </span>            :                                  &quot;localhost&quot;, APR_UNSPEC, SERV_PORT, 0,
+<span class="lineNum">      50 </span>            :                                  pool);
+<a name="51"><span class="lineNum">      51 </span>            : }</a>
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span><span class="lineCov">          7 : static apr_status_t default_proxy_address(apr_sockaddr_t **address,</span>
+<span class="lineNum">      54 </span><span class="lineCov">          7 :                                           apr_pool_t *pool)</span>
+<span class="lineNum">      55 </span>            : {
+<span class="lineNum">      56 </span><span class="lineCov">          7 :     return apr_sockaddr_info_get(address,</span>
+<span class="lineNum">      57 </span>            :                                  &quot;localhost&quot;, APR_UNSPEC, PROXY_PORT, 0,
+<span class="lineNum">      58 </span>            :                                  pool);
+<span class="lineNum">      59 </span>            : }
+<a name="60"><span class="lineNum">      60 </span>            : </a>
+<span class="lineNum">      61 </span>            : /* Default implementation of a serf_connection_closed_t callback. */
+<span class="lineNum">      62 </span><span class="lineCov">          8 : static void default_closed_connection(serf_connection_t *conn,</span>
+<span class="lineNum">      63 </span><span class="lineCov">          8 :                                       void *closed_baton,</span>
+<span class="lineNum">      64 </span><span class="lineCov">          8 :                                       apr_status_t why,</span>
+<span class="lineNum">      65 </span><span class="lineCov">          8 :                                       apr_pool_t *pool)</span>
+<span class="lineNum">      66 </span>            : {
+<span class="lineNum">      67 </span><span class="lineCov">          8 :     if (why) {</span>
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :         abort();</span>
+<span class="lineNum">      69 </span>            :     }
+<span class="lineNum">      70 </span><span class="lineCov">          8 : }</span>
+<a name="71"><span class="lineNum">      71 </span>            : </a>
+<span class="lineNum">      72 </span>            : /* Default implementation of a serf_connection_setup_t callback. */
+<span class="lineNum">      73 </span><span class="lineCov">         21 : static apr_status_t default_http_conn_setup(apr_socket_t *skt,</span>
+<span class="lineNum">      74 </span><span class="lineCov">         21 :                                             serf_bucket_t **input_bkt,</span>
+<span class="lineNum">      75 </span><span class="lineCov">         21 :                                             serf_bucket_t **output_bkt,</span>
+<span class="lineNum">      76 </span><span class="lineCov">         21 :                                             void *setup_baton,</span>
+<span class="lineNum">      77 </span><span class="lineCov">         21 :                                             apr_pool_t *pool)</span>
+<span class="lineNum">      78 </span>            : {
+<span class="lineNum">      79 </span><span class="lineCov">         21 :     test_baton_t *tb = setup_baton;</span>
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span><span class="lineCov">         21 :     *input_bkt = serf_bucket_socket_create(skt, tb-&gt;bkt_alloc);</span>
+<span class="lineNum">      82 </span><span class="lineCov">         21 :     return APR_SUCCESS;</span>
+<span class="lineNum">      83 </span>            : }
+<a name="84"><span class="lineNum">      84 </span>            : </a>
+<span class="lineNum">      85 </span>            : /* This function makes serf use SSL on the connection. */
+<span class="lineNum">      86 </span><span class="lineCov">         18 : apr_status_t default_https_conn_setup(apr_socket_t *skt,</span>
+<span class="lineNum">      87 </span><span class="lineCov">         18 :                                       serf_bucket_t **input_bkt,</span>
+<span class="lineNum">      88 </span><span class="lineCov">         18 :                                       serf_bucket_t **output_bkt,</span>
+<span class="lineNum">      89 </span><span class="lineCov">         18 :                                       void *setup_baton,</span>
+<span class="lineNum">      90 </span><span class="lineCov">         18 :                                       apr_pool_t *pool)</span>
+<span class="lineNum">      91 </span>            : {
+<span class="lineNum">      92 </span><span class="lineCov">         18 :     test_baton_t *tb = setup_baton;</span>
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span><span class="lineCov">         18 :     *input_bkt = serf_bucket_socket_create(skt, tb-&gt;bkt_alloc);</span>
+<span class="lineNum">      95 </span><span class="lineCov">         18 :     *input_bkt = serf_bucket_ssl_decrypt_create(*input_bkt, NULL,</span>
+<span class="lineNum">      96 </span>            :                                                 tb-&gt;bkt_alloc);
+<span class="lineNum">      97 </span><span class="lineCov">         18 :     tb-&gt;ssl_context = serf_bucket_ssl_encrypt_context_get(*input_bkt);</span>
+<span class="lineNum">      98 </span>            : 
+<span class="lineNum">      99 </span><span class="lineCov">         18 :     if (output_bkt) {</span>
+<span class="lineNum">     100 </span><span class="lineCov">         18 :         *output_bkt = serf_bucket_ssl_encrypt_create(*output_bkt,</span>
+<span class="lineNum">     101 </span>            :                                                      tb-&gt;ssl_context,
+<span class="lineNum">     102 </span>            :                                                      tb-&gt;bkt_alloc);
+<span class="lineNum">     103 </span><span class="lineCov">         18 :     }</span>
+<span class="lineNum">     104 </span>            : 
+<span class="lineNum">     105 </span><span class="lineCov">         18 :     if (tb-&gt;server_cert_cb)</span>
+<span class="lineNum">     106 </span><span class="lineCov">          7 :         serf_ssl_server_cert_callback_set(tb-&gt;ssl_context,</span>
+<span class="lineNum">     107 </span>            :                                           tb-&gt;server_cert_cb,
+<span class="lineNum">     108 </span>            :                                           tb);
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span><span class="lineCov">         18 :     serf_ssl_set_hostname(tb-&gt;ssl_context, &quot;localhost&quot;);</span>
+<span class="lineNum">     111 </span>            : 
+<span class="lineNum">     112 </span><span class="lineCov">         18 :     return APR_SUCCESS;</span>
+<a name="113"><span class="lineNum">     113 </span>            : }</a>
+<span class="lineNum">     114 </span>            : 
+<span class="lineNum">     115 </span><span class="lineCov">         36 : apr_status_t use_new_connection(test_baton_t *tb,</span>
+<span class="lineNum">     116 </span><span class="lineCov">         36 :                                 apr_pool_t *pool)</span>
+<span class="lineNum">     117 </span>            : {
+<span class="lineNum">     118 </span><span class="lineCov">         36 :     apr_uri_t url;</span>
+<span class="lineNum">     119 </span><span class="lineCov">         36 :     apr_status_t status;</span>
+<span class="lineNum">     120 </span>            : 
+<span class="lineNum">     121 </span><span class="lineCov">         36 :     if (tb-&gt;connection)</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :         cleanup_conn(tb-&gt;connection);</span>
+<span class="lineNum">     123 </span><span class="lineCov">         36 :     tb-&gt;connection = NULL;</span>
+<span class="lineNum">     124 </span>            : 
+<span class="lineNum">     125 </span><span class="lineCov">         36 :     status = apr_uri_parse(pool, tb-&gt;serv_url, &amp;url);</span>
+<span class="lineNum">     126 </span><span class="lineCov">         36 :     if (status != APR_SUCCESS)</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :         return status;</span>
+<span class="lineNum">     128 </span>            : 
+<span class="lineNum">     129 </span><span class="lineCov">         36 :     status = serf_connection_create2(&amp;tb-&gt;connection, tb-&gt;context,</span>
+<span class="lineNum">     130 </span>            :                                      url,
+<span class="lineNum">     131 </span>            :                                      tb-&gt;conn_setup,
+<span class="lineNum">     132 </span>            :                                      tb,
+<span class="lineNum">     133 </span>            :                                      default_closed_connection,
+<span class="lineNum">     134 </span>            :                                      tb,
+<span class="lineNum">     135 </span>            :                                      pool);
+<span class="lineNum">     136 </span><span class="lineCov">         36 :     apr_pool_cleanup_register(pool, tb-&gt;connection, cleanup_conn,</span>
+<span class="lineNum">     137 </span>            :                               apr_pool_cleanup_null);
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span><span class="lineCov">         36 :     return status;</span>
+<span class="lineNum">     140 </span><span class="lineCov">         36 : }</span>
+<span class="lineNum">     141 </span>            : 
+<a name="142"><span class="lineNum">     142 </span>            : /* Setup the client context, ready to connect and send requests to a</a>
+<span class="lineNum">     143 </span>            :    server.*/
+<span class="lineNum">     144 </span><span class="lineCov">         36 : static apr_status_t setup(test_baton_t **tb_p,</span>
+<span class="lineNum">     145 </span><span class="lineCov">         36 :                           serf_connection_setup_t conn_setup,</span>
+<span class="lineNum">     146 </span><span class="lineCov">         36 :                           const char *serv_url,</span>
+<span class="lineNum">     147 </span><span class="lineCov">         36 :                           int use_proxy,</span>
+<span class="lineNum">     148 </span><span class="lineCov">         36 :                           apr_size_t message_count,</span>
+<span class="lineNum">     149 </span><span class="lineCov">         36 :                           apr_pool_t *pool)</span>
+<span class="lineNum">     150 </span>            : {
+<span class="lineNum">     151 </span><span class="lineCov">         36 :     test_baton_t *tb;</span>
+<span class="lineNum">     152 </span><span class="lineCov">         36 :     apr_status_t status;</span>
+<span class="lineNum">     153 </span>            : 
+<span class="lineNum">     154 </span><span class="lineCov">         36 :     tb = apr_pcalloc(pool, sizeof(*tb));</span>
+<span class="lineNum">     155 </span><span class="lineCov">         36 :     *tb_p = tb;</span>
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span><span class="lineCov">         36 :     tb-&gt;pool = pool;</span>
+<span class="lineNum">     158 </span><span class="lineCov">         36 :     tb-&gt;context = serf_context_create(pool);</span>
+<span class="lineNum">     159 </span><span class="lineCov">         36 :     tb-&gt;bkt_alloc = serf_bucket_allocator_create(pool, NULL, NULL);</span>
+<span class="lineNum">     160 </span>            : 
+<span class="lineNum">     161 </span><span class="lineCov">         36 :     tb-&gt;accepted_requests = apr_array_make(pool, message_count, sizeof(int));</span>
+<span class="lineNum">     162 </span><span class="lineCov">         36 :     tb-&gt;sent_requests = apr_array_make(pool, message_count, sizeof(int));</span>
+<span class="lineNum">     163 </span><span class="lineCov">         36 :     tb-&gt;handled_requests = apr_array_make(pool, message_count, sizeof(int));</span>
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span><span class="lineCov">         36 :     tb-&gt;serv_url = serv_url;</span>
+<span class="lineNum">     166 </span><span class="lineCov">         36 :     tb-&gt;conn_setup = conn_setup;</span>
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span><span class="lineCov">         36 :     status = default_server_address(&amp;tb-&gt;serv_addr, pool);</span>
+<span class="lineNum">     169 </span><span class="lineCov">         36 :     if (status != APR_SUCCESS)</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :         return status;</span>
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span><span class="lineCov">         36 :     if (use_proxy) {</span>
+<span class="lineNum">     173 </span><span class="lineCov">          7 :         status = default_proxy_address(&amp;tb-&gt;proxy_addr, pool);</span>
+<span class="lineNum">     174 </span><span class="lineCov">          7 :         if (status != APR_SUCCESS)</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :             return status;</span>
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span>            :         /* Configure serf to use the proxy server */
+<span class="lineNum">     178 </span><span class="lineCov">          7 :         serf_config_proxy(tb-&gt;context, tb-&gt;proxy_addr);</span>
+<span class="lineNum">     179 </span><span class="lineCov">          7 :     }</span>
+<span class="lineNum">     180 </span>            : 
+<span class="lineNum">     181 </span><span class="lineCov">         36 :     status = use_new_connection(tb, pool);</span>
+<span class="lineNum">     182 </span>            : 
+<span class="lineNum">     183 </span><span class="lineCov">         36 :     return status;</span>
+<span class="lineNum">     184 </span><span class="lineCov">         36 : }</span>
+<a name="185"><span class="lineNum">     185 </span>            : </a>
+<span class="lineNum">     186 </span>            : /* Setup an https server and the client context to connect to that server */
+<span class="lineNum">     187 </span><span class="lineCov">         12 : apr_status_t test_https_server_setup(test_baton_t **tb_p,</span>
+<span class="lineNum">     188 </span><span class="lineCov">         12 :                                      test_server_message_t *message_list,</span>
+<span class="lineNum">     189 </span><span class="lineCov">         12 :                                      apr_size_t message_count,</span>
+<span class="lineNum">     190 </span><span class="lineCov">         12 :                                      test_server_action_t *action_list,</span>
+<span class="lineNum">     191 </span><span class="lineCov">         12 :                                      apr_size_t action_count,</span>
+<span class="lineNum">     192 </span><span class="lineCov">         12 :                                      apr_int32_t options,</span>
+<span class="lineNum">     193 </span><span class="lineCov">         12 :                                      serf_connection_setup_t conn_setup,</span>
+<span class="lineNum">     194 </span><span class="lineCov">         12 :                                      const char *keyfile,</span>
+<span class="lineNum">     195 </span><span class="lineCov">         12 :                                      const char **certfiles,</span>
+<span class="lineNum">     196 </span><span class="lineCov">         12 :                                      const char *client_cn,</span>
+<span class="lineNum">     197 </span><span class="lineCov">         12 :                                      serf_ssl_need_server_cert_t server_cert_cb,</span>
+<span class="lineNum">     198 </span><span class="lineCov">         12 :                                      apr_pool_t *pool)</span>
+<span class="lineNum">     199 </span>            : {
+<span class="lineNum">     200 </span><span class="lineCov">         12 :     apr_status_t status;</span>
+<span class="lineNum">     201 </span><span class="lineCov">         12 :     test_baton_t *tb;</span>
+<span class="lineNum">     202 </span>            : 
+<span class="lineNum">     203 </span><span class="lineCov">         36 :     status = setup(tb_p,</span>
+<span class="lineNum">     204 </span>            :                    conn_setup ? conn_setup : default_https_conn_setup,
+<span class="lineNum">     205 </span>            :                    HTTPS_SERV_URL,
+<span class="lineNum">     206 </span>            :                    FALSE,
+<span class="lineNum">     207 </span>            :                    message_count,
+<span class="lineNum">     208 </span>            :                    pool);
+<span class="lineNum">     209 </span><span class="lineCov">         12 :     if (status != APR_SUCCESS)</span>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :         return status;</span>
+<span class="lineNum">     211 </span>            : 
+<span class="lineNum">     212 </span><span class="lineCov">         12 :     tb = *tb_p;</span>
+<span class="lineNum">     213 </span><span class="lineCov">         12 :     tb-&gt;server_cert_cb = server_cert_cb;</span>
+<span class="lineNum">     214 </span>            : 
+<span class="lineNum">     215 </span>            :     /* Prepare a server. */
+<span class="lineNum">     216 </span><span class="lineCov">         12 :     setup_https_test_server(&amp;tb-&gt;serv_ctx, tb-&gt;serv_addr,</span>
+<span class="lineNum">     217 </span>            :                             message_list, message_count,
+<span class="lineNum">     218 </span>            :                             action_list, action_count, options,
+<span class="lineNum">     219 </span>            :                             keyfile, certfiles, client_cn,
+<span class="lineNum">     220 </span>            :                             pool);
+<span class="lineNum">     221 </span><span class="lineCov">         12 :     status = start_test_server(tb-&gt;serv_ctx);</span>
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span><span class="lineCov">         12 :     return status;</span>
+<span class="lineNum">     224 </span><span class="lineCov">         12 : }</span>
+<a name="225"><span class="lineNum">     225 </span>            : </a>
+<span class="lineNum">     226 </span>            : /* Setup an http server and the client context to connect to that server */
+<span class="lineNum">     227 </span><span class="lineCov">         17 : apr_status_t test_http_server_setup(test_baton_t **tb_p,</span>
+<span class="lineNum">     228 </span><span class="lineCov">         17 :                                     test_server_message_t *message_list,</span>
+<span class="lineNum">     229 </span><span class="lineCov">         17 :                                     apr_size_t message_count,</span>
+<span class="lineNum">     230 </span><span class="lineCov">         17 :                                     test_server_action_t *action_list,</span>
+<span class="lineNum">     231 </span><span class="lineCov">         17 :                                     apr_size_t action_count,</span>
+<span class="lineNum">     232 </span><span class="lineCov">         17 :                                     apr_int32_t options,</span>
+<span class="lineNum">     233 </span><span class="lineCov">         17 :                                     serf_connection_setup_t conn_setup,</span>
+<span class="lineNum">     234 </span><span class="lineCov">         17 :                                     apr_pool_t *pool)</span>
+<span class="lineNum">     235 </span>            : {
+<span class="lineNum">     236 </span><span class="lineCov">         17 :     apr_status_t status;</span>
+<span class="lineNum">     237 </span><span class="lineCov">         17 :     test_baton_t *tb;</span>
+<span class="lineNum">     238 </span>            : 
+<span class="lineNum">     239 </span><span class="lineCov">         51 :     status = setup(tb_p,</span>
+<span class="lineNum">     240 </span>            :                    conn_setup ? conn_setup : default_http_conn_setup,
+<span class="lineNum">     241 </span>            :                    HTTP_SERV_URL,
+<span class="lineNum">     242 </span>            :                    FALSE,
+<span class="lineNum">     243 </span>            :                    message_count,
+<span class="lineNum">     244 </span>            :                    pool);
+<span class="lineNum">     245 </span><span class="lineCov">         17 :     if (status != APR_SUCCESS)</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :         return status;</span>
+<span class="lineNum">     247 </span>            : 
+<span class="lineNum">     248 </span><span class="lineCov">         17 :     tb = *tb_p;</span>
+<span class="lineNum">     249 </span>            : 
+<span class="lineNum">     250 </span>            :     /* Prepare a server. */
+<span class="lineNum">     251 </span><span class="lineCov">         17 :     setup_test_server(&amp;tb-&gt;serv_ctx, tb-&gt;serv_addr,</span>
+<span class="lineNum">     252 </span>            :                       message_list, message_count,
+<span class="lineNum">     253 </span>            :                       action_list, action_count, options,
+<span class="lineNum">     254 </span>            :                       pool);
+<span class="lineNum">     255 </span><span class="lineCov">         17 :     status = start_test_server(tb-&gt;serv_ctx);</span>
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span><span class="lineCov">         17 :     return status;</span>
+<span class="lineNum">     258 </span><span class="lineCov">         17 : }</span>
+<span class="lineNum">     259 </span>            : 
+<span class="lineNum">     260 </span>            : /* Setup a proxy server and an http server and the client context to connect to
+<a name="261"><span class="lineNum">     261 </span>            :    that proxy server */</a>
+<span class="lineNum">     262 </span>            : apr_status_t
+<span class="lineNum">     263 </span><span class="lineCov">          1 : test_server_proxy_setup(test_baton_t **tb_p,</span>
+<span class="lineNum">     264 </span><span class="lineCov">          1 :                         test_server_message_t *serv_message_list,</span>
+<span class="lineNum">     265 </span><span class="lineCov">          1 :                         apr_size_t serv_message_count,</span>
+<span class="lineNum">     266 </span><span class="lineCov">          1 :                         test_server_action_t *serv_action_list,</span>
+<span class="lineNum">     267 </span><span class="lineCov">          1 :                         apr_size_t serv_action_count,</span>
+<span class="lineNum">     268 </span><span class="lineCov">          1 :                         test_server_message_t *proxy_message_list,</span>
+<span class="lineNum">     269 </span><span class="lineCov">          1 :                         apr_size_t proxy_message_count,</span>
+<span class="lineNum">     270 </span><span class="lineCov">          1 :                         test_server_action_t *proxy_action_list,</span>
+<span class="lineNum">     271 </span><span class="lineCov">          1 :                         apr_size_t proxy_action_count,</span>
+<span class="lineNum">     272 </span><span class="lineCov">          1 :                         apr_int32_t options,</span>
+<span class="lineNum">     273 </span><span class="lineCov">          1 :                         serf_connection_setup_t conn_setup,</span>
+<span class="lineNum">     274 </span><span class="lineCov">          1 :                         apr_pool_t *pool)</span>
+<span class="lineNum">     275 </span>            : {
+<span class="lineNum">     276 </span><span class="lineCov">          1 :     apr_status_t status;</span>
+<span class="lineNum">     277 </span><span class="lineCov">          1 :     test_baton_t *tb;</span>
+<span class="lineNum">     278 </span>            : 
+<span class="lineNum">     279 </span><span class="lineCov">          3 :     status = setup(tb_p,</span>
+<span class="lineNum">     280 </span>            :                    conn_setup ? conn_setup : default_http_conn_setup,
+<span class="lineNum">     281 </span>            :                    HTTP_SERV_URL,
+<span class="lineNum">     282 </span>            :                    TRUE,
+<span class="lineNum">     283 </span>            :                    serv_message_count,
+<span class="lineNum">     284 </span>            :                    pool);
+<span class="lineNum">     285 </span><span class="lineCov">          1 :     if (status != APR_SUCCESS)</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :         return status;</span>
+<span class="lineNum">     287 </span>            : 
+<span class="lineNum">     288 </span><span class="lineCov">          1 :     tb = *tb_p;</span>
+<span class="lineNum">     289 </span>            : 
+<span class="lineNum">     290 </span>            :     /* Prepare the server. */
+<span class="lineNum">     291 </span><span class="lineCov">          1 :     setup_test_server(&amp;tb-&gt;serv_ctx, tb-&gt;serv_addr,</span>
+<span class="lineNum">     292 </span>            :                       serv_message_list, serv_message_count,
+<span class="lineNum">     293 </span>            :                       serv_action_list, serv_action_count,
+<span class="lineNum">     294 </span>            :                       options,
+<span class="lineNum">     295 </span>            :                       pool);
+<span class="lineNum">     296 </span><span class="lineCov">          1 :     status = start_test_server(tb-&gt;serv_ctx);</span>
+<span class="lineNum">     297 </span><span class="lineCov">          1 :     if (status != APR_SUCCESS)</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :         return status;</span>
+<span class="lineNum">     299 </span>            : 
+<span class="lineNum">     300 </span>            :     /* Prepare the proxy. */
+<span class="lineNum">     301 </span><span class="lineCov">          1 :     setup_test_server(&amp;tb-&gt;proxy_ctx, tb-&gt;proxy_addr,</span>
+<span class="lineNum">     302 </span>            :                       proxy_message_list, proxy_message_count,
+<span class="lineNum">     303 </span>            :                       proxy_action_list, proxy_action_count,
+<span class="lineNum">     304 </span>            :                       options,
+<span class="lineNum">     305 </span>            :                       pool);
+<span class="lineNum">     306 </span><span class="lineCov">          1 :     status = start_test_server(tb-&gt;proxy_ctx);</span>
+<span class="lineNum">     307 </span>            : 
+<span class="lineNum">     308 </span><span class="lineCov">          1 :     return status;</span>
+<span class="lineNum">     309 </span><span class="lineCov">          1 : }</span>
+<span class="lineNum">     310 </span>            : 
+<span class="lineNum">     311 </span>            : /* Setup a proxy server and a https server and the client context to connect to
+<a name="312"><span class="lineNum">     312 </span>            :    that proxy server */</a>
+<span class="lineNum">     313 </span>            : apr_status_t
+<span class="lineNum">     314 </span><span class="lineCov">          6 : test_https_server_proxy_setup(test_baton_t **tb_p,</span>
+<span class="lineNum">     315 </span><span class="lineCov">          6 :                               test_server_message_t *serv_message_list,</span>
+<span class="lineNum">     316 </span><span class="lineCov">          6 :                               apr_size_t serv_message_count,</span>
+<span class="lineNum">     317 </span><span class="lineCov">          6 :                               test_server_action_t *serv_action_list,</span>
+<span class="lineNum">     318 </span><span class="lineCov">          6 :                               apr_size_t serv_action_count,</span>
+<span class="lineNum">     319 </span><span class="lineCov">          6 :                               test_server_message_t *proxy_message_list,</span>
+<span class="lineNum">     320 </span><span class="lineCov">          6 :                               apr_size_t proxy_message_count,</span>
+<span class="lineNum">     321 </span><span class="lineCov">          6 :                               test_server_action_t *proxy_action_list,</span>
+<span class="lineNum">     322 </span><span class="lineCov">          6 :                               apr_size_t proxy_action_count,</span>
+<span class="lineNum">     323 </span><span class="lineCov">          6 :                               apr_int32_t options,</span>
+<span class="lineNum">     324 </span><span class="lineCov">          6 :                               serf_connection_setup_t conn_setup,</span>
+<span class="lineNum">     325 </span><span class="lineCov">          6 :                               const char *keyfile,</span>
+<span class="lineNum">     326 </span><span class="lineCov">          6 :                               const char **certfiles,</span>
+<span class="lineNum">     327 </span><span class="lineCov">          6 :                               const char *client_cn,</span>
+<span class="lineNum">     328 </span><span class="lineCov">          6 :                               serf_ssl_need_server_cert_t server_cert_cb,</span>
+<span class="lineNum">     329 </span><span class="lineCov">          6 :                               apr_pool_t *pool)</span>
+<span class="lineNum">     330 </span>            : {
+<span class="lineNum">     331 </span><span class="lineCov">          6 :     apr_status_t status;</span>
+<span class="lineNum">     332 </span><span class="lineCov">          6 :     test_baton_t *tb;</span>
+<span class="lineNum">     333 </span>            : 
+<span class="lineNum">     334 </span><span class="lineCov">         18 :     status = setup(tb_p,</span>
+<span class="lineNum">     335 </span>            :                    conn_setup ? conn_setup : default_https_conn_setup,
+<span class="lineNum">     336 </span>            :                    HTTPS_SERV_URL,
+<span class="lineNum">     337 </span>            :                    TRUE, /* use proxy */
+<span class="lineNum">     338 </span>            :                    serv_message_count,
+<span class="lineNum">     339 </span>            :                    pool);
+<span class="lineNum">     340 </span><span class="lineCov">          6 :     if (status != APR_SUCCESS)</span>
+<span class="lineNum">     341 </span><span class="lineNoCov">          0 :         return status;</span>
+<span class="lineNum">     342 </span>            : 
+<span class="lineNum">     343 </span><span class="lineCov">          6 :     tb = *tb_p;</span>
+<span class="lineNum">     344 </span><span class="lineCov">          6 :     tb-&gt;server_cert_cb = server_cert_cb;</span>
+<span class="lineNum">     345 </span>            : 
+<span class="lineNum">     346 </span>            :     /* Prepare a https server. */
+<span class="lineNum">     347 </span><span class="lineCov">          6 :     setup_https_test_server(&amp;tb-&gt;serv_ctx, tb-&gt;serv_addr,</span>
+<span class="lineNum">     348 </span>            :                             serv_message_list, serv_message_count,
+<span class="lineNum">     349 </span>            :                             serv_action_list, serv_action_count,
+<span class="lineNum">     350 </span>            :                             options,
+<span class="lineNum">     351 </span>            :                             keyfile, certfiles, client_cn,
+<span class="lineNum">     352 </span>            :                             pool);
+<span class="lineNum">     353 </span><span class="lineCov">          6 :     status = start_test_server(tb-&gt;serv_ctx);</span>
+<span class="lineNum">     354 </span>            : 
+<span class="lineNum">     355 </span>            :     /* Prepare the proxy. */
+<span class="lineNum">     356 </span><span class="lineCov">          6 :     setup_test_server(&amp;tb-&gt;proxy_ctx, tb-&gt;proxy_addr,</span>
+<span class="lineNum">     357 </span>            :                       proxy_message_list, proxy_message_count,
+<span class="lineNum">     358 </span>            :                       proxy_action_list, proxy_action_count,
+<span class="lineNum">     359 </span>            :                       options,
+<span class="lineNum">     360 </span>            :                       pool);
+<span class="lineNum">     361 </span><span class="lineCov">          6 :     status = start_test_server(tb-&gt;proxy_ctx);</span>
+<span class="lineNum">     362 </span>            : 
+<span class="lineNum">     363 </span><span class="lineCov">          6 :     return status;</span>
+<a name="364"><span class="lineNum">     364 </span><span class="lineCov">          6 : }</span></a>
+<span class="lineNum">     365 </span>            : 
+<span class="lineNum">     366 </span><span class="lineCov">         63 : void *test_setup(void *dummy)</span>
+<span class="lineNum">     367 </span>            : {
+<span class="lineNum">     368 </span><span class="lineCov">         63 :     apr_pool_t *test_pool;</span>
+<span class="lineNum">     369 </span><span class="lineCov">         63 :     apr_pool_create(&amp;test_pool, NULL);</span>
+<span class="lineNum">     370 </span><span class="lineCov">         63 :     return test_pool;</span>
+<a name="371"><span class="lineNum">     371 </span>            : }</a>
+<span class="lineNum">     372 </span>            : 
+<span class="lineNum">     373 </span><span class="lineCov">         63 : void *test_teardown(void *baton)</span>
+<span class="lineNum">     374 </span>            : {
+<span class="lineNum">     375 </span><span class="lineCov">         63 :     apr_pool_t *pool = baton;</span>
+<span class="lineNum">     376 </span><span class="lineCov">         63 :     apr_pool_destroy(pool);</span>
+<span class="lineNum">     377 </span>            : 
+<span class="lineNum">     378 </span><span class="lineCov">         63 :     return NULL;</span>
+<span class="lineNum">     379 </span>            : }
+<span class="lineNum">     380 </span>            : 
+<span class="lineNum">     381 </span>            : /* Helper function, runs the client and server context loops and validates
+<a name="382"><span class="lineNum">     382 </span>            :  that no errors were encountered, and all messages were sent and received. */</a>
+<span class="lineNum">     383 </span>            : apr_status_t
+<span class="lineNum">     384 </span><span class="lineCov">         38 : test_helper_run_requests_no_check(CuTest *tc, test_baton_t *tb,</span>
+<span class="lineNum">     385 </span><span class="lineCov">         38 :                                   int num_requests,</span>
+<span class="lineNum">     386 </span><span class="lineCov">         38 :                                   handler_baton_t handler_ctx[],</span>
+<span class="lineNum">     387 </span><span class="lineCov">         38 :                                   apr_pool_t *pool)</span>
+<span class="lineNum">     388 </span>            : {
+<span class="lineNum">     389 </span><span class="lineCov">         38 :     apr_pool_t *iter_pool;</span>
+<span class="lineNum">     390 </span><span class="lineCov">         38 :     int i, done = 0;</span>
+<span class="lineNum">     391 </span><span class="lineCov">         38 :     apr_status_t status;</span>
+<span class="lineNum">     392 </span><span class="lineCov">         38 :     apr_time_t finish_time = apr_time_now() + apr_time_from_sec(15);</span>
+<span class="lineNum">     393 </span>            : 
+<span class="lineNum">     394 </span><span class="lineCov">         38 :     apr_pool_create(&amp;iter_pool, pool);</span>
+<span class="lineNum">     395 </span>            : 
+<span class="lineNum">     396 </span><span class="lineCov">        834 :     while (!done)</span>
+<span class="lineNum">     397 </span>            :     {
+<span class="lineNum">     398 </span><span class="lineCov">        763 :         apr_pool_clear(iter_pool);</span>
+<span class="lineNum">     399 </span>            : 
+<span class="lineNum">     400 </span>            :         /* run server event loop */
+<span class="lineNum">     401 </span><span class="lineCov">        763 :         status = run_test_server(tb-&gt;serv_ctx, 0, iter_pool);</span>
+<span class="lineNum">     402 </span><span class="lineCov">       1666 :         if (!APR_STATUS_IS_TIMEUP(status) &amp;&amp;</span>
+<span class="lineNum">     403 </span>            :             SERF_BUCKET_READ_ERROR(status))
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :             return status;</span>
+<span class="lineNum">     405 </span>            : 
+<span class="lineNum">     406 </span>            :         /* run proxy event loop */
+<span class="lineNum">     407 </span><span class="lineCov">        763 :         if (tb-&gt;proxy_ctx) {</span>
+<span class="lineNum">     408 </span><span class="lineCov">        169 :             status = run_test_server(tb-&gt;proxy_ctx, 0, iter_pool);</span>
+<span class="lineNum">     409 </span><span class="lineCov">        336 :             if (!APR_STATUS_IS_TIMEUP(status) &amp;&amp;</span>
+<span class="lineNum">     410 </span>            :                 SERF_BUCKET_READ_ERROR(status))
+<span class="lineNum">     411 </span><span class="lineNoCov">          0 :                 return status;</span>
+<span class="lineNum">     412 </span><span class="lineCov">        169 :         }</span>
+<span class="lineNum">     413 </span>            : 
+<span class="lineNum">     414 </span>            :         /* run client event loop */
+<span class="lineNum">     415 </span><span class="lineCov">        763 :         status = serf_context_run(tb-&gt;context, 0, iter_pool);</span>
+<span class="lineNum">     416 </span><span class="lineCov">       1266 :         if (!APR_STATUS_IS_TIMEUP(status) &amp;&amp;</span>
+<span class="lineNum">     417 </span>            :             SERF_BUCKET_READ_ERROR(status))
+<span class="lineNum">     418 </span><span class="lineCov">          5 :             return status;</span>
+<span class="lineNum">     419 </span>            : 
+<span class="lineNum">     420 </span><span class="lineCov">        758 :         done = 1;</span>
+<span class="lineNum">     421 </span><span class="lineCov">       3130 :         for (i = 0; i &lt; num_requests; i++)</span>
+<span class="lineNum">     422 </span><span class="lineCov">        807 :             done &amp;= handler_ctx[i].done;</span>
+<span class="lineNum">     423 </span>            : 
+<span class="lineNum">     424 </span><span class="lineCov">       1483 :         if (!done &amp;&amp; (apr_time_now() &gt; finish_time))</span>
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :           return APR_ETIMEDOUT;</span>
+<span class="lineNum">     426 </span><span class="lineCov">        758 :     }</span>
+<span class="lineNum">     427 </span><span class="lineCov">         33 :     apr_pool_destroy(iter_pool);</span>
+<span class="lineNum">     428 </span>            : 
+<span class="lineNum">     429 </span><span class="lineCov">         33 :     return APR_SUCCESS;</span>
+<span class="lineNum">     430 </span><span class="lineCov">         38 : }</span>
+<a name="431"><span class="lineNum">     431 </span>            : </a>
+<span class="lineNum">     432 </span>            : void
+<span class="lineNum">     433 </span><span class="lineCov">         18 : test_helper_run_requests_expect_ok(CuTest *tc, test_baton_t *tb,</span>
+<span class="lineNum">     434 </span><span class="lineCov">         18 :                                    int num_requests,</span>
+<span class="lineNum">     435 </span><span class="lineCov">         18 :                                    handler_baton_t handler_ctx[],</span>
+<span class="lineNum">     436 </span><span class="lineCov">         18 :                                    apr_pool_t *pool)</span>
+<span class="lineNum">     437 </span>            : {
+<span class="lineNum">     438 </span><span class="lineCov">         18 :     apr_status_t status;</span>
+<span class="lineNum">     439 </span>            : 
+<span class="lineNum">     440 </span><span class="lineCov">         18 :     status = test_helper_run_requests_no_check(tc, tb, num_requests,</span>
+<span class="lineNum">     441 </span>            :                                                handler_ctx, pool);
+<span class="lineNum">     442 </span><span class="lineCov">         18 :     CuAssertIntEquals(tc, APR_SUCCESS, status);</span>
+<span class="lineNum">     443 </span>            : 
+<span class="lineNum">     444 </span>            :     /* Check that all requests were received */
+<span class="lineNum">     445 </span><span class="lineCov">         18 :     CuAssertIntEquals(tc, num_requests, tb-&gt;sent_requests-&gt;nelts);</span>
+<span class="lineNum">     446 </span><span class="lineCov">         18 :     CuAssertIntEquals(tc, num_requests, tb-&gt;accepted_requests-&gt;nelts);</span>
+<span class="lineNum">     447 </span><span class="lineCov">         18 :     CuAssertIntEquals(tc, num_requests, tb-&gt;handled_requests-&gt;nelts);</span>
+<a name="448"><span class="lineNum">     448 </span><span class="lineCov">         18 : }</span></a>
+<span class="lineNum">     449 </span>            : 
+<span class="lineNum">     450 </span><span class="lineCov">         78 : serf_bucket_t* accept_response(serf_request_t *request,</span>
+<span class="lineNum">     451 </span><span class="lineCov">         78 :                                serf_bucket_t *stream,</span>
+<span class="lineNum">     452 </span><span class="lineCov">         78 :                                void *acceptor_baton,</span>
+<span class="lineNum">     453 </span><span class="lineCov">         78 :                                apr_pool_t *pool)</span>
+<span class="lineNum">     454 </span>            : {
+<span class="lineNum">     455 </span><span class="lineCov">         78 :     serf_bucket_t *c;</span>
+<span class="lineNum">     456 </span><span class="lineCov">         78 :     serf_bucket_alloc_t *bkt_alloc;</span>
+<span class="lineNum">     457 </span><span class="lineCov">         78 :     handler_baton_t *ctx = acceptor_baton;</span>
+<span class="lineNum">     458 </span>            : 
+<span class="lineNum">     459 </span>            :     /* get the per-request bucket allocator */
+<span class="lineNum">     460 </span><span class="lineCov">         78 :     bkt_alloc = serf_request_get_alloc(request);</span>
+<span class="lineNum">     461 </span>            : 
+<span class="lineNum">     462 </span>            :     /* Create a barrier so the response doesn't eat us! */
+<span class="lineNum">     463 </span><span class="lineCov">         78 :     c = serf_bucket_barrier_create(stream, bkt_alloc);</span>
+<span class="lineNum">     464 </span>            : 
+<span class="lineNum">     465 </span><span class="lineCov">         78 :     APR_ARRAY_PUSH(ctx-&gt;accepted_requests, int) = ctx-&gt;req_id;</span>
+<span class="lineNum">     466 </span>            : 
+<span class="lineNum">     467 </span><span class="lineCov">         78 :     return serf_bucket_response_create(c, bkt_alloc);</span>
+<a name="468"><span class="lineNum">     468 </span>            : }</a>
+<span class="lineNum">     469 </span>            : 
+<span class="lineNum">     470 </span><span class="lineCov">         86 : apr_status_t setup_request(serf_request_t *request,</span>
+<span class="lineNum">     471 </span><span class="lineCov">         86 :                            void *setup_baton,</span>
+<span class="lineNum">     472 </span><span class="lineCov">         86 :                            serf_bucket_t **req_bkt,</span>
+<span class="lineNum">     473 </span><span class="lineCov">         86 :                            serf_response_acceptor_t *acceptor,</span>
+<span class="lineNum">     474 </span><span class="lineCov">         86 :                            void **acceptor_baton,</span>
+<span class="lineNum">     475 </span><span class="lineCov">         86 :                            serf_response_handler_t *handler,</span>
+<span class="lineNum">     476 </span><span class="lineCov">         86 :                            void **handler_baton,</span>
+<span class="lineNum">     477 </span><span class="lineCov">         86 :                            apr_pool_t *pool)</span>
+<span class="lineNum">     478 </span>            : {
+<span class="lineNum">     479 </span><span class="lineCov">         86 :     handler_baton_t *ctx = setup_baton;</span>
+<span class="lineNum">     480 </span><span class="lineCov">         86 :     serf_bucket_t *body_bkt;</span>
+<span class="lineNum">     481 </span>            : 
+<span class="lineNum">     482 </span><span class="lineCov">         86 :     if (ctx-&gt;request)</span>
+<span class="lineNum">     483 </span>            :     {
+<span class="lineNum">     484 </span>            :         /* Create a raw request bucket. */
+<span class="lineNum">     485 </span><span class="lineCov">          2 :         *req_bkt = serf_bucket_simple_create(ctx-&gt;request, strlen(ctx-&gt;request),</span>
+<span class="lineNum">     486 </span>            :                                              NULL, NULL,
+<span class="lineNum">     487 </span><span class="lineCov">          2 :                                              serf_request_get_alloc(request));</span>
+<span class="lineNum">     488 </span><span class="lineCov">          2 :     }</span>
+<span class="lineNum">     489 </span>            :     else
+<span class="lineNum">     490 </span>            :     {
+<span class="lineNum">     491 </span>            :         /* create a simple body text */
+<span class="lineNum">     492 </span><span class="lineCov">         84 :         const char *str = apr_psprintf(pool, &quot;%d&quot;, ctx-&gt;req_id);</span>
+<span class="lineNum">     493 </span>            : 
+<span class="lineNum">     494 </span><span class="lineCov">         84 :         body_bkt = serf_bucket_simple_create(str, strlen(str), NULL, NULL,</span>
+<span class="lineNum">     495 </span><span class="lineCov">         84 :                                              serf_request_get_alloc(request));</span>
+<span class="lineNum">     496 </span>            :         *req_bkt =
+<span class="lineNum">     497 </span><span class="lineCov">         84 :         serf_request_bucket_request_create(request,</span>
+<span class="lineNum">     498 </span>            :                                            ctx-&gt;method, ctx-&gt;path,
+<span class="lineNum">     499 </span>            :                                            body_bkt,
+<span class="lineNum">     500 </span><span class="lineCov">         84 :                                            serf_request_get_alloc(request));</span>
+<span class="lineNum">     501 </span>            :     }
+<span class="lineNum">     502 </span>            : 
+<span class="lineNum">     503 </span><span class="lineCov">         86 :     APR_ARRAY_PUSH(ctx-&gt;sent_requests, int) = ctx-&gt;req_id;</span>
+<span class="lineNum">     504 </span>            : 
+<span class="lineNum">     505 </span><span class="lineCov">         86 :     *acceptor = ctx-&gt;acceptor;</span>
+<span class="lineNum">     506 </span><span class="lineCov">         86 :     *acceptor_baton = ctx;</span>
+<span class="lineNum">     507 </span><span class="lineCov">         86 :     *handler = ctx-&gt;handler;</span>
+<span class="lineNum">     508 </span><span class="lineCov">         86 :     *handler_baton = ctx;</span>
+<span class="lineNum">     509 </span>            : 
+<span class="lineNum">     510 </span><span class="lineCov">         86 :     return APR_SUCCESS;</span>
+<a name="511"><span class="lineNum">     511 </span>            : }</a>
+<span class="lineNum">     512 </span>            : 
+<span class="lineNum">     513 </span><span class="lineCov">        336 : apr_status_t handle_response(serf_request_t *request,</span>
+<span class="lineNum">     514 </span><span class="lineCov">        336 :                              serf_bucket_t *response,</span>
+<span class="lineNum">     515 </span><span class="lineCov">        336 :                              void *handler_baton,</span>
+<span class="lineNum">     516 </span><span class="lineCov">        336 :                              apr_pool_t *pool)</span>
+<span class="lineNum">     517 </span>            : {
+<span class="lineNum">     518 </span><span class="lineCov">        336 :     handler_baton_t *ctx = handler_baton;</span>
+<span class="lineNum">     519 </span>            : 
+<span class="lineNum">     520 </span><span class="lineCov">        336 :     if (! response) {</span>
+<span class="lineNum">     521 </span><span class="lineCov">          7 :         serf_connection_request_create(ctx-&gt;tb-&gt;connection,</span>
+<span class="lineNum">     522 </span>            :                                        setup_request,
+<span class="lineNum">     523 </span>            :                                        ctx);
+<span class="lineNum">     524 </span><span class="lineCov">          7 :         return APR_SUCCESS;</span>
+<span class="lineNum">     525 </span>            :     }
+<span class="lineNum">     526 </span>            : 
+<span class="lineNum">     527 </span><span class="lineCov">        329 :     while (1) {</span>
+<span class="lineNum">     528 </span><span class="lineCov">       5127 :         apr_status_t status;</span>
+<span class="lineNum">     529 </span><span class="lineCov">       5127 :         const char *data;</span>
+<span class="lineNum">     530 </span><span class="lineCov">       5127 :         apr_size_t len;</span>
+<span class="lineNum">     531 </span>            : 
+<span class="lineNum">     532 </span><span class="lineCov">       5127 :         status = serf_bucket_read(response, 2048, &amp;data, &amp;len);</span>
+<span class="lineNum">     533 </span><span class="lineCov">       5735 :         if (SERF_BUCKET_READ_ERROR(status))</span>
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :             return status;</span>
+<span class="lineNum">     535 </span>            : 
+<span class="lineNum">     536 </span><span class="lineCov">       5127 :         if (APR_STATUS_IS_EOF(status)) {</span>
+<span class="lineNum">     537 </span><span class="lineCov">         50 :             APR_ARRAY_PUSH(ctx-&gt;handled_requests, int) = ctx-&gt;req_id;</span>
+<span class="lineNum">     538 </span><span class="lineCov">         50 :             ctx-&gt;done = TRUE;</span>
+<span class="lineNum">     539 </span><span class="lineCov">         50 :             return APR_EOF;</span>
+<span class="lineNum">     540 </span>            :         }
+<span class="lineNum">     541 </span>            : 
+<span class="lineNum">     542 </span><span class="lineCov">       5077 :         if (APR_STATUS_IS_EAGAIN(status)) {</span>
+<span class="lineNum">     543 </span><span class="lineCov">        279 :             return status;</span>
+<span class="lineNum">     544 </span>            :         }
+<span class="lineNum">     545 </span>            : 
+<span class="lineNum">     546 </span><span class="lineCov">       4798 :     }</span>
+<span class="lineNum">     547 </span>            : 
+<span class="lineNum">     548 </span>            :     return APR_SUCCESS;
+<a name="549"><span class="lineNum">     549 </span><span class="lineCov">        336 : }</span></a>
+<span class="lineNum">     550 </span>            : 
+<span class="lineNum">     551 </span><span class="lineCov">         65 : void setup_handler(test_baton_t *tb, handler_baton_t *handler_ctx,</span>
+<span class="lineNum">     552 </span><span class="lineCov">         65 :                    const char *method, const char *path,</span>
+<span class="lineNum">     553 </span><span class="lineCov">         65 :                    int req_id,</span>
+<span class="lineNum">     554 </span><span class="lineCov">         65 :                    serf_response_handler_t handler)</span>
+<span class="lineNum">     555 </span>            : {
+<span class="lineNum">     556 </span><span class="lineCov">         65 :     handler_ctx-&gt;method = method;</span>
+<span class="lineNum">     557 </span><span class="lineCov">         65 :     handler_ctx-&gt;path = path;</span>
+<span class="lineNum">     558 </span><span class="lineCov">         65 :     handler_ctx-&gt;done = FALSE;</span>
+<span class="lineNum">     559 </span>            : 
+<span class="lineNum">     560 </span><span class="lineCov">         65 :     handler_ctx-&gt;acceptor = accept_response;</span>
+<span class="lineNum">     561 </span><span class="lineCov">         65 :     handler_ctx-&gt;acceptor_baton = NULL;</span>
+<span class="lineNum">     562 </span><span class="lineCov">        195 :     handler_ctx-&gt;handler = handler ? handler : handle_response;</span>
+<span class="lineNum">     563 </span><span class="lineCov">         65 :     handler_ctx-&gt;req_id = req_id;</span>
+<span class="lineNum">     564 </span><span class="lineCov">         65 :     handler_ctx-&gt;accepted_requests = tb-&gt;accepted_requests;</span>
+<span class="lineNum">     565 </span><span class="lineCov">         65 :     handler_ctx-&gt;sent_requests = tb-&gt;sent_requests;</span>
+<span class="lineNum">     566 </span><span class="lineCov">         65 :     handler_ctx-&gt;handled_requests = tb-&gt;handled_requests;</span>
+<span class="lineNum">     567 </span><span class="lineCov">         65 :     handler_ctx-&gt;tb = tb;</span>
+<span class="lineNum">     568 </span><span class="lineCov">         65 :     handler_ctx-&gt;request = NULL;</span>
+<a name="569"><span class="lineNum">     569 </span><span class="lineCov">         65 : }</span></a>
+<span class="lineNum">     570 </span>            : 
+<span class="lineNum">     571 </span><span class="lineCov">          1 : void create_new_prio_request(test_baton_t *tb,</span>
+<span class="lineNum">     572 </span><span class="lineCov">          1 :                              handler_baton_t *handler_ctx,</span>
+<span class="lineNum">     573 </span><span class="lineCov">          1 :                              const char *method, const char *path,</span>
+<span class="lineNum">     574 </span><span class="lineCov">          1 :                              int req_id)</span>
+<span class="lineNum">     575 </span>            : {
+<span class="lineNum">     576 </span><span class="lineCov">          1 :     setup_handler(tb, handler_ctx, method, path, req_id, NULL);</span>
+<span class="lineNum">     577 </span><span class="lineCov">          1 :     serf_connection_priority_request_create(tb-&gt;connection,</span>
+<span class="lineNum">     578 </span>            :                                             setup_request,
+<span class="lineNum">     579 </span>            :                                             handler_ctx);
+<a name="580"><span class="lineNum">     580 </span><span class="lineCov">          1 : }</span></a>
+<span class="lineNum">     581 </span>            : 
+<span class="lineNum">     582 </span><span class="lineCov">         54 : void create_new_request(test_baton_t *tb,</span>
+<span class="lineNum">     583 </span><span class="lineCov">         54 :                         handler_baton_t *handler_ctx,</span>
+<span class="lineNum">     584 </span><span class="lineCov">         54 :                         const char *method, const char *path,</span>
+<span class="lineNum">     585 </span><span class="lineCov">         54 :                         int req_id)</span>
+<span class="lineNum">     586 </span>            : {
+<span class="lineNum">     587 </span><span class="lineCov">         54 :     setup_handler(tb, handler_ctx, method, path, req_id, NULL);</span>
+<span class="lineNum">     588 </span><span class="lineCov">         54 :     serf_connection_request_create(tb-&gt;connection,</span>
+<span class="lineNum">     589 </span>            :                                    setup_request,
+<span class="lineNum">     590 </span>            :                                    handler_ctx);
+<span class="lineNum">     591 </span><span class="lineCov">         54 : }</span>
+<a name="592"><span class="lineNum">     592 </span>            : </a>
+<span class="lineNum">     593 </span>            : void
+<span class="lineNum">     594 </span><span class="lineCov">         10 : create_new_request_with_resp_hdlr(test_baton_t *tb,</span>
+<span class="lineNum">     595 </span><span class="lineCov">         10 :                                   handler_baton_t *handler_ctx,</span>
+<span class="lineNum">     596 </span><span class="lineCov">         10 :                                   const char *method, const char *path,</span>
+<span class="lineNum">     597 </span><span class="lineCov">         10 :                                   int req_id,</span>
+<span class="lineNum">     598 </span><span class="lineCov">         10 :                                   serf_response_handler_t handler)</span>
+<span class="lineNum">     599 </span>            : {
+<span class="lineNum">     600 </span><span class="lineCov">         10 :     setup_handler(tb, handler_ctx, method, path, req_id, handler);</span>
+<span class="lineNum">     601 </span><span class="lineCov">         10 :     serf_connection_request_create(tb-&gt;connection,</span>
+<span class="lineNum">     602 </span>            :                                    setup_request,
+<span class="lineNum">     603 </span>            :                                    handler_ctx);
+<span class="lineNum">     604 </span><span class="lineCov">         10 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>
