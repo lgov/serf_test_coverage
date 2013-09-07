@@ -1,0 +1,32 @@
+# xcode noise
+build/*
+Build
+Debug
+*.pbxuser
+*.perspective
+*.perspectivev3
+.DS_Store
+*.swp
+*~.nib
+xcuserdata
+*.mode1v3
+*.mode2v3
+test/*
+.saved_config
+config.log
+serf-2.pc
+.sconsign.dblite
+
+*.pyc
+.svn
+
+# compiled files
+*.o
+*.gcda
+*.gcno
+*.os
+*.dylib
+*.a
+
+# osx noise
+profile
