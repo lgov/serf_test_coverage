@@ -12,9 +12,9 @@ scons -Y $SERFSRC CC=clang CFLAGS=--coverage LINKFLAGS=--coverage APR=/opt/local
 # build with code coverage instrumentation
 mkdir -p build
 cp $SERFSRC/build/check.py build/
-cp $SERFSRC/test/*.pem test/
-cp $SERFSRC/test/server/*.pem test/server/
-cp $SERFSRC/test/server/*.p12 test/server/
+mkdir -p test/certs/
+cp $SERFSRC/test/certs/*.pem test/certs/
+cp $SERFSRC/test/certs/*.p12 test/certs/
 mkdir -p test/testcases
 cp $SERFSRC/test/testcases/* test/testcases/
 
