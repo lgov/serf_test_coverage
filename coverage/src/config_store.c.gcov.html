@@ -1,0 +1,602 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - src/config_store.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">src</a> - config_store.c<span style="font-size: 80%;"> (source / <a href="config_store.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">185</td>
+            <td class="headerCovTableEntry">204</td>
+            <td class="headerCovTableEntryHi">90.7 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-12-25 11:14:27</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">22</td>
+            <td class="headerCovTableEntry">26</td>
+            <td class="headerCovTableEntryMed">84.6 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* ====================================================================</a>
+<span class="lineNum">       2 </span>            : *    Licensed to the Apache Software Foundation (ASF) under one
+<span class="lineNum">       3 </span>            : *    or more contributor license agreements.  See the NOTICE file
+<span class="lineNum">       4 </span>            : *    distributed with this work for additional information
+<span class="lineNum">       5 </span>            : *    regarding copyright ownership.  The ASF licenses this file
+<span class="lineNum">       6 </span>            : *    to you under the Apache License, Version 2.0 (the
+<span class="lineNum">       7 </span>            : *    &quot;License&quot;); you may not use this file except in compliance
+<span class="lineNum">       8 </span>            : *    with the License.  You may obtain a copy of the License at
+<span class="lineNum">       9 </span>            : *
+<span class="lineNum">      10 </span>            : *      http://www.apache.org/licenses/LICENSE-2.0
+<span class="lineNum">      11 </span>            : *
+<span class="lineNum">      12 </span>            : *    Unless required by applicable law or agreed to in writing,
+<span class="lineNum">      13 </span>            : *    software distributed under the License is distributed on an
+<span class="lineNum">      14 </span>            : *    &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+<span class="lineNum">      15 </span>            : *    KIND, either express or implied.  See the License for the
+<span class="lineNum">      16 </span>            : *    specific language governing permissions and limitations
+<span class="lineNum">      17 </span>            : *    under the License.
+<span class="lineNum">      18 </span>            : * ====================================================================
+<span class="lineNum">      19 </span>            : */
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #include &lt;apr_strings.h&gt;
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            : #include &quot;serf.h&quot;
+<span class="lineNum">      24 </span>            : #include &quot;serf_bucket_util.h&quot;
+<span class="lineNum">      25 </span>            : #include &quot;serf_private.h&quot;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : /* Use a linked list to store the config values, as we'll only store a couple
+<span class="lineNum">      28 </span>            :    of values per context. */
+<span class="lineNum">      29 </span>            : struct serf__config_hdr_t {
+<span class="lineNum">      30 </span>            :     struct config_entry_t *first;
+<span class="lineNum">      31 </span>            : };
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : typedef void (*config_free_cb_t)(serf_bucket_alloc_t *alloc, void *value);
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : typedef struct config_entry_t {
+<span class="lineNum">      36 </span>            :     apr_uint32_t key;
+<span class="lineNum">      37 </span>            :     void *value;
+<span class="lineNum">      38 </span>            :     struct config_entry_t *next;
+<span class="lineNum">      39 </span>            :     config_free_cb_t free_cb;
+<a name="40"><span class="lineNum">      40 </span>            : } config_entry_t;</a>
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : static serf__config_hdr_t *create_config_hdr(serf_bucket_alloc_t *allocator)
+<span class="lineNum">      43 </span>            : {
+<span class="lineNum">      44 </span><span class="lineCov">        215 :     serf__config_hdr_t *hdr = serf_bucket_mem_calloc(allocator, sizeof(*hdr));</span>
+<span class="lineNum">      45 </span><span class="lineCov">        215 :     return hdr;</span>
+<span class="lineNum">      46 </span>            : }
+<a name="47"><span class="lineNum">      47 </span>            : </a>
+<span class="lineNum">      48 </span>            : static apr_status_t
+<span class="lineNum">      49 </span>            : add_or_replace_entry(serf_config_t *config,
+<span class="lineNum">      50 </span>            :                      serf__config_hdr_t *hdr, serf_config_key_t key, void *value,
+<span class="lineNum">      51 </span>            :                      config_free_cb_t free_cb)
+<span class="lineNum">      52 </span>            : {
+<span class="lineNum">      53 </span><span class="lineCov">        893 :     config_entry_t *iter = hdr-&gt;first;</span>
+<span class="lineNum">      54 </span><span class="lineCov">        893 :     config_entry_t *last = iter;</span>
+<span class="lineNum">      55 </span><span class="lineCov">        893 :     int found = FALSE;</span>
+<span class="lineNum">      56 </span>            : 
+<span class="lineNum">      57 </span>            :     /* Find the entry with the matching key. If it exists, replace its value. */
+<span class="lineNum">      58 </span><span class="lineCov">       3552 :     while (iter != NULL) {</span>
+<span class="lineNum">      59 </span><span class="lineCov">       1363 :         if (iter-&gt;key == key) {</span>
+<span class="lineNum">      60 </span><span class="lineCov">        480 :             found = TRUE;</span>
+<span class="lineNum">      61 </span><span class="lineCov">        480 :             break;</span>
+<span class="lineNum">      62 </span>            :         }
+<span class="lineNum">      63 </span><span class="lineCov">        883 :         last = iter;</span>
+<span class="lineNum">      64 </span><span class="lineCov">        883 :         iter = iter-&gt;next;</span>
+<span class="lineNum">      65 </span>            :     }
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span><span class="lineCov">        893 :     if (found) {</span>
+<span class="lineNum">      68 </span><span class="lineCov">        480 :         iter-&gt;key = key;</span>
+<span class="lineNum">      69 </span><span class="lineCov">        480 :         if (iter-&gt;free_cb)</span>
+<span class="lineNum">      70 </span><span class="lineCov">        270 :             iter-&gt;free_cb(config-&gt;allocator, iter-&gt;value);</span>
+<span class="lineNum">      71 </span><span class="lineCov">        480 :         iter-&gt;value = value;</span>
+<span class="lineNum">      72 </span><span class="lineCov">        480 :         iter-&gt;free_cb = free_cb;</span>
+<span class="lineNum">      73 </span><span class="lineCov">        480 :     } else {</span>
+<span class="lineNum">      74 </span>            :         /* Not found, create a new entry and append it to the list. */
+<span class="lineNum">      75 </span><span class="lineCov">        413 :         config_entry_t *entry = serf_bucket_mem_alloc(config-&gt;allocator,</span>
+<span class="lineNum">      76 </span>            :                                                       sizeof(*entry));
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span><span class="lineCov">        413 :         entry-&gt;key = key;</span>
+<span class="lineNum">      79 </span><span class="lineCov">        413 :         entry-&gt;value = value;</span>
+<span class="lineNum">      80 </span><span class="lineCov">        413 :         entry-&gt;free_cb = free_cb;</span>
+<span class="lineNum">      81 </span><span class="lineCov">        413 :         entry-&gt;next = NULL;</span>
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span><span class="lineCov">        413 :         if (last)</span>
+<span class="lineNum">      84 </span><span class="lineCov">        205 :             last-&gt;next = entry;</span>
+<span class="lineNum">      85 </span>            :         else
+<span class="lineNum">      86 </span><span class="lineCov">        208 :             hdr-&gt;first = entry;</span>
+<span class="lineNum">      87 </span>            :     }
+<span class="lineNum">      88 </span>            : 
+<span class="lineNum">      89 </span><span class="lineCov">        893 :     return APR_SUCCESS;</span>
+<a name="90"><span class="lineNum">      90 </span>            : }</a>
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span>            : static apr_status_t config_set_object(serf_config_t *config,
+<span class="lineNum">      93 </span>            :                                       serf_config_key_t key,
+<span class="lineNum">      94 </span>            :                                       void *value,
+<span class="lineNum">      95 </span>            :                                       config_free_cb_t free_cb)
+<span class="lineNum">      96 </span>            : {
+<span class="lineNum">      97 </span>            :     serf__config_hdr_t *target;
+<span class="lineNum">      98 </span>            : 
+<span class="lineNum">      99 </span>            :     /* Set the value in the hash table of the selected category */
+<span class="lineNum">     100 </span><span class="lineCov">        895 :     if (key &amp; SERF_CONFIG_PER_CONTEXT) {</span>
+<span class="lineNum">     101 </span><span class="lineCov">         72 :         target = config-&gt;per_context;</span>
+<span class="lineNum">     102 </span><span class="lineCov">         72 :     }</span>
+<span class="lineNum">     103 </span><span class="lineCov">        823 :     else if (key &amp; SERF_CONFIG_PER_HOST) {</span>
+<span class="lineNum">     104 </span><span class="lineCov">        144 :         target = config-&gt;per_host;</span>
+<span class="lineNum">     105 </span><span class="lineCov">        144 :     }</span>
+<span class="lineNum">     106 </span>            :     else {
+<span class="lineNum">     107 </span><span class="lineCov">        679 :         target = config-&gt;per_conn;</span>
+<span class="lineNum">     108 </span>            :     }
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span><span class="lineCov">        895 :     if (!target) {</span>
+<span class="lineNum">     111 </span>            :         /* Config object doesn't manage keys in this category */
+<span class="lineNum">     112 </span><span class="lineCov">          2 :         return APR_EINVAL;</span>
+<span class="lineNum">     113 </span>            :     }
+<span class="lineNum">     114 </span>            : 
+<span class="lineNum">     115 </span><span class="lineCov">        893 :     return add_or_replace_entry(config, target, key, value, free_cb);</span>
+<a name="116"><span class="lineNum">     116 </span><span class="lineCov">        895 : }</span></a>
+<span class="lineNum">     117 </span>            : 
+<span class="lineNum">     118 </span>            : static void cleanup_hdr(serf__config_store_t *store, serf__config_hdr_t *hdr)
+<span class="lineNum">     119 </span>            : {
+<span class="lineNum">     120 </span><span class="lineCov">        215 :     config_entry_t *e = hdr-&gt;first;</span>
+<span class="lineNum">     121 </span>            : 
+<span class="lineNum">     122 </span><span class="lineCov">        215 :     serf_bucket_mem_free(store-&gt;allocator, hdr);</span>
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span><span class="lineCov">       1256 :     while (e) {</span>
+<span class="lineNum">     125 </span><span class="lineCov">        413 :         config_entry_t *next = e-&gt;next;</span>
+<span class="lineNum">     126 </span>            : 
+<span class="lineNum">     127 </span><span class="lineCov">        413 :         if (e-&gt;free_cb)</span>
+<span class="lineNum">     128 </span><span class="lineCov">        144 :             e-&gt;free_cb(store-&gt;allocator, e-&gt;value);</span>
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span><span class="lineCov">        413 :         serf_bucket_mem_free(store-&gt;allocator, e);</span>
+<span class="lineNum">     131 </span><span class="lineCov">        413 :         e = next;</span>
+<span class="lineNum">     132 </span>            :     }
+<a name="133"><span class="lineNum">     133 </span><span class="lineCov">        215 : }</span></a>
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span>            : static apr_status_t cleanup_store(void *baton)
+<span class="lineNum">     136 </span>            : {
+<span class="lineNum">     137 </span><span class="lineCov">         69 :     serf__config_store_t *store = baton;</span>
+<span class="lineNum">     138 </span>            :     apr_hash_index_t *hi;
+<span class="lineNum">     139 </span>            : 
+<span class="lineNum">     140 </span><span class="lineCov">        274 :     for (hi = apr_hash_first(store-&gt;pool, store-&gt;global_per_host);</span>
+<span class="lineNum">     141 </span><span class="lineCov">        137 :          hi;</span>
+<span class="lineNum">     142 </span><span class="lineCov">         68 :          hi = apr_hash_next(hi))</span>
+<span class="lineNum">     143 </span>            :       {
+<span class="lineNum">     144 </span>            :           const char *key;
+<span class="lineNum">     145 </span>            :           void *val;
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span><span class="lineCov">         68 :           apr_hash_this(hi, &amp;key, NULL, &amp;val);</span>
+<span class="lineNum">     148 </span>            : 
+<span class="lineNum">     149 </span><span class="lineCov">         68 :           serf_bucket_mem_free(store-&gt;allocator, (void *)key);</span>
+<span class="lineNum">     150 </span>            : 
+<span class="lineNum">     151 </span><span class="lineCov">         68 :           cleanup_hdr(store, val);</span>
+<span class="lineNum">     152 </span><span class="lineCov">         68 :       }</span>
+<span class="lineNum">     153 </span>            : 
+<span class="lineNum">     154 </span><span class="lineCov">        294 :     for (hi = apr_hash_first(store-&gt;pool, store-&gt;global_per_conn);</span>
+<span class="lineNum">     155 </span><span class="lineCov">        147 :          hi;</span>
+<span class="lineNum">     156 </span><span class="lineCov">         78 :          hi = apr_hash_next(hi))</span>
+<span class="lineNum">     157 </span>            :       {
+<span class="lineNum">     158 </span>            :           const char *key;
+<span class="lineNum">     159 </span>            :           void *val;
+<span class="lineNum">     160 </span>            : 
+<span class="lineNum">     161 </span><span class="lineCov">         78 :           apr_hash_this(hi, &amp;key, NULL, &amp;val);</span>
+<span class="lineNum">     162 </span>            : 
+<span class="lineNum">     163 </span><span class="lineCov">         78 :           serf_bucket_mem_free(store-&gt;allocator, (void *)key);</span>
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span><span class="lineCov">         78 :           cleanup_hdr(store, val);</span>
+<span class="lineNum">     166 </span><span class="lineCov">         78 :       }</span>
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span><span class="lineCov">         69 :     cleanup_hdr(store, store-&gt;global_per_context);</span>
+<span class="lineNum">     169 </span>            : 
+<span class="lineNum">     170 </span><span class="lineCov">         69 :     return APR_SUCCESS;</span>
+<span class="lineNum">     171 </span>            : }
+<a name="172"><span class="lineNum">     172 </span>            : </a>
+<span class="lineNum">     173 </span>            : /*** Config Store ***/
+<span class="lineNum">     174 </span>            : apr_status_t serf__config_store_init(serf_context_t *ctx)
+<span class="lineNum">     175 </span>            : {
+<span class="lineNum">     176 </span><span class="lineCov">         69 :     apr_pool_t *pool = ctx-&gt;pool;</span>
+<span class="lineNum">     177 </span><span class="lineCov">         69 :     serf_bucket_alloc_t *alloc = serf_bucket_allocator_create(pool,</span>
+<span class="lineNum">     178 </span>            :                                                               NULL, NULL);
+<span class="lineNum">     179 </span>            : 
+<span class="lineNum">     180 </span><span class="lineCov">         69 :     ctx-&gt;config_store.pool = pool;</span>
+<span class="lineNum">     181 </span><span class="lineCov">         69 :     ctx-&gt;config_store.allocator = alloc;</span>
+<span class="lineNum">     182 </span><span class="lineCov">         69 :     ctx-&gt;config_store.global_per_context = create_config_hdr(alloc);</span>
+<span class="lineNum">     183 </span><span class="lineCov">         69 :     ctx-&gt;config_store.global_per_host = apr_hash_make(pool);</span>
+<span class="lineNum">     184 </span><span class="lineCov">         69 :     ctx-&gt;config_store.global_per_conn = apr_hash_make(pool);</span>
+<span class="lineNum">     185 </span>            : 
+<span class="lineNum">     186 </span><span class="lineCov">         69 :     apr_pool_cleanup_register(pool, &amp;ctx-&gt;config_store, cleanup_store,</span>
+<span class="lineNum">     187 </span>            :                               apr_pool_cleanup_null);
+<span class="lineNum">     188 </span>            : 
+<span class="lineNum">     189 </span><span class="lineCov">         69 :     return APR_SUCCESS;</span>
+<span class="lineNum">     190 </span>            : }
+<a name="191"><span class="lineNum">     191 </span>            : </a>
+<span class="lineNum">     192 </span>            : /* Defines the key to use for per host settings */
+<span class="lineNum">     193 </span>            : static const char * host_key_for_conn(serf_connection_t *conn,
+<span class="lineNum">     194 </span>            :                                       apr_pool_t *pool)
+<span class="lineNum">     195 </span>            : {
+<span class="lineNum">     196 </span>            :     /* SCHEME://HOSTNAME:PORT, e.g. http://localhost:12345 */
+<span class="lineNum">     197 </span><span class="lineCov">         75 :     return conn-&gt;host_url;</span>
+<span class="lineNum">     198 </span>            : }
+<a name="199"><span class="lineNum">     199 </span>            : </a>
+<span class="lineNum">     200 </span>            : /* Defines the key to use for per connection settings */
+<span class="lineNum">     201 </span>            : static const char * conn_key_for_conn(serf_connection_t *conn,
+<span class="lineNum">     202 </span>            :                                       apr_pool_t *pool)
+<span class="lineNum">     203 </span>            : {
+<span class="lineNum">     204 </span>            :     /* Key needs to be unique per connection, so stringify its pointer value */
+<span class="lineNum">     205 </span><span class="lineCov">         75 :     return apr_psprintf(pool, &quot;%pp&quot;, conn);</span>
+<span class="lineNum">     206 </span>            : }
+<a name="207"><span class="lineNum">     207 </span>            : </a>
+<span class="lineNum">     208 </span>            : /* Defines the key to use for per connection settings */
+<span class="lineNum">     209 </span>            : static const char * conn_key_for_client(serf_incoming_t *incoming,
+<span class="lineNum">     210 </span>            :                                         apr_pool_t *pool)
+<span class="lineNum">     211 </span>            : {
+<span class="lineNum">     212 </span>            :     /* Key needs to be unique per connection, so stringify its pointer value */
+<span class="lineNum">     213 </span><span class="lineCov">          4 :     return apr_psprintf(pool, &quot;%pp&quot;, incoming);</span>
+<span class="lineNum">     214 </span>            : }
+<a name="215"><span class="lineNum">     215 </span>            : </a>
+<span class="lineNum">     216 </span>            : /* Defines the key to use for per connection settings */
+<span class="lineNum">     217 </span>            : static const char * conn_key_for_listener(serf_listener_t *listener,
+<span class="lineNum">     218 </span>            :                                           apr_pool_t *pool)
+<span class="lineNum">     219 </span>            : {
+<span class="lineNum">     220 </span>            :     /* Key needs to be unique per connection, so stringify its pointer value */
+<span class="lineNum">     221 </span><span class="lineCov">          4 :     return apr_psprintf(pool, &quot;%pp&quot;, listener);</span>
+<a name="222"><span class="lineNum">     222 </span>            : }</a>
+<span class="lineNum">     223 </span>            : 
+<span class="lineNum">     224 </span>            : apr_status_t serf__config_store_create_ctx_config(serf_context_t *ctx,
+<span class="lineNum">     225 </span>            :                                                   serf_config_t **config)
+<span class="lineNum">     226 </span>            : {
+<span class="lineNum">     227 </span><span class="lineCov">         71 :     serf__config_store_t *config_store = &amp;ctx-&gt;config_store;</span>
+<span class="lineNum">     228 </span>            : 
+<span class="lineNum">     229 </span><span class="lineCov">         71 :     serf_config_t *cfg = apr_pcalloc(ctx-&gt;pool, sizeof(serf_config_t));</span>
+<span class="lineNum">     230 </span><span class="lineCov">         71 :     cfg-&gt;ctx_pool = config_store-&gt;pool;</span>
+<span class="lineNum">     231 </span><span class="lineCov">         71 :     cfg-&gt;allocator = config_store-&gt;allocator;</span>
+<span class="lineNum">     232 </span><span class="lineCov">         71 :     cfg-&gt;per_context = config_store-&gt;global_per_context;</span>
+<span class="lineNum">     233 </span>            : 
+<span class="lineNum">     234 </span><span class="lineCov">         71 :     *config = cfg;</span>
+<span class="lineNum">     235 </span><span class="lineCov">         71 :     return APR_SUCCESS;</span>
+<a name="236"><span class="lineNum">     236 </span>            : }</a>
+<span class="lineNum">     237 </span>            : 
+<span class="lineNum">     238 </span>            : apr_status_t serf__config_store_create_conn_config(serf_connection_t *conn,
+<span class="lineNum">     239 </span>            :                                                    serf_config_t **config)
+<span class="lineNum">     240 </span>            : {
+<span class="lineNum">     241 </span><span class="lineCov">         75 :     serf__config_store_t *config_store = &amp;conn-&gt;ctx-&gt;config_store;</span>
+<span class="lineNum">     242 </span>            :     const char *host_key, *conn_key;
+<span class="lineNum">     243 </span>            :     serf__config_hdr_t *per_conn, *per_host;
+<span class="lineNum">     244 </span>            :     apr_pool_t *tmp_pool;
+<span class="lineNum">     245 </span>            :     apr_status_t status;
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span><span class="lineCov">         75 :     serf_config_t *cfg = apr_pcalloc(conn-&gt;pool, sizeof(serf_config_t));</span>
+<span class="lineNum">     248 </span><span class="lineCov">         75 :     cfg-&gt;ctx_pool = config_store-&gt;pool;</span>
+<span class="lineNum">     249 </span><span class="lineCov">         75 :     cfg-&gt;allocator = config_store-&gt;allocator;</span>
+<span class="lineNum">     250 </span><span class="lineCov">         75 :     cfg-&gt;per_context = config_store-&gt;global_per_context;</span>
+<span class="lineNum">     251 </span>            : 
+<span class="lineNum">     252 </span><span class="lineCov">         75 :     if ((status = apr_pool_create(&amp;tmp_pool, cfg-&gt;ctx_pool)) != APR_SUCCESS)</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :         return status;</span>
+<span class="lineNum">     254 </span>            : 
+<span class="lineNum">     255 </span>            :     /* Find the config values for this connection, create empty structure
+<span class="lineNum">     256 </span>            :         if needed */
+<span class="lineNum">     257 </span><span class="lineCov">         75 :     conn_key = conn_key_for_conn(conn, tmp_pool);</span>
+<span class="lineNum">     258 </span><span class="lineCov">         75 :     per_conn = apr_hash_get(config_store-&gt;global_per_conn, conn_key,</span>
+<span class="lineNum">     259 </span>            :                             APR_HASH_KEY_STRING);
+<span class="lineNum">     260 </span><span class="lineCov">         75 :     if (!per_conn) {</span>
+<span class="lineNum">     261 </span><span class="lineCov">         70 :         per_conn = create_config_hdr(cfg-&gt;allocator);</span>
+<span class="lineNum">     262 </span><span class="lineCov">        140 :         apr_hash_set(config_store-&gt;global_per_conn,</span>
+<span class="lineNum">     263 </span><span class="lineCov">         70 :                      serf_bstrdup(cfg-&gt;allocator, conn_key),</span>
+<span class="lineNum">     264 </span><span class="lineCov">         70 :                      APR_HASH_KEY_STRING, per_conn);</span>
+<span class="lineNum">     265 </span><span class="lineCov">         70 :     }</span>
+<span class="lineNum">     266 </span><span class="lineCov">         75 :     cfg-&gt;per_conn = per_conn;</span>
+<span class="lineNum">     267 </span>            : 
+<span class="lineNum">     268 </span>            :     /* Find the config values for this host, create empty structure
+<span class="lineNum">     269 </span>            :         if needed */
+<span class="lineNum">     270 </span><span class="lineCov">         75 :     host_key = host_key_for_conn(conn, tmp_pool);</span>
+<span class="lineNum">     271 </span><span class="lineCov">        150 :     per_host = apr_hash_get(config_store-&gt;global_per_host,</span>
+<span class="lineNum">     272 </span><span class="lineCov">         75 :                             host_key,</span>
+<span class="lineNum">     273 </span>            :                             APR_HASH_KEY_STRING);
+<span class="lineNum">     274 </span><span class="lineCov">         75 :     if (!per_host) {</span>
+<span class="lineNum">     275 </span><span class="lineCov">         68 :         per_host = create_config_hdr(cfg-&gt;allocator);</span>
+<span class="lineNum">     276 </span><span class="lineCov">        136 :         apr_hash_set(config_store-&gt;global_per_host,</span>
+<span class="lineNum">     277 </span><span class="lineCov">         68 :                      serf_bstrdup(cfg-&gt;allocator, host_key),</span>
+<span class="lineNum">     278 </span><span class="lineCov">         68 :                      APR_HASH_KEY_STRING, per_host);</span>
+<span class="lineNum">     279 </span><span class="lineCov">         68 :     }</span>
+<span class="lineNum">     280 </span><span class="lineCov">         75 :     cfg-&gt;per_host = per_host;</span>
+<span class="lineNum">     281 </span>            : 
+<span class="lineNum">     282 </span><span class="lineCov">         75 :     apr_pool_destroy(tmp_pool);</span>
+<span class="lineNum">     283 </span>            : 
+<span class="lineNum">     284 </span><span class="lineCov">         75 :     *config = cfg;</span>
+<span class="lineNum">     285 </span>            : 
+<span class="lineNum">     286 </span><span class="lineCov">         75 :     return APR_SUCCESS;</span>
+<a name="287"><span class="lineNum">     287 </span><span class="lineCov">         75 : }</span></a>
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span>            : apr_status_t serf__config_store_create_client_config(serf_incoming_t *client,
+<span class="lineNum">     290 </span>            :                                                      serf_config_t **config)
+<span class="lineNum">     291 </span>            : {
+<span class="lineNum">     292 </span><span class="lineCov">          4 :     serf__config_store_t *config_store = &amp;client-&gt;ctx-&gt;config_store;</span>
+<span class="lineNum">     293 </span>            :     const char *client_key;
+<span class="lineNum">     294 </span>            :     serf__config_hdr_t *per_conn;
+<span class="lineNum">     295 </span>            :     apr_pool_t *tmp_pool;
+<span class="lineNum">     296 </span>            :     apr_status_t status;
+<span class="lineNum">     297 </span>            : 
+<span class="lineNum">     298 </span><span class="lineCov">          4 :     serf_config_t *cfg = apr_pcalloc(client-&gt;pool, sizeof(serf_config_t));</span>
+<span class="lineNum">     299 </span><span class="lineCov">          4 :     cfg-&gt;ctx_pool = config_store-&gt;pool;</span>
+<span class="lineNum">     300 </span><span class="lineCov">          4 :     cfg-&gt;allocator = config_store-&gt;allocator;</span>
+<span class="lineNum">     301 </span><span class="lineCov">          4 :     cfg-&gt;per_context = config_store-&gt;global_per_context;</span>
+<span class="lineNum">     302 </span>            : 
+<span class="lineNum">     303 </span><span class="lineCov">          4 :     if ((status = apr_pool_create(&amp;tmp_pool, client-&gt;pool)) != APR_SUCCESS)</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :         return status;</span>
+<span class="lineNum">     305 </span>            : 
+<span class="lineNum">     306 </span>            :     /* Find the config values for this connection, create empty structure
+<span class="lineNum">     307 </span>            :     if needed */
+<span class="lineNum">     308 </span><span class="lineCov">          4 :     client_key = conn_key_for_client(client, tmp_pool);</span>
+<span class="lineNum">     309 </span><span class="lineCov">          4 :     per_conn = apr_hash_get(config_store-&gt;global_per_conn, client_key,</span>
+<span class="lineNum">     310 </span>            :                             APR_HASH_KEY_STRING);
+<span class="lineNum">     311 </span><span class="lineCov">          4 :     if (!per_conn) {</span>
+<span class="lineNum">     312 </span><span class="lineCov">          4 :         per_conn = create_config_hdr(cfg-&gt;allocator);</span>
+<span class="lineNum">     313 </span><span class="lineCov">          8 :         apr_hash_set(config_store-&gt;global_per_conn,</span>
+<span class="lineNum">     314 </span><span class="lineCov">          4 :                      serf_bstrdup(cfg-&gt;allocator, client_key),</span>
+<span class="lineNum">     315 </span><span class="lineCov">          4 :                      APR_HASH_KEY_STRING, per_conn);</span>
+<span class="lineNum">     316 </span><span class="lineCov">          4 :     }</span>
+<span class="lineNum">     317 </span><span class="lineCov">          4 :     cfg-&gt;per_conn = per_conn;</span>
+<span class="lineNum">     318 </span><span class="lineCov">          4 :     cfg-&gt;per_host = NULL;</span>
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span><span class="lineCov">          4 :     apr_pool_destroy(tmp_pool);</span>
+<span class="lineNum">     321 </span>            : 
+<span class="lineNum">     322 </span><span class="lineCov">          4 :     *config = cfg;</span>
+<span class="lineNum">     323 </span>            : 
+<span class="lineNum">     324 </span><span class="lineCov">          4 :     return APR_SUCCESS;</span>
+<a name="325"><span class="lineNum">     325 </span><span class="lineCov">          4 : }</span></a>
+<span class="lineNum">     326 </span>            : 
+<span class="lineNum">     327 </span>            : apr_status_t serf__config_store_create_listener_config(serf_listener_t *listener,
+<span class="lineNum">     328 </span>            :                                                        serf_config_t **config)
+<span class="lineNum">     329 </span>            : {
+<span class="lineNum">     330 </span><span class="lineCov">          4 :     serf__config_store_t *config_store = &amp;listener-&gt;ctx-&gt;config_store;</span>
+<span class="lineNum">     331 </span>            :     const char *client_key;
+<span class="lineNum">     332 </span>            :     serf__config_hdr_t *per_conn;
+<span class="lineNum">     333 </span>            :     apr_pool_t *tmp_pool;
+<span class="lineNum">     334 </span>            :     apr_status_t status;
+<span class="lineNum">     335 </span>            : 
+<span class="lineNum">     336 </span><span class="lineCov">          4 :     serf_config_t *cfg = apr_pcalloc(listener-&gt;pool, sizeof(serf_config_t));</span>
+<span class="lineNum">     337 </span><span class="lineCov">          4 :     cfg-&gt;ctx_pool = config_store-&gt;pool;</span>
+<span class="lineNum">     338 </span><span class="lineCov">          4 :     cfg-&gt;allocator = config_store-&gt;allocator;</span>
+<span class="lineNum">     339 </span><span class="lineCov">          4 :     cfg-&gt;per_context = config_store-&gt;global_per_context;</span>
+<span class="lineNum">     340 </span>            : 
+<span class="lineNum">     341 </span><span class="lineCov">          4 :     if ((status = apr_pool_create(&amp;tmp_pool, listener-&gt;pool)) != APR_SUCCESS)</span>
+<span class="lineNum">     342 </span><span class="lineNoCov">          0 :         return status;</span>
+<span class="lineNum">     343 </span>            : 
+<span class="lineNum">     344 </span>            :     /* Find the config values for this connection, create empty structure
+<span class="lineNum">     345 </span>            :     if needed */
+<span class="lineNum">     346 </span><span class="lineCov">          4 :     client_key = conn_key_for_listener(listener, tmp_pool);</span>
+<span class="lineNum">     347 </span><span class="lineCov">          4 :     per_conn = apr_hash_get(config_store-&gt;global_per_conn, client_key,</span>
+<span class="lineNum">     348 </span>            :                             APR_HASH_KEY_STRING);
+<span class="lineNum">     349 </span><span class="lineCov">          4 :     if (!per_conn) {</span>
+<span class="lineNum">     350 </span><span class="lineCov">          4 :         per_conn = create_config_hdr(cfg-&gt;allocator);</span>
+<span class="lineNum">     351 </span><span class="lineCov">          8 :         apr_hash_set(config_store-&gt;global_per_conn,</span>
+<span class="lineNum">     352 </span><span class="lineCov">          4 :                      serf_bstrdup(cfg-&gt;allocator, client_key),</span>
+<span class="lineNum">     353 </span><span class="lineCov">          4 :                      APR_HASH_KEY_STRING, per_conn);</span>
+<span class="lineNum">     354 </span><span class="lineCov">          4 :     }</span>
+<span class="lineNum">     355 </span><span class="lineCov">          4 :     cfg-&gt;per_conn = per_conn;</span>
+<span class="lineNum">     356 </span><span class="lineCov">          4 :     cfg-&gt;per_host = NULL;</span>
+<span class="lineNum">     357 </span>            : 
+<span class="lineNum">     358 </span><span class="lineCov">          4 :     apr_pool_destroy(tmp_pool);</span>
+<span class="lineNum">     359 </span>            : 
+<span class="lineNum">     360 </span><span class="lineCov">          4 :     *config = cfg;</span>
+<span class="lineNum">     361 </span>            : 
+<span class="lineNum">     362 </span><span class="lineCov">          4 :     return APR_SUCCESS;</span>
+<span class="lineNum">     363 </span><span class="lineCov">          4 : }</span>
+<a name="364"><span class="lineNum">     364 </span>            : </a>
+<span class="lineNum">     365 </span>            : apr_status_t
+<span class="lineNum">     366 </span>            : serf__config_store_remove_connection(serf__config_store_t config_store,
+<span class="lineNum">     367 </span>            :                                      serf_connection_t *conn)
+<span class="lineNum">     368 </span>            : {
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :     return APR_ENOTIMPL; /* Mem leak? */</span>
+<span class="lineNum">     370 </span>            : }
+<a name="371"><span class="lineNum">     371 </span>            : </a>
+<span class="lineNum">     372 </span>            : apr_status_t
+<span class="lineNum">     373 </span>            : serf__config_store_remove_client(serf__config_store_t config_store,
+<span class="lineNum">     374 </span>            :                                  serf_incoming_t *client)
+<span class="lineNum">     375 </span>            : {
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :     return APR_ENOTIMPL; /* Mem leak? */</span>
+<span class="lineNum">     377 </span>            : }
+<span class="lineNum">     378 </span>            : 
+<a name="379"><span class="lineNum">     379 </span>            : </a>
+<span class="lineNum">     380 </span>            : apr_status_t
+<span class="lineNum">     381 </span>            : serf__config_store_remove_host(serf__config_store_t config_store,
+<span class="lineNum">     382 </span>            :                                const char *hostname_port)
+<span class="lineNum">     383 </span>            : {
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :     return APR_ENOTIMPL; /* Mem leak? */</span>
+<span class="lineNum">     385 </span>            : }
+<a name="386"><span class="lineNum">     386 </span>            : </a>
+<span class="lineNum">     387 </span>            : /*** Config ***/
+<span class="lineNum">     388 </span>            : apr_status_t serf_config_set_string(serf_config_t *config,
+<span class="lineNum">     389 </span>            :                                     serf_config_key_t key,
+<span class="lineNum">     390 </span>            :                                     const char *value)
+<span class="lineNum">     391 </span>            : {
+<span class="lineNum">     392 </span>            :     /* Cast away const is ok here, the callers should always use
+<span class="lineNum">     393 </span>            :        serf_config_get_string for this key. */
+<span class="lineNum">     394 </span><span class="lineCov">        142 :     return serf_config_set_object(config, key, (void *)value);</span>
+<a name="395"><span class="lineNum">     395 </span>            : }</a>
+<span class="lineNum">     396 </span>            : 
+<span class="lineNum">     397 </span>            : apr_status_t serf_config_set_stringc(serf_config_t *config,
+<span class="lineNum">     398 </span>            :                                      serf_config_key_t key,
+<span class="lineNum">     399 </span>            :                                      const char *value)
+<span class="lineNum">     400 </span>            : {
+<span class="lineNum">     401 </span>            :     char *cvalue;
+<span class="lineNum">     402 </span>            : 
+<span class="lineNum">     403 </span><span class="lineCov">        414 :     cvalue = serf_bstrdup(config-&gt;allocator, value);</span>
+<span class="lineNum">     404 </span>            : 
+<span class="lineNum">     405 </span><span class="lineCov">        414 :     return config_set_object(config, key, cvalue,</span>
+<span class="lineNum">     406 </span>            :                              serf_bucket_mem_free);
+<a name="407"><span class="lineNum">     407 </span>            : }</a>
+<span class="lineNum">     408 </span>            : 
+<span class="lineNum">     409 </span>            : apr_status_t serf_config_set_stringf(serf_config_t *config,
+<span class="lineNum">     410 </span>            :                                      serf_config_key_t key,
+<span class="lineNum">     411 </span>            :                                      apr_pool_t *scratch_pool,
+<span class="lineNum">     412 </span>            :                                      const char *fmt, ...)
+<span class="lineNum">     413 </span>            : {
+<span class="lineNum">     414 </span>            :     va_list argp;
+<span class="lineNum">     415 </span>            :     char *cvalue;
+<span class="lineNum">     416 </span>            : 
+<span class="lineNum">     417 </span><span class="lineCov">        274 :     va_start(argp, fmt);</span>
+<span class="lineNum">     418 </span><span class="lineCov">        274 :     cvalue = apr_pvsprintf(scratch_pool, fmt, argp);</span>
+<span class="lineNum">     419 </span><span class="lineCov">        274 :     va_end(argp);</span>
+<span class="lineNum">     420 </span>            : 
+<span class="lineNum">     421 </span><span class="lineCov">        274 :     return serf_config_set_stringc(config, key, cvalue);</span>
+<a name="422"><span class="lineNum">     422 </span>            : }</a>
+<span class="lineNum">     423 </span>            : 
+<span class="lineNum">     424 </span>            : apr_status_t serf_config_set_object(serf_config_t *config,
+<span class="lineNum">     425 </span>            :                                     serf_config_key_t key,
+<span class="lineNum">     426 </span>            :                                     void *value)
+<span class="lineNum">     427 </span>            : {
+<span class="lineNum">     428 </span><span class="lineCov">        481 :     return config_set_object(config, key, value, NULL);</span>
+<a name="429"><span class="lineNum">     429 </span>            : }</a>
+<span class="lineNum">     430 </span>            : 
+<span class="lineNum">     431 </span>            : apr_status_t serf_config_get_string(serf_config_t *config,
+<span class="lineNum">     432 </span>            :                                     serf_config_key_t key,
+<span class="lineNum">     433 </span>            :                                     const char **value)
+<span class="lineNum">     434 </span>            : {
+<span class="lineNum">     435 </span><span class="lineCov">         48 :     return serf_config_get_object(config, key, (void**)value);</span>
+<a name="436"><span class="lineNum">     436 </span>            : }</a>
+<span class="lineNum">     437 </span>            : 
+<span class="lineNum">     438 </span>            : apr_status_t serf_config_get_object(serf_config_t *config,
+<span class="lineNum">     439 </span>            :                                     serf_config_key_t key,
+<span class="lineNum">     440 </span>            :                                     void **value)
+<span class="lineNum">     441 </span>            : {
+<span class="lineNum">     442 </span>            :     serf__config_hdr_t *target;
+<span class="lineNum">     443 </span>            : 
+<span class="lineNum">     444 </span><span class="lineCov">      30168 :     if (config == NULL) {</span>
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :         *value = NULL;</span>
+<span class="lineNum">     446 </span><span class="lineNoCov">          0 :         return APR_EINVAL;</span>
+<span class="lineNum">     447 </span>            :     }
+<span class="lineNum">     448 </span><span class="lineCov">      30168 :     if (key &amp; SERF_CONFIG_PER_CONTEXT)</span>
+<span class="lineNum">     449 </span><span class="lineCov">      30090 :         target = config-&gt;per_context;</span>
+<span class="lineNum">     450 </span><span class="lineCov">         78 :     else if (key &amp; SERF_CONFIG_PER_HOST)</span>
+<span class="lineNum">     451 </span><span class="lineCov">         38 :         target = config-&gt;per_host;</span>
+<span class="lineNum">     452 </span>            :     else
+<span class="lineNum">     453 </span><span class="lineCov">         40 :         target = config-&gt;per_conn;</span>
+<span class="lineNum">     454 </span>            : 
+<span class="lineNum">     455 </span><span class="lineCov">      30168 :     *value = NULL;</span>
+<span class="lineNum">     456 </span><span class="lineCov">      30168 :     if (target) {</span>
+<span class="lineNum">     457 </span><span class="lineCov">      30164 :         config_entry_t *iter = target-&gt;first;</span>
+<span class="lineNum">     458 </span>            :         /* Find the matching key and return its value */
+<span class="lineNum">     459 </span><span class="lineCov">      60478 :         while (iter != NULL) {</span>
+<span class="lineNum">     460 </span><span class="lineCov">      30202 :             if (iter-&gt;key == key) {</span>
+<span class="lineNum">     461 </span><span class="lineCov">      30127 :                 *value = iter-&gt;value;</span>
+<span class="lineNum">     462 </span><span class="lineCov">      30127 :                 return APR_SUCCESS;</span>
+<span class="lineNum">     463 </span>            :             }
+<span class="lineNum">     464 </span><span class="lineCov">         75 :             iter = iter-&gt;next;</span>
+<span class="lineNum">     465 </span>            :         }
+<span class="lineNum">     466 </span><span class="lineCov">         37 :         return APR_SUCCESS;</span>
+<span class="lineNum">     467 </span>            :     } else {
+<span class="lineNum">     468 </span>            :         /* Config object doesn't manage keys in this category */
+<span class="lineNum">     469 </span><span class="lineCov">          4 :         return APR_EINVAL;</span>
+<span class="lineNum">     470 </span>            :     }
+<a name="471"><span class="lineNum">     471 </span><span class="lineCov">      30168 : }</span></a>
+<span class="lineNum">     472 </span>            : 
+<span class="lineNum">     473 </span>            : apr_status_t serf_config_remove_value(serf_config_t *config,
+<span class="lineNum">     474 </span>            :                                       serf_config_key_t key)
+<span class="lineNum">     475 </span>            : {
+<span class="lineNum">     476 </span><span class="lineCov">        269 :     return serf_config_set_object(config, key, NULL);</span>
+<span class="lineNum">     477 </span>            : }
+<span class="lineNum">     478 </span>            : 
+<span class="lineNum">     479 </span>            : struct ssl_session_data
+<span class="lineNum">     480 </span>            : {
+<span class="lineNum">     481 </span>            :     unsigned char *session;
+<span class="lineNum">     482 </span>            :     apr_size_t session_len;
+<span class="lineNum">     483 </span>            : };
+<span class="lineNum">     484 </span>            : 
+<span class="lineNum">     485 </span>            : #define SERF_CONFIG__SSL_SESSION       (SERF_CONFIG_PER_HOST | 0xF00001)
+<a name="486"><span class="lineNum">     486 </span>            : </a>
+<span class="lineNum">     487 </span>            : apr_status_t
+<span class="lineNum">     488 </span>            : serf__config_store_set_ssl_session(serf_config_t *config,
+<span class="lineNum">     489 </span>            :                                    const unsigned char *session,
+<span class="lineNum">     490 </span>            :                                    apr_size_t session_len)
+<span class="lineNum">     491 </span>            : {
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :     struct ssl_session_data *ssld = serf_bucket_mem_alloc(config-&gt;allocator,</span>
+<span class="lineNum">     493 </span>            :                                                           sizeof(*ssld)
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :                                                           + session_len);</span>
+<span class="lineNum">     495 </span>            : 
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :     ssld-&gt;session = ((unsigned char *)ssld) + sizeof(*ssld);</span>
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :     ssld-&gt;session_len = session_len;</span>
+<span class="lineNum">     498 </span>            : 
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :     memcpy(ssld-&gt;session, session, session_len);</span>
+<span class="lineNum">     500 </span>            : 
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :     return config_set_object(config, SERF_CONFIG__SSL_SESSION, ssld,</span>
+<span class="lineNum">     502 </span>            :                              serf_bucket_mem_free);
+<span class="lineNum">     503 </span>            : }
+<a name="504"><span class="lineNum">     504 </span>            : </a>
+<span class="lineNum">     505 </span>            : apr_status_t
+<span class="lineNum">     506 </span>            : serf__config_store_get_ssl_session(serf_config_t *config,
+<span class="lineNum">     507 </span>            :                                    const unsigned char **session,
+<span class="lineNum">     508 </span>            :                                    apr_size_t *session_len)
+<span class="lineNum">     509 </span>            : {
+<span class="lineNum">     510 </span>            :     const struct ssl_session_data *ssld;
+<span class="lineNum">     511 </span>            :     apr_status_t status;
+<span class="lineNum">     512 </span>            :     void *value;
+<span class="lineNum">     513 </span>            : 
+<span class="lineNum">     514 </span><span class="lineCov">         31 :     status = serf_config_get_object(config, SERF_CONFIG__SSL_SESSION, &amp;value);</span>
+<span class="lineNum">     515 </span>            : 
+<span class="lineNum">     516 </span><span class="lineCov">         31 :     if (status)</span>
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :         return status;</span>
+<span class="lineNum">     518 </span><span class="lineCov">         31 :     else if (!value)</span>
+<span class="lineNum">     519 </span><span class="lineCov">         31 :         return APR_ENOENT;</span>
+<span class="lineNum">     520 </span>            : 
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :     ssld = value;</span>
+<span class="lineNum">     522 </span>            : 
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :     *session = ssld-&gt;session;</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :     *session_len = ssld-&gt;session_len;</span>
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :     return APR_SUCCESS;</span>
+<span class="lineNum">     526 </span><span class="lineCov">         31 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,755 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - auth/auth_spnego.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">auth</a> - auth_spnego.c<span style="font-size: 80%;"> (source / <a href="auth_spnego.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">79</td>
+            <td class="headerCovTableEntry">194</td>
+            <td class="headerCovTableEntryLo">40.7 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-12-25 11:14:27</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntry">8</td>
+            <td class="headerCovTableEntryLo">50.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* ====================================================================</a>
+<span class="lineNum">       2 </span>            :  *    Licensed to the Apache Software Foundation (ASF) under one
+<span class="lineNum">       3 </span>            :  *    or more contributor license agreements.  See the NOTICE file
+<span class="lineNum">       4 </span>            :  *    distributed with this work for additional information
+<span class="lineNum">       5 </span>            :  *    regarding copyright ownership.  The ASF licenses this file
+<span class="lineNum">       6 </span>            :  *    to you under the Apache License, Version 2.0 (the
+<span class="lineNum">       7 </span>            :  *    &quot;License&quot;); you may not use this file except in compliance
+<span class="lineNum">       8 </span>            :  *    with the License.  You may obtain a copy of the License at
+<span class="lineNum">       9 </span>            :  *
+<span class="lineNum">      10 </span>            :  *      http://www.apache.org/licenses/LICENSE-2.0
+<span class="lineNum">      11 </span>            :  *
+<span class="lineNum">      12 </span>            :  *    Unless required by applicable law or agreed to in writing,
+<span class="lineNum">      13 </span>            :  *    software distributed under the License is distributed on an
+<span class="lineNum">      14 </span>            :  *    &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+<span class="lineNum">      15 </span>            :  *    KIND, either express or implied.  See the License for the
+<span class="lineNum">      16 </span>            :  *    specific language governing permissions and limitations
+<span class="lineNum">      17 </span>            :  *    under the License.
+<span class="lineNum">      18 </span>            :  * ====================================================================
+<span class="lineNum">      19 </span>            :  */
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : #include &quot;auth_spnego.h&quot;
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : #ifdef SERF_HAVE_SPNEGO
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : /** These functions implement SPNEGO-based Kerberos and NTLM authentication,
+<span class="lineNum">      27 </span>            :  *  using either GSS-API (RFC 2743) or SSPI on Windows.
+<span class="lineNum">      28 </span>            :  *  The HTTP message exchange is documented in RFC 4559.
+<span class="lineNum">      29 </span>            :  **/
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span>            : #include &lt;serf.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;serf_private.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;auth/auth.h&gt;
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : #include &lt;apr.h&gt;
+<span class="lineNum">      36 </span>            : #include &lt;apr_base64.h&gt;
+<span class="lineNum">      37 </span>            : #include &lt;apr_strings.h&gt;
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            : /** TODO:
+<span class="lineNum">      40 </span>            :  ** - send session key directly on new connections where we already know
+<span class="lineNum">      41 </span>            :  **   the server requires Kerberos authn.
+<span class="lineNum">      42 </span>            :  ** - Add a way for serf to give detailed error information back to the
+<span class="lineNum">      43 </span>            :  **   application.
+<span class="lineNum">      44 </span>            :  ** - This file is both GSSAPI and Kerberos/NTLM independent, so update names
+<span class="lineNum">      45 </span>            :  **   and comments.
+<span class="lineNum">      46 </span>            :  **/
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : /* Authentication over HTTP using Kerberos
+<span class="lineNum">      49 </span>            :  *
+<span class="lineNum">      50 </span>            :  * Kerberos involves three servers:
+<span class="lineNum">      51 </span>            :  * - Authentication Server (AS): verifies users during login
+<span class="lineNum">      52 </span>            :  * - Ticket-Granting Server (TGS): issues proof of identity tickets
+<span class="lineNum">      53 </span>            :  * - HTTP server (S)
+<span class="lineNum">      54 </span>            :  *
+<span class="lineNum">      55 </span>            :  * Steps:
+<span class="lineNum">      56 </span>            :  * 0. User logs in to the AS and receives a TGS ticket. On workstations
+<span class="lineNum">      57 </span>            :  * where the login program doesn't support Kerberos, the user can use
+<span class="lineNum">      58 </span>            :  * 'kinit'.
+<span class="lineNum">      59 </span>            :  *
+<span class="lineNum">      60 </span>            :  * 1. C  --&gt; S:    GET
+<span class="lineNum">      61 </span>            :  *
+<span class="lineNum">      62 </span>            :  *    C &lt;--  S:    401 Authentication Required
+<span class="lineNum">      63 </span>            :  *                 WWW-Authenticate: Negotiate
+<span class="lineNum">      64 </span>            :  *
+<span class="lineNum">      65 </span>            :  * -&gt; app contacts the TGS to request a session key for the HTTP service
+<span class="lineNum">      66 </span>            :  *    @ target host. The returned session key is encrypted with the HTTP
+<span class="lineNum">      67 </span>            :  *    service's secret key, so we can safely send it to the server.
+<span class="lineNum">      68 </span>            :  *
+<span class="lineNum">      69 </span>            :  * 2. C  --&gt; S:    GET
+<span class="lineNum">      70 </span>            :  *                 Authorization: Negotiate &lt;Base64 encoded session key&gt;
+<span class="lineNum">      71 </span>            :  *                 gss_api_ctx-&gt;state = gss_api_auth_in_progress;
+<span class="lineNum">      72 </span>            :  *
+<span class="lineNum">      73 </span>            :  *    C &lt;--  S:    200 OK
+<span class="lineNum">      74 </span>            :  *                 WWW-Authenticate: Negotiate &lt;Base64 encoded server
+<span class="lineNum">      75 </span>            :  *                                              authentication data&gt;
+<span class="lineNum">      76 </span>            :  *
+<span class="lineNum">      77 </span>            :  * -&gt; The server returned an (optional) key to proof itself to us. We check this
+<span class="lineNum">      78 </span>            :  *    key with the TGS again. If it checks out, we can return the response
+<span class="lineNum">      79 </span>            :  *    body to the application.
+<span class="lineNum">      80 </span>            :  *
+<span class="lineNum">      81 </span>            :  * Note: It's possible that the server returns 401 again in step 2, if the
+<span class="lineNum">      82 </span>            :  *       Kerberos context isn't complete yet. This means there is 3rd step
+<span class="lineNum">      83 </span>            :  *       where we'll send a request with an Authorization header to the
+<span class="lineNum">      84 </span>            :  *       server. Some (simple) tests with mod_auth_kerb and MIT Kerberos 5 show
+<span class="lineNum">      85 </span>            :  *       this never happens.
+<span class="lineNum">      86 </span>            :  *
+<span class="lineNum">      87 </span>            :  * Depending on the type of HTTP server, this handshake is required for either
+<span class="lineNum">      88 </span>            :  * every new connection, or for every new request! For more info see the next
+<span class="lineNum">      89 </span>            :  * comment on authn_persistence_state_t.
+<span class="lineNum">      90 </span>            :  *
+<span class="lineNum">      91 </span>            :  * Note: Step 1 of the handshake will only happen on the first connection, once
+<span class="lineNum">      92 </span>            :  * we know the server requires Kerberos authentication, the initial requests
+<span class="lineNum">      93 </span>            :  * on the other connections will include a session key, so we start at
+<span class="lineNum">      94 </span>            :  * step 2 in the handshake.
+<span class="lineNum">      95 </span>            :  * ### TODO: Not implemented yet!
+<span class="lineNum">      96 </span>            :  */
+<span class="lineNum">      97 </span>            : 
+<span class="lineNum">      98 </span>            : /* Current state of the authentication of the current request. */
+<span class="lineNum">      99 </span>            : typedef enum gss_api_auth_state {
+<span class="lineNum">     100 </span>            :     gss_api_auth_not_started,
+<span class="lineNum">     101 </span>            :     gss_api_auth_in_progress,
+<span class="lineNum">     102 </span>            :     gss_api_auth_completed,
+<span class="lineNum">     103 </span>            : } gss_api_auth_state;
+<span class="lineNum">     104 </span>            : 
+<span class="lineNum">     105 </span>            : /**
+<span class="lineNum">     106 </span>            :    authn_persistence_state_t: state that indicates if we are talking with a
+<span class="lineNum">     107 </span>            :    server that requires authentication only of the first request (stateful),
+<span class="lineNum">     108 </span>            :    or of each request (stateless).
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span>            :    INIT: Begin state. Authenticating the first request on this connection.
+<span class="lineNum">     111 </span>            :    UNDECIDED: we haven't identified the server yet, assume STATEFUL for now.
+<span class="lineNum">     112 </span>            :      Pipeline mode disabled, requests are sent only after the response off the
+<span class="lineNum">     113 </span>            :      previous request arrived.
+<span class="lineNum">     114 </span>            :    STATELESS: we know the server requires authentication for each request.
+<span class="lineNum">     115 </span>            :      On all new requests add the Authorization header with an initial SPNEGO
+<span class="lineNum">     116 </span>            :      token (created per request).
+<span class="lineNum">     117 </span>            :      To keep things simple, keep the connection in one by one mode.
+<span class="lineNum">     118 </span>            :      (otherwise we'd have to keep a queue of gssapi context objects to match
+<span class="lineNum">     119 </span>            :       the Negotiate header of the response with the session initiated by the
+<span class="lineNum">     120 </span>            :       mathing request).
+<span class="lineNum">     121 </span>            :      This state is an final state.
+<span class="lineNum">     122 </span>            :    STATEFUL: alright, we have authenticated the connection and for the server
+<span class="lineNum">     123 </span>            :      that is enough. Don't add an Authorization header to new requests.
+<span class="lineNum">     124 </span>            :      Serf will switch to pipelined mode.
+<span class="lineNum">     125 </span>            :      This state is not a final state, although in practical scenario's it will
+<span class="lineNum">     126 </span>            :      be. When we receive a 40x response from the server switch to STATELESS
+<span class="lineNum">     127 </span>            :      mode.
+<span class="lineNum">     128 </span>            : 
+<span class="lineNum">     129 </span>            :    We start in state init for the first request until it is authenticated.
+<span class="lineNum">     130 </span>            : 
+<span class="lineNum">     131 </span>            :    The rest of the state machine starts with the arrival of the response to the
+<span class="lineNum">     132 </span>            :    second request, and then goes on with each response:
+<span class="lineNum">     133 </span>            : 
+<span class="lineNum">     134 </span>            :       --------
+<span class="lineNum">     135 </span>            :       | INIT |     C --&gt; S:    GET request in response to 40x of the server
+<span class="lineNum">     136 </span>            :       --------                 add [Proxy]-Authorization header
+<span class="lineNum">     137 </span>            :           |
+<span class="lineNum">     138 </span>            :           |
+<span class="lineNum">     139 </span>            :     ------------
+<span class="lineNum">     140 </span>            :     | UNDECIDED|   C --&gt; S:    GET request, assume stateful,
+<span class="lineNum">     141 </span>            :     ------------               no [Proxy]-Authorization header
+<span class="lineNum">     142 </span>            :           |
+<span class="lineNum">     143 </span>            :           |
+<span class="lineNum">     144 </span>            :           |------------------------------------------------
+<span class="lineNum">     145 </span>            :           |                                               |
+<span class="lineNum">     146 </span>            :           | C &lt;-- S: 40x Authentication                   | C &lt;-- S: 200 OK
+<span class="lineNum">     147 </span>            :           |          Required                             |
+<span class="lineNum">     148 </span>            :           |                                               |
+<span class="lineNum">     149 </span>            :           v                                               v
+<span class="lineNum">     150 </span>            :       -------------                               ------------
+<span class="lineNum">     151 </span>            :     -&gt;| STATELESS |&lt;------------------------------| STATEFUL |&lt;--
+<span class="lineNum">     152 </span>            :     | -------------       C &lt;-- S: 40x            ------------  |
+<span class="lineNum">     153 </span>            :   * |    |                Authentication                  |     | 200 OK
+<span class="lineNum">     154 </span>            :     |    /                Required                        |     |
+<span class="lineNum">     155 </span>            :     -----                                                 -----/
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span>            :  **/
+<span class="lineNum">     158 </span>            : typedef enum authn_persistence_state_t {
+<span class="lineNum">     159 </span>            :     pstate_init,
+<span class="lineNum">     160 </span>            :     pstate_undecided,
+<span class="lineNum">     161 </span>            :     pstate_stateless,
+<span class="lineNum">     162 </span>            :     pstate_stateful,
+<span class="lineNum">     163 </span>            : } authn_persistence_state_t;
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span>            : 
+<span class="lineNum">     166 </span>            : /* HTTP Service name, used to get the session key.  */
+<span class="lineNum">     167 </span>            : #define KRB_HTTP_SERVICE &quot;HTTP&quot;
+<span class="lineNum">     168 </span>            : 
+<span class="lineNum">     169 </span>            : /* Stores the context information related to Kerberos authentication. */
+<span class="lineNum">     170 </span>            : typedef struct
+<span class="lineNum">     171 </span>            : {
+<span class="lineNum">     172 </span>            :     apr_pool_t *pool;
+<span class="lineNum">     173 </span>            : 
+<span class="lineNum">     174 </span>            :     /* GSSAPI context */
+<span class="lineNum">     175 </span>            :     serf__spnego_context_t *gss_ctx;
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span>            :     /* Current state of the authentication cycle. */
+<span class="lineNum">     178 </span>            :     gss_api_auth_state state;
+<span class="lineNum">     179 </span>            : 
+<span class="lineNum">     180 </span>            :     /* Current persistence state. */
+<span class="lineNum">     181 </span>            :     authn_persistence_state_t pstate;
+<span class="lineNum">     182 </span>            : 
+<span class="lineNum">     183 </span>            :     const char *header;
+<span class="lineNum">     184 </span>            :     const char *value;
+<span class="lineNum">     185 </span>            : } gss_authn_info_t;
+<span class="lineNum">     186 </span>            : 
+<span class="lineNum">     187 </span>            : /* On the initial 401 response of the server, request a session key from
+<span class="lineNum">     188 </span>            :    the Kerberos KDC to pass to the server, proving that we are who we
+<span class="lineNum">     189 </span>            :    claim to be. The session key can only be used with the HTTP service
+<a name="190"><span class="lineNum">     190 </span>            :    on the target host. */</a>
+<span class="lineNum">     191 </span>            : static apr_status_t
+<span class="lineNum">     192 </span>            : gss_api_get_credentials(serf_connection_t *conn,
+<span class="lineNum">     193 </span>            :                         char *token, apr_size_t token_len,
+<span class="lineNum">     194 </span>            :                         const char *hostname,
+<span class="lineNum">     195 </span>            :                         const char **buf, apr_size_t *buf_len,
+<span class="lineNum">     196 </span>            :                         gss_authn_info_t *gss_info)
+<span class="lineNum">     197 </span>            : {
+<span class="lineNum">     198 </span>            :     serf__spnego_buffer_t input_buf;
+<span class="lineNum">     199 </span>            :     serf__spnego_buffer_t output_buf;
+<span class="lineNum">     200 </span><span class="lineCov">          2 :     apr_status_t status = APR_SUCCESS;</span>
+<span class="lineNum">     201 </span>            : 
+<span class="lineNum">     202 </span>            :     /* If the server sent us a token, pass it to gss_init_sec_token for
+<span class="lineNum">     203 </span>            :        validation. */
+<span class="lineNum">     204 </span><span class="lineCov">          2 :     if (token) {</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :         input_buf.value = token;</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :         input_buf.length = token_len;</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     208 </span><span class="lineCov">          2 :         input_buf.value = 0;</span>
+<span class="lineNum">     209 </span><span class="lineCov">          2 :         input_buf.length = 0;</span>
+<span class="lineNum">     210 </span>            :     }
+<span class="lineNum">     211 </span>            : 
+<span class="lineNum">     212 </span>            :     /* Establish a security context to the server. */
+<span class="lineNum">     213 </span><span class="lineCov">          2 :     status = serf__spnego_init_sec_context(</span>
+<span class="lineNum">     214 </span><span class="lineCov">          2 :          conn,</span>
+<span class="lineNum">     215 </span><span class="lineCov">          2 :          gss_info-&gt;gss_ctx,</span>
+<span class="lineNum">     216 </span><span class="lineCov">          2 :          KRB_HTTP_SERVICE, hostname,</span>
+<span class="lineNum">     217 </span>            :          &amp;input_buf,
+<span class="lineNum">     218 </span>            :          &amp;output_buf,
+<span class="lineNum">     219 </span><span class="lineCov">          2 :          gss_info-&gt;pool,</span>
+<span class="lineNum">     220 </span><span class="lineCov">          2 :          gss_info-&gt;pool</span>
+<span class="lineNum">     221 </span>            :         );
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span><span class="lineCov">          2 :     switch(status) {</span>
+<span class="lineNum">     224 </span>            :     case APR_SUCCESS:
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :         if (output_buf.length == 0) {</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :             gss_info-&gt;state = gss_api_auth_completed;</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :         } else {</span>
+<span class="lineNum">     228 </span><span class="lineNoCov">          0 :             gss_info-&gt;state = gss_api_auth_in_progress;</span>
+<span class="lineNum">     229 </span>            :         }
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     231 </span>            :     case APR_EAGAIN:
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :         gss_info-&gt;state = gss_api_auth_in_progress;</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :         status = APR_SUCCESS;</span>
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :         break;</span>
+<span class="lineNum">     235 </span>            :     default:
+<span class="lineNum">     236 </span><span class="lineCov">          2 :         return status;</span>
+<span class="lineNum">     237 </span>            :     }
+<span class="lineNum">     238 </span>            : 
+<span class="lineNum">     239 </span>            :     /* Return the session key to our caller. */
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :     *buf = output_buf.value;</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :     *buf_len = output_buf.length;</span>
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :     return status;</span>
+<span class="lineNum">     244 </span><span class="lineCov">          2 : }</span>
+<span class="lineNum">     245 </span>            : 
+<span class="lineNum">     246 </span>            : /* do_auth is invoked in two situations:
+<span class="lineNum">     247 </span>            :    - when a response from a server is received that contains an authn header
+<span class="lineNum">     248 </span>            :      (either from a 40x or 2xx response)
+<span class="lineNum">     249 </span>            :    - when a request is prepared on a connection with stateless authentication.
+<span class="lineNum">     250 </span>            : 
+<span class="lineNum">     251 </span>            :    Read the header sent by the server (if any), invoke the gssapi authn
+<span class="lineNum">     252 </span>            :    code and use the resulting Server Ticket on the next request to the
+<a name="253"><span class="lineNum">     253 </span>            :    server. */</a>
+<span class="lineNum">     254 </span>            : static apr_status_t
+<span class="lineNum">     255 </span>            : do_auth(const serf__authn_scheme_t *scheme,
+<span class="lineNum">     256 </span>            :         peer_t peer,
+<span class="lineNum">     257 </span>            :         int code,
+<span class="lineNum">     258 </span>            :         gss_authn_info_t *gss_info,
+<span class="lineNum">     259 </span>            :         serf_connection_t *conn,
+<span class="lineNum">     260 </span>            :         serf_request_t *request,
+<span class="lineNum">     261 </span>            :         const char *auth_hdr,
+<span class="lineNum">     262 </span>            :         apr_pool_t *pool)
+<span class="lineNum">     263 </span>            : {
+<span class="lineNum">     264 </span><span class="lineCov">          2 :     serf_context_t *ctx = conn-&gt;ctx;</span>
+<span class="lineNum">     265 </span>            :     serf__authn_info_t *authn_info;
+<span class="lineNum">     266 </span><span class="lineCov">          2 :     const char *tmp = NULL;</span>
+<span class="lineNum">     267 </span><span class="lineCov">          2 :     char *token = NULL;</span>
+<span class="lineNum">     268 </span><span class="lineCov">          2 :     apr_size_t tmp_len = 0, token_len = 0;</span>
+<span class="lineNum">     269 </span>            :     apr_status_t status;
+<span class="lineNum">     270 </span>            : 
+<span class="lineNum">     271 </span><span class="lineCov">          2 :     if (peer == HOST) {</span>
+<span class="lineNum">     272 </span><span class="lineCov">          1 :         authn_info = serf__get_authn_info_for_server(conn);</span>
+<span class="lineNum">     273 </span><span class="lineCov">          1 :     } else {</span>
+<span class="lineNum">     274 </span><span class="lineCov">          1 :         authn_info = &amp;ctx-&gt;proxy_authn_info;</span>
+<span class="lineNum">     275 </span>            :     }
+<span class="lineNum">     276 </span>            : 
+<span class="lineNum">     277 </span>            :     /* Is this a response from a host/proxy? auth_hdr should always be set. */
+<span class="lineNum">     278 </span><span class="lineCov">          4 :     if (code &amp;&amp; auth_hdr) {</span>
+<span class="lineNum">     279 </span><span class="lineCov">          2 :         const char *space = NULL;</span>
+<span class="lineNum">     280 </span>            :         /* The server will return a token as attribute to the Negotiate key.
+<span class="lineNum">     281 </span>            :            Negotiate YGwGCSqGSIb3EgECAgIAb10wW6ADAgEFoQMCAQ+iTzBNoAMCARCiRgREa6
+<span class="lineNum">     282 </span>            :            mouMBAMFqKVdTGtfpZNXKzyw4Yo1paphJdIA3VOgncaoIlXxZLnkHiIHS2v65pVvrp
+<span class="lineNum">     283 </span>            :            bRIyjF8xve9HxpnNIucCY9c=
+<span class="lineNum">     284 </span>            : 
+<span class="lineNum">     285 </span>            :            Read this base64 value, decode it and validate it so we're sure the
+<span class="lineNum">     286 </span>            :            server is who we expect it to be. */
+<span class="lineNum">     287 </span><span class="lineCov">          2 :         space = strchr(auth_hdr, ' ');</span>
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span><span class="lineCov">          2 :         if (space) {</span>
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :             token = apr_palloc(pool, apr_base64_decode_len(space + 1));</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :             token_len = apr_base64_decode(token, space + 1);</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     293 </span><span class="lineCov">          2 :     } else {</span>
+<span class="lineNum">     294 </span>            :         /* This is a new request, not a retry in response to a 40x of the
+<span class="lineNum">     295 </span>            :            host/proxy.
+<span class="lineNum">     296 </span>            :            Only add the Authorization header if we know the server requires
+<span class="lineNum">     297 </span>            :            per-request authentication (stateless). */
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :         if (gss_info-&gt;pstate != pstate_stateless)</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :             return APR_SUCCESS;</span>
+<span class="lineNum">     300 </span>            :     }
+<span class="lineNum">     301 </span>            : 
+<span class="lineNum">     302 </span><span class="lineCov">          4 :     switch(gss_info-&gt;pstate) {</span>
+<span class="lineNum">     303 </span>            :         case pstate_init:
+<span class="lineNum">     304 </span>            :             /* Nothing to do here */
+<span class="lineNum">     305 </span><span class="lineCov">          2 :             break;</span>
+<span class="lineNum">     306 </span>            :         case pstate_undecided: /* Fall through */
+<span class="lineNum">     307 </span>            :         case pstate_stateful:
+<span class="lineNum">     308 </span>            :             {
+<span class="lineNum">     309 </span>            :                 /* Switch to stateless mode, from now on handle authentication
+<span class="lineNum">     310 </span>            :                    of each request with a new gss context. This is easiest to
+<span class="lineNum">     311 </span>            :                    manage when sending requests one by one. */
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :                 serf__log(LOGLVL_INFO, LOGCOMP_AUTHN, __FILE__, conn-&gt;config,</span>
+<span class="lineNum">     313 </span>            :                           &quot;Server requires per-request SPNEGO authn, &quot;
+<span class="lineNum">     314 </span>            :                           &quot;switching to (slower) stateless mode.\n&quot;);
+<span class="lineNum">     315 </span>            : 
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :                 gss_info-&gt;pstate = pstate_stateless;</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :                 serf__connection_set_pipelining(conn, 0);</span>
+<span class="lineNum">     318 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     319 </span>            :             }
+<span class="lineNum">     320 </span>            :         case pstate_stateless:
+<span class="lineNum">     321 </span>            :             /* Nothing to do here */
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     323 </span>            :     }
+<span class="lineNum">     324 </span>            : 
+<span class="lineNum">     325 </span><span class="lineCov">          2 :     if (request-&gt;auth_baton &amp;&amp; !token) {</span>
+<span class="lineNum">     326 </span>            :         /* We provided token with this request, but server responded with empty
+<span class="lineNum">     327 </span>            :            authentication header. This means server rejected our credentials.
+<span class="lineNum">     328 </span>            :          */
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :         return SERF_ERROR_AUTHN_CREDENTIALS_REJECTED;</span>
+<span class="lineNum">     330 </span>            :     }
+<span class="lineNum">     331 </span>            : 
+<span class="lineNum">     332 </span>            :     /* If the server didn't provide us with a token, start with a new initial
+<span class="lineNum">     333 </span>            :        step in the SPNEGO authentication. */
+<span class="lineNum">     334 </span><span class="lineCov">          2 :     if (!token) {</span>
+<span class="lineNum">     335 </span><span class="lineCov">          2 :         serf__spnego_reset_sec_context(gss_info-&gt;gss_ctx);</span>
+<span class="lineNum">     336 </span><span class="lineCov">          2 :         gss_info-&gt;state = gss_api_auth_not_started;</span>
+<span class="lineNum">     337 </span><span class="lineCov">          2 :     }</span>
+<span class="lineNum">     338 </span>            : 
+<span class="lineNum">     339 </span><span class="lineCov">          2 :     if (peer == HOST) {</span>
+<span class="lineNum">     340 </span><span class="lineCov">          2 :         status = gss_api_get_credentials(conn,</span>
+<span class="lineNum">     341 </span><span class="lineCov">          1 :                                          token, token_len,</span>
+<span class="lineNum">     342 </span><span class="lineCov">          1 :                                          conn-&gt;host_info.hostname,</span>
+<span class="lineNum">     343 </span>            :                                          &amp;tmp, &amp;tmp_len,
+<span class="lineNum">     344 </span><span class="lineCov">          1 :                                          gss_info);</span>
+<span class="lineNum">     345 </span><span class="lineCov">          1 :     } else {</span>
+<span class="lineNum">     346 </span><span class="lineCov">          1 :         char *proxy_host = conn-&gt;ctx-&gt;proxy_address-&gt;hostname;</span>
+<span class="lineNum">     347 </span><span class="lineCov">          2 :         status = gss_api_get_credentials(conn,</span>
+<span class="lineNum">     348 </span><span class="lineCov">          1 :                                          token, token_len, proxy_host,</span>
+<span class="lineNum">     349 </span>            :                                          &amp;tmp, &amp;tmp_len,
+<span class="lineNum">     350 </span><span class="lineCov">          1 :                                          gss_info);</span>
+<span class="lineNum">     351 </span>            :     }
+<span class="lineNum">     352 </span><span class="lineCov">          2 :     if (status)</span>
+<span class="lineNum">     353 </span><span class="lineCov">          2 :         return status;</span>
+<span class="lineNum">     354 </span>            : 
+<span class="lineNum">     355 </span>            :     /* On the next request, add an Authorization header. */
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :     if (tmp_len) {</span>
+<span class="lineNum">     357 </span><span class="lineNoCov">          0 :         serf__encode_auth_header(&amp;gss_info-&gt;value, scheme-&gt;name,</span>
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :                                  tmp,</span>
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :                                  tmp_len,</span>
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :                                  pool);</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :         gss_info-&gt;header = (peer == HOST) ?</span>
+<span class="lineNum">     362 </span>            :             &quot;Authorization&quot; : &quot;Proxy-Authorization&quot;;
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     364 </span>            : 
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :     return APR_SUCCESS;</span>
+<span class="lineNum">     366 </span><span class="lineCov">          2 : }</span>
+<span class="lineNum">     367 </span>            : 
+<span class="lineNum">     368 </span>            : /* A new connection is created to a server that's known to use
+<a name="369"><span class="lineNum">     369 </span>            :    Kerberos. Implements serf__init_conn_func_t callback. */</a>
+<span class="lineNum">     370 </span>            : static apr_status_t
+<span class="lineNum">     371 </span>            : serf__init_spnego_connection(const serf__authn_scheme_t *scheme,
+<span class="lineNum">     372 </span>            :                              int code,
+<span class="lineNum">     373 </span>            :                              serf_connection_t *conn,
+<span class="lineNum">     374 </span>            :                              apr_pool_t *pool)
+<span class="lineNum">     375 </span>            : {
+<span class="lineNum">     376 </span><span class="lineCov">          2 :     serf_context_t *ctx = conn-&gt;ctx;</span>
+<span class="lineNum">     377 </span>            :     serf__authn_info_t *authn_info;
+<span class="lineNum">     378 </span><span class="lineCov">          2 :     gss_authn_info_t *gss_info = NULL;</span>
+<span class="lineNum">     379 </span>            : 
+<span class="lineNum">     380 </span>            :     /* For proxy authentication, reuse the gss context for all connections.
+<span class="lineNum">     381 </span>            :        For server authentication, create a new gss context per connection. */
+<span class="lineNum">     382 </span><span class="lineCov">          2 :     if (code == 401) {</span>
+<span class="lineNum">     383 </span><span class="lineCov">          1 :         authn_info = &amp;conn-&gt;authn_info;</span>
+<span class="lineNum">     384 </span><span class="lineCov">          1 :     } else {</span>
+<span class="lineNum">     385 </span><span class="lineCov">          1 :         authn_info = &amp;ctx-&gt;proxy_authn_info;</span>
+<span class="lineNum">     386 </span>            :     }
+<span class="lineNum">     387 </span><span class="lineCov">          2 :     gss_info = authn_info-&gt;baton;</span>
+<span class="lineNum">     388 </span>            : 
+<span class="lineNum">     389 </span><span class="lineCov">          2 :     if (!gss_info) {</span>
+<span class="lineNum">     390 </span>            :         apr_status_t status;
+<span class="lineNum">     391 </span>            : 
+<span class="lineNum">     392 </span><span class="lineCov">          2 :         gss_info = apr_pcalloc(conn-&gt;pool, sizeof(*gss_info));</span>
+<span class="lineNum">     393 </span><span class="lineCov">          2 :         gss_info-&gt;pool = conn-&gt;pool;</span>
+<span class="lineNum">     394 </span><span class="lineCov">          2 :         gss_info-&gt;state = gss_api_auth_not_started;</span>
+<span class="lineNum">     395 </span><span class="lineCov">          2 :         gss_info-&gt;pstate = pstate_init;</span>
+<span class="lineNum">     396 </span><span class="lineCov">          4 :         status = serf__spnego_create_sec_context(&amp;gss_info-&gt;gss_ctx, scheme,</span>
+<span class="lineNum">     397 </span><span class="lineCov">          2 :                                                  gss_info-&gt;pool, pool);</span>
+<span class="lineNum">     398 </span><span class="lineCov">          2 :         if (status) {</span>
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :             return status;</span>
+<span class="lineNum">     400 </span>            :         }
+<span class="lineNum">     401 </span><span class="lineCov">          2 :         authn_info-&gt;baton = gss_info;</span>
+<span class="lineNum">     402 </span><span class="lineCov">          2 :     }</span>
+<span class="lineNum">     403 </span>            : 
+<span class="lineNum">     404 </span>            :     /* Make serf send the initial requests one by one */
+<span class="lineNum">     405 </span><span class="lineCov">          2 :     serf__connection_set_pipelining(conn, 0);</span>
+<span class="lineNum">     406 </span>            : 
+<span class="lineNum">     407 </span><span class="lineCov">          2 :     serf__log(LOGLVL_DEBUG, LOGCOMP_AUTHN, __FILE__, conn-&gt;config,</span>
+<span class="lineNum">     408 </span>            :               &quot;Initialized Kerberos context for this connection.\n&quot;);
+<span class="lineNum">     409 </span>            : 
+<span class="lineNum">     410 </span><span class="lineCov">          2 :     return APR_SUCCESS;</span>
+<span class="lineNum">     411 </span><span class="lineCov">          2 : }</span>
+<span class="lineNum">     412 </span>            : 
+<span class="lineNum">     413 </span>            : /* Implements serf__auth_handler_func_t callback.
+<a name="414"><span class="lineNum">     414 </span>            :    A 40x response was received, handle the authentication. */</a>
+<span class="lineNum">     415 </span>            : static apr_status_t
+<span class="lineNum">     416 </span>            : serf__handle_spnego_auth(const serf__authn_scheme_t *scheme,
+<span class="lineNum">     417 </span>            :                          int code,
+<span class="lineNum">     418 </span>            :                          serf_request_t *request,
+<span class="lineNum">     419 </span>            :                          serf_bucket_t *response,
+<span class="lineNum">     420 </span>            :                          const char *auth_hdr,
+<span class="lineNum">     421 </span>            :                          const char *auth_attr,
+<span class="lineNum">     422 </span>            :                          apr_pool_t *pool)
+<span class="lineNum">     423 </span>            : {
+<span class="lineNum">     424 </span><span class="lineCov">          2 :     serf_connection_t *conn = request-&gt;conn;</span>
+<span class="lineNum">     425 </span><span class="lineCov">          2 :     serf_context_t *ctx = conn-&gt;ctx;</span>
+<span class="lineNum">     426 </span><span class="lineCov">          6 :     gss_authn_info_t *gss_info = (code == 401) ? conn-&gt;authn_info.baton :</span>
+<span class="lineNum">     427 </span><span class="lineCov">          1 :                                                  ctx-&gt;proxy_authn_info.baton;</span>
+<span class="lineNum">     428 </span>            : 
+<span class="lineNum">     429 </span><span class="lineCov">          4 :     return do_auth(scheme,</span>
+<span class="lineNum">     430 </span><span class="lineCov">          2 :                    code == 401 ? HOST : PROXY,</span>
+<span class="lineNum">     431 </span><span class="lineCov">          2 :                    code,</span>
+<span class="lineNum">     432 </span><span class="lineCov">          2 :                    gss_info,</span>
+<span class="lineNum">     433 </span><span class="lineCov">          2 :                    request-&gt;conn,</span>
+<span class="lineNum">     434 </span><span class="lineCov">          2 :                    request,</span>
+<span class="lineNum">     435 </span><span class="lineCov">          2 :                    auth_hdr,</span>
+<span class="lineNum">     436 </span><span class="lineCov">          2 :                    pool);</span>
+<span class="lineNum">     437 </span>            : }
+<span class="lineNum">     438 </span>            : 
+<span class="lineNum">     439 </span>            : /* Callback function (implements serf__setup_request_func_t). Setup the authn
+<a name="440"><span class="lineNum">     440 </span>            :    headers on this request message. */</a>
+<span class="lineNum">     441 </span>            : static apr_status_t
+<span class="lineNum">     442 </span>            : serf__setup_request_spnego_auth(const serf__authn_scheme_t *scheme,
+<span class="lineNum">     443 </span>            :                                 peer_t peer,
+<span class="lineNum">     444 </span>            :                                 int code,
+<span class="lineNum">     445 </span>            :                                 serf_connection_t *conn,
+<span class="lineNum">     446 </span>            :                                 serf_request_t *request,
+<span class="lineNum">     447 </span>            :                                 const char *method,
+<span class="lineNum">     448 </span>            :                                 const char *uri,
+<span class="lineNum">     449 </span>            :                                 serf_bucket_t *hdrs_bkt)
+<span class="lineNum">     450 </span>            : {
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :     serf_context_t *ctx = conn-&gt;ctx;</span>
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :     gss_authn_info_t *gss_info = (peer == HOST) ? conn-&gt;authn_info.baton :</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :                                                   ctx-&gt;proxy_authn_info.baton;</span>
+<span class="lineNum">     454 </span>            : 
+<span class="lineNum">     455 </span>            :     /* If we have an ongoing authentication handshake, the handler of the
+<span class="lineNum">     456 </span>            :        previous response will have created the authn headers for this request
+<span class="lineNum">     457 </span>            :        already. */
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :     if (gss_info &amp;&amp; gss_info-&gt;header &amp;&amp; gss_info-&gt;value) {</span>
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :         serf__log(LOGLVL_DEBUG, LOGCOMP_AUTHN, __FILE__, conn-&gt;config,</span>
+<span class="lineNum">     460 </span>            :                   &quot;Set Negotiate authn header on retried request.\n&quot;);
+<span class="lineNum">     461 </span>            : 
+<span class="lineNum">     462 </span><span class="lineNoCov">          0 :         serf_bucket_headers_setn(hdrs_bkt, gss_info-&gt;header,</span>
+<span class="lineNum">     463 </span><span class="lineNoCov">          0 :                                  gss_info-&gt;value);</span>
+<span class="lineNum">     464 </span>            : 
+<span class="lineNum">     465 </span>            :         /* Remember that we're using this request for authentication
+<span class="lineNum">     466 </span>            :            handshake. */
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :         request-&gt;auth_baton = (void*) TRUE;</span>
+<span class="lineNum">     468 </span>            : 
+<span class="lineNum">     469 </span>            :         /* We should send each token only once. */
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :         gss_info-&gt;header = NULL;</span>
+<span class="lineNum">     471 </span><span class="lineNoCov">          0 :         gss_info-&gt;value = NULL;</span>
+<span class="lineNum">     472 </span>            : 
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :         return APR_SUCCESS;</span>
+<span class="lineNum">     474 </span>            :     }
+<span class="lineNum">     475 </span>            : 
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :     switch (gss_info-&gt;pstate) {</span>
+<span class="lineNum">     477 </span>            :         case pstate_init:
+<span class="lineNum">     478 </span>            :             /* We shouldn't normally arrive here, do nothing. */
+<span class="lineNum">     479 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     480 </span>            :         case pstate_undecided: /* fall through */
+<span class="lineNum">     481 </span><span class="lineNoCov">          0 :             serf__log(LOGLVL_DEBUG, LOGCOMP_AUTHN, __FILE__, conn-&gt;config,</span>
+<span class="lineNum">     482 </span>            :                       &quot;Assume for now that the server supports persistent &quot;
+<span class="lineNum">     483 </span>            :                       &quot;SPNEGO authentication.\n&quot;);
+<span class="lineNum">     484 </span>            :             /* Nothing to do here. */
+<span class="lineNum">     485 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     486 </span>            :         case pstate_stateful:
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :             serf__log(LOGLVL_DEBUG, LOGCOMP_AUTHN, __FILE__, conn-&gt;config,</span>
+<span class="lineNum">     488 </span>            :                       &quot;SPNEGO on this connection is persistent, &quot;
+<span class="lineNum">     489 </span>            :                       &quot;don't set authn header on next request.\n&quot;);
+<span class="lineNum">     490 </span>            :             /* Nothing to do here. */
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     492 </span>            :         case pstate_stateless:
+<span class="lineNum">     493 </span>            :             {
+<span class="lineNum">     494 </span>            :                 apr_status_t status;
+<span class="lineNum">     495 </span>            : 
+<span class="lineNum">     496 </span>            :                 /* Authentication on this connection is known to be stateless.
+<span class="lineNum">     497 </span>            :                    Add an initial Negotiate token for the server, to bypass the
+<span class="lineNum">     498 </span>            :                    40x response we know we'll otherwise receive.
+<span class="lineNum">     499 </span>            :                   (RFC 4559 section 4.2) */
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :                 serf__log(LOGLVL_DEBUG, LOGCOMP_AUTHN, __FILE__, conn-&gt;config,</span>
+<span class="lineNum">     501 </span>            :                           &quot;Add initial Negotiate header to request.\n&quot;);
+<span class="lineNum">     502 </span>            : 
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :                 status = do_auth(scheme,</span>
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :                                  peer,</span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :                                  code,</span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :                                  gss_info,</span>
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :                                  conn,</span>
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :                                  request,</span>
+<span class="lineNum">     509 </span>            :                                  0l,    /* no response authn header */
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :                                  conn-&gt;pool);</span>
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :                 if (status)</span>
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :                     return status;</span>
+<span class="lineNum">     513 </span>            : 
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :                 serf_bucket_headers_setn(hdrs_bkt, gss_info-&gt;header,</span>
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :                                          gss_info-&gt;value);</span>
+<span class="lineNum">     516 </span>            : 
+<span class="lineNum">     517 </span>            :                 /* Remember that we're using this request for authentication
+<span class="lineNum">     518 </span>            :                    handshake. */
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :                 request-&gt;auth_baton = (void*) TRUE;</span>
+<span class="lineNum">     520 </span>            : 
+<span class="lineNum">     521 </span>            :                 /* We should send each token only once. */
+<span class="lineNum">     522 </span><span class="lineNoCov">          0 :                 gss_info-&gt;header = NULL;</span>
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :                 gss_info-&gt;value = NULL;</span>
+<span class="lineNum">     524 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     525 </span>            :             }
+<span class="lineNum">     526 </span>            :     }
+<span class="lineNum">     527 </span>            : 
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :     return APR_SUCCESS;</span>
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     530 </span>            : 
+<span class="lineNum">     531 </span>            : /**
+<span class="lineNum">     532 </span>            :  * Baton passed to the get_auth_header callback function.
+<span class="lineNum">     533 </span>            :  */
+<span class="lineNum">     534 </span>            : typedef struct get_auth_header_baton_t {
+<span class="lineNum">     535 </span>            :     const char *hdr_name;
+<span class="lineNum">     536 </span>            :     const char *auth_name;
+<span class="lineNum">     537 </span>            :     const char *hdr_value;
+<span class="lineNum">     538 </span>            :     apr_pool_t *pool;
+<span class="lineNum">     539 </span>            : } get_auth_header_baton_t;
+<a name="540"><span class="lineNum">     540 </span>            : </a>
+<span class="lineNum">     541 </span>            : static int
+<span class="lineNum">     542 </span>            : get_auth_header_cb(void *baton,
+<span class="lineNum">     543 </span>            :                    const char *key,
+<span class="lineNum">     544 </span>            :                    const char *header)
+<span class="lineNum">     545 </span>            : {
+<span class="lineNum">     546 </span><span class="lineNoCov">          0 :     get_auth_header_baton_t *b = baton;</span>
+<span class="lineNum">     547 </span>            : 
+<span class="lineNum">     548 </span>            :     /* We're only interested in xxxx-Authenticate headers. */
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :     if (strcasecmp(key, b-&gt;hdr_name) != 0)</span>
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :         return 0;</span>
+<span class="lineNum">     551 </span>            : 
+<span class="lineNum">     552 </span>            :     /* Check if header value starts with interesting auth name. */
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :     if (strncmp(header, b-&gt;auth_name, strlen(b-&gt;auth_name)) == 0) {</span>
+<span class="lineNum">     554 </span>            :         /* Save interesting header value and stop iteration. */
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :         b-&gt;hdr_value = apr_pstrdup(b-&gt;pool,  header);</span>
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :         return 1;</span>
+<span class="lineNum">     557 </span>            :     }
+<span class="lineNum">     558 </span>            : 
+<span class="lineNum">     559 </span><span class="lineNoCov">          0 :     return 0;</span>
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 : }</span>
+<a name="561"><span class="lineNum">     561 </span>            : </a>
+<span class="lineNum">     562 </span>            : static const char *
+<span class="lineNum">     563 </span>            : get_auth_header(serf_bucket_t *hdrs,
+<span class="lineNum">     564 </span>            :                 const char *hdr_name,
+<span class="lineNum">     565 </span>            :                 const char *auth_name,
+<span class="lineNum">     566 </span>            :                 apr_pool_t *pool)
+<span class="lineNum">     567 </span>            : {
+<span class="lineNum">     568 </span>            :     get_auth_header_baton_t b;
+<span class="lineNum">     569 </span>            : 
+<span class="lineNum">     570 </span><span class="lineNoCov">          0 :     b.auth_name = hdr_name;</span>
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :     b.hdr_name = auth_name;</span>
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :     b.hdr_value = NULL;</span>
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :     b.pool = pool;</span>
+<span class="lineNum">     574 </span>            : 
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :     serf_bucket_headers_do(hdrs, get_auth_header_cb, &amp;b);</span>
+<span class="lineNum">     576 </span>            : 
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :     return b.hdr_value;</span>
+<span class="lineNum">     578 </span>            : }
+<span class="lineNum">     579 </span>            : 
+<span class="lineNum">     580 </span>            : /* Callback function (implements serf__validate_response_func_t).
+<span class="lineNum">     581 </span>            :  * Function is called when 2xx responses are received. Normally we don't
+<span class="lineNum">     582 </span>            :  * have to do anything, except for the first response after the
+<span class="lineNum">     583 </span>            :  * authentication handshake. This specific response includes authentication
+<span class="lineNum">     584 </span>            :  * data which should be validated by the client (mutual authentication).
+<a name="585"><span class="lineNum">     585 </span>            :  */</a>
+<span class="lineNum">     586 </span>            : apr_status_t
+<span class="lineNum">     587 </span>            : serf__validate_response_spnego_auth(const serf__authn_scheme_t *scheme,
+<span class="lineNum">     588 </span>            :                                     peer_t peer,
+<span class="lineNum">     589 </span>            :                                     int code,
+<span class="lineNum">     590 </span>            :                                     serf_connection_t *conn,
+<span class="lineNum">     591 </span>            :                                     serf_request_t *request,
+<span class="lineNum">     592 </span>            :                                     serf_bucket_t *response,
+<span class="lineNum">     593 </span>            :                                     apr_pool_t *pool)
+<span class="lineNum">     594 </span>            : {
+<span class="lineNum">     595 </span><span class="lineNoCov">          0 :     serf_context_t *ctx = conn-&gt;ctx;</span>
+<span class="lineNum">     596 </span>            :     gss_authn_info_t *gss_info;
+<span class="lineNum">     597 </span>            :     const char *auth_hdr_name;
+<span class="lineNum">     598 </span>            : 
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :     if (peer == HOST) {</span>
+<span class="lineNum">     600 </span><span class="lineNoCov">          0 :         gss_info = conn-&gt;authn_info.baton;</span>
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :         auth_hdr_name = &quot;WWW-Authenticate&quot;;</span>
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 :         gss_info = ctx-&gt;proxy_authn_info.baton;</span>
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :         auth_hdr_name = &quot;Proxy-Authenticate&quot;;</span>
+<span class="lineNum">     605 </span>            :     }
+<span class="lineNum">     606 </span>            : 
+<span class="lineNum">     607 </span><span class="lineNoCov">          0 :     if (gss_info-&gt;state != gss_api_auth_completed) {</span>
+<span class="lineNum">     608 </span>            :         serf_bucket_t *hdrs;
+<span class="lineNum">     609 </span>            :         const char *auth_hdr_val;
+<span class="lineNum">     610 </span>            :         apr_status_t status;
+<span class="lineNum">     611 </span>            : 
+<span class="lineNum">     612 </span><span class="lineNoCov">          0 :         serf__log(LOGLVL_DEBUG, LOGCOMP_AUTHN, __FILE__, conn-&gt;config,</span>
+<span class="lineNum">     613 </span>            :                   &quot;Validate SPNEGO response header.\n&quot;);
+<span class="lineNum">     614 </span>            : 
+<span class="lineNum">     615 </span><span class="lineNoCov">          0 :         hdrs = serf_bucket_response_get_headers(response);</span>
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :         auth_hdr_val = get_auth_header(hdrs, auth_hdr_name, scheme-&gt;name,</span>
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :                                        pool);</span>
+<span class="lineNum">     618 </span>            : 
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :         if (auth_hdr_val) {</span>
+<span class="lineNum">     620 </span><span class="lineNoCov">          0 :             status = do_auth(scheme, peer, code, gss_info, conn, request,</span>
+<span class="lineNum">     621 </span><span class="lineNoCov">          0 :                              auth_hdr_val, pool);</span>
+<span class="lineNum">     622 </span><span class="lineNoCov">          0 :             if (status) {</span>
+<span class="lineNum">     623 </span><span class="lineNoCov">          0 :                 return status;</span>
+<span class="lineNum">     624 </span>            :             }
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :         } else {</span>
+<span class="lineNum">     626 </span>            :             /* No Authenticate headers, nothing to validate: authentication
+<span class="lineNum">     627 </span>            :                completed.*/
+<span class="lineNum">     628 </span><span class="lineNoCov">          0 :             gss_info-&gt;state = gss_api_auth_completed;</span>
+<span class="lineNum">     629 </span>            : 
+<span class="lineNum">     630 </span><span class="lineNoCov">          0 :             serf__log(LOGLVL_DEBUG, LOGCOMP_AUTHN, __FILE__, conn-&gt;config,</span>
+<span class="lineNum">     631 </span>            :                       &quot;SPNEGO handshake completed.\n&quot;);
+<span class="lineNum">     632 </span>            :         }
+<span class="lineNum">     633 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     634 </span>            : 
+<span class="lineNum">     635 </span><span class="lineNoCov">          0 :     if (gss_info-&gt;state == gss_api_auth_completed) {</span>
+<span class="lineNum">     636 </span><span class="lineNoCov">          0 :         switch(gss_info-&gt;pstate) {</span>
+<span class="lineNum">     637 </span>            :             case pstate_init:
+<span class="lineNum">     638 </span>            :                 /* Authentication of the first request is done. */
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :                 gss_info-&gt;pstate = pstate_undecided;</span>
+<span class="lineNum">     640 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     641 </span>            :             case pstate_undecided:
+<span class="lineNum">     642 </span>            :                 /* The server didn't request for authentication even though
+<span class="lineNum">     643 </span>            :                    we didn't add an Authorization header to previous
+<span class="lineNum">     644 </span>            :                    request. That means it supports persistent authentication. */
+<span class="lineNum">     645 </span><span class="lineNoCov">          0 :                 gss_info-&gt;pstate = pstate_stateful;</span>
+<span class="lineNum">     646 </span><span class="lineNoCov">          0 :                 serf__connection_set_pipelining(conn, 1);</span>
+<span class="lineNum">     647 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     648 </span>            :             default:
+<span class="lineNum">     649 </span>            :                 /* Nothing to do here. */
+<span class="lineNum">     650 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     651 </span>            :         }
+<span class="lineNum">     652 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     653 </span>            : 
+<span class="lineNum">     654 </span><span class="lineNoCov">          0 :     return APR_SUCCESS;</span>
+<span class="lineNum">     655 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     656 </span>            : 
+<span class="lineNum">     657 </span>            : const serf__authn_scheme_t serf__spnego_authn_scheme = {
+<span class="lineNum">     658 </span>            :     &quot;Negotiate&quot;,
+<span class="lineNum">     659 </span>            :     &quot;negotiate&quot;,
+<span class="lineNum">     660 </span>            :     SERF_AUTHN_NEGOTIATE,
+<span class="lineNum">     661 </span>            :     serf__init_spnego_connection,
+<span class="lineNum">     662 </span>            :     serf__handle_spnego_auth,
+<span class="lineNum">     663 </span>            :     serf__setup_request_spnego_auth,
+<span class="lineNum">     664 </span>            :     serf__validate_response_spnego_auth,
+<span class="lineNum">     665 </span>            : };
+<span class="lineNum">     666 </span>            : 
+<span class="lineNum">     667 </span>            : #ifdef WIN32
+<span class="lineNum">     668 </span>            : const serf__authn_scheme_t serf__ntlm_authn_scheme = {
+<span class="lineNum">     669 </span>            :     &quot;NTLM&quot;,
+<span class="lineNum">     670 </span>            :     &quot;ntlm&quot;,
+<span class="lineNum">     671 </span>            :     SERF_AUTHN_NTLM,
+<span class="lineNum">     672 </span>            :     serf__init_spnego_connection,
+<span class="lineNum">     673 </span>            :     serf__handle_spnego_auth,
+<span class="lineNum">     674 </span>            :     serf__setup_request_spnego_auth,
+<span class="lineNum">     675 </span>            :     serf__validate_response_spnego_auth,
+<span class="lineNum">     676 </span>            : };
+<span class="lineNum">     677 </span>            : #endif /* #ifdef WIN32 */
+<span class="lineNum">     678 </span>            : 
+<span class="lineNum">     679 </span>            : #endif /* SERF_HAVE_SPNEGO */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

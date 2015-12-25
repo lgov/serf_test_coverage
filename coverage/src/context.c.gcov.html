@@ -1,0 +1,516 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - src/context.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">src</a> - context.c<span style="font-size: 80%;"> (source / <a href="context.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">109</td>
+            <td class="headerCovTableEntry">164</td>
+            <td class="headerCovTableEntryLo">66.5 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-12-25 11:14:27</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">15</td>
+            <td class="headerCovTableEntry">16</td>
+            <td class="headerCovTableEntryHi">93.8 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* ====================================================================</a>
+<span class="lineNum">       2 </span>            :  *    Licensed to the Apache Software Foundation (ASF) under one
+<span class="lineNum">       3 </span>            :  *    or more contributor license agreements.  See the NOTICE file
+<span class="lineNum">       4 </span>            :  *    distributed with this work for additional information
+<span class="lineNum">       5 </span>            :  *    regarding copyright ownership.  The ASF licenses this file
+<span class="lineNum">       6 </span>            :  *    to you under the Apache License, Version 2.0 (the
+<span class="lineNum">       7 </span>            :  *    &quot;License&quot;); you may not use this file except in compliance
+<span class="lineNum">       8 </span>            :  *    with the License.  You may obtain a copy of the License at
+<span class="lineNum">       9 </span>            :  *
+<span class="lineNum">      10 </span>            :  *      http://www.apache.org/licenses/LICENSE-2.0
+<span class="lineNum">      11 </span>            :  *
+<span class="lineNum">      12 </span>            :  *    Unless required by applicable law or agreed to in writing,
+<span class="lineNum">      13 </span>            :  *    software distributed under the License is distributed on an
+<span class="lineNum">      14 </span>            :  *    &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+<span class="lineNum">      15 </span>            :  *    KIND, either express or implied.  See the License for the
+<span class="lineNum">      16 </span>            :  *    specific language governing permissions and limitations
+<span class="lineNum">      17 </span>            :  *    under the License.
+<span class="lineNum">      18 </span>            :  * ====================================================================
+<span class="lineNum">      19 </span>            :  */
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #include &lt;apr_pools.h&gt;
+<span class="lineNum">      22 </span>            : #include &lt;apr_poll.h&gt;
+<span class="lineNum">      23 </span>            : #include &lt;apr_version.h&gt;
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &quot;serf.h&quot;
+<span class="lineNum">      26 </span>            : #include &quot;serf_bucket_util.h&quot;
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #include &quot;serf_private.h&quot;
+<span class="lineNum">      29 </span>            : 
+<span class="lineNum">      30 </span>            : /**
+<span class="lineNum">      31 </span>            :  * Callback function (implements serf_progress_t). Takes a number of bytes
+<span class="lineNum">      32 </span>            :  * read @a read and bytes written @a written, adds those to the total for this
+<a name="33"><span class="lineNum">      33 </span>            :  * context and notifies an interested party (if any).</a>
+<span class="lineNum">      34 </span>            :  */
+<span class="lineNum">      35 </span>            : void serf__context_progress_delta(
+<span class="lineNum">      36 </span>            :     void *progress_baton,
+<span class="lineNum">      37 </span>            :     apr_off_t read,
+<span class="lineNum">      38 </span>            :     apr_off_t written)
+<span class="lineNum">      39 </span>            : {
+<span class="lineNum">      40 </span><span class="lineCov">       1758 :     serf_context_t *ctx = progress_baton;</span>
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span><span class="lineCov">       1758 :     ctx-&gt;progress_read += read;</span>
+<span class="lineNum">      43 </span><span class="lineCov">       1758 :     ctx-&gt;progress_written += written;</span>
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span><span class="lineCov">       1758 :     if (ctx-&gt;progress_func)</span>
+<span class="lineNum">      46 </span><span class="lineCov">         18 :         ctx-&gt;progress_func(ctx-&gt;progress_baton,</span>
+<span class="lineNum">      47 </span><span class="lineCov">          9 :                            ctx-&gt;progress_read,</span>
+<span class="lineNum">      48 </span><span class="lineCov">          9 :                            ctx-&gt;progress_written);</span>
+<span class="lineNum">      49 </span><span class="lineCov">       1758 : }</span>
+<span class="lineNum">      50 </span>            : 
+<a name="51"><span class="lineNum">      51 </span>            : </a>
+<span class="lineNum">      52 </span>            : /* Check for dirty connections and update their pollsets accordingly. */
+<span class="lineNum">      53 </span>            : static apr_status_t check_dirty_pollsets(serf_context_t *ctx)
+<span class="lineNum">      54 </span>            : {
+<span class="lineNum">      55 </span>            :     int i;
+<span class="lineNum">      56 </span>            : 
+<span class="lineNum">      57 </span>            :     /* if we're not dirty, return now. */
+<span class="lineNum">      58 </span><span class="lineCov">       3039 :     if (!ctx-&gt;dirty_pollset) {</span>
+<span class="lineNum">      59 </span><span class="lineCov">       2608 :         return APR_SUCCESS;</span>
+<span class="lineNum">      60 </span>            :     }
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span><span class="lineCov">       1716 :     for (i = ctx-&gt;conns-&gt;nelts; i--; ) {</span>
+<span class="lineNum">      63 </span><span class="lineCov">        431 :         serf_connection_t *conn = GET_CONN(ctx, i);</span>
+<span class="lineNum">      64 </span>            :         apr_status_t status;
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            :         /* if this connection isn't dirty, skip it. */
+<span class="lineNum">      67 </span><span class="lineCov">        431 :         if (!conn-&gt;io.dirty_conn) {</span>
+<span class="lineNum">      68 </span><span class="lineCov">          8 :             continue;</span>
+<span class="lineNum">      69 </span>            :         }
+<span class="lineNum">      70 </span>            : 
+<span class="lineNum">      71 </span>            :         /* reset this connection's flag before we update. */
+<span class="lineNum">      72 </span><span class="lineCov">        423 :         conn-&gt;io.dirty_conn = false;</span>
+<span class="lineNum">      73 </span>            : 
+<span class="lineNum">      74 </span><span class="lineCov">        423 :         if ((status = serf__conn_update_pollset(conn)) != APR_SUCCESS)</span>
+<span class="lineNum">      75 </span><span class="lineNoCov">          0 :             return status;</span>
+<span class="lineNum">      76 </span>            :     }
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span><span class="lineCov">        884 :     for (i = ctx-&gt;incomings-&gt;nelts; i--; ) {</span>
+<span class="lineNum">      79 </span><span class="lineCov">         14 :         serf_incoming_t *incoming = GET_INCOMING(ctx, i);</span>
+<span class="lineNum">      80 </span>            :         apr_status_t status;
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span><span class="lineCov">         14 :         if (!incoming-&gt;io.dirty_conn) {</span>
+<span class="lineNum">      83 </span><span class="lineCov">          6 :             continue;</span>
+<span class="lineNum">      84 </span>            :         }
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span><span class="lineCov">          8 :         incoming-&gt;io.dirty_conn = false;</span>
+<span class="lineNum">      87 </span>            : 
+<span class="lineNum">      88 </span><span class="lineCov">          8 :         if ((status = serf__incoming_update_pollset(incoming)) != APR_SUCCESS)</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :             return status;</span>
+<span class="lineNum">      90 </span>            :     }
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span>            :     /* reset our context flag now */
+<span class="lineNum">      93 </span><span class="lineCov">        431 :     ctx-&gt;dirty_pollset = false;</span>
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span><span class="lineCov">        431 :     return APR_SUCCESS;</span>
+<span class="lineNum">      96 </span><span class="lineCov">       3039 : }</span>
+<a name="97"><span class="lineNum">      97 </span>            : </a>
+<span class="lineNum">      98 </span>            : 
+<span class="lineNum">      99 </span>            : static apr_status_t pollset_add(void *user_baton,
+<span class="lineNum">     100 </span>            :                                 apr_pollfd_t *pfd,
+<span class="lineNum">     101 </span>            :                                 void *serf_baton)
+<span class="lineNum">     102 </span>            : {
+<span class="lineNum">     103 </span><span class="lineCov">        439 :     serf_pollset_t *s = (serf_pollset_t*)user_baton;</span>
+<span class="lineNum">     104 </span><span class="lineCov">        439 :     pfd-&gt;client_data = serf_baton;</span>
+<span class="lineNum">     105 </span><span class="lineCov">        439 :     return apr_pollset_add(s-&gt;pollset, pfd);</span>
+<a name="106"><span class="lineNum">     106 </span>            : }</a>
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span>            : static apr_status_t pollset_rm(void *user_baton,
+<span class="lineNum">     109 </span>            :                                apr_pollfd_t *pfd,
+<span class="lineNum">     110 </span>            :                                void *serf_baton)
+<span class="lineNum">     111 </span>            : {
+<span class="lineNum">     112 </span><span class="lineCov">        510 :     serf_pollset_t *s = (serf_pollset_t*)user_baton;</span>
+<span class="lineNum">     113 </span><span class="lineCov">        510 :     pfd-&gt;client_data = serf_baton;</span>
+<span class="lineNum">     114 </span><span class="lineCov">        510 :     return apr_pollset_remove(s-&gt;pollset, pfd);</span>
+<span class="lineNum">     115 </span>            : }
+<a name="116"><span class="lineNum">     116 </span>            : </a>
+<span class="lineNum">     117 </span>            : 
+<span class="lineNum">     118 </span>            : void serf_config_proxy(serf_context_t *ctx,
+<span class="lineNum">     119 </span>            :                        apr_sockaddr_t *address)
+<span class="lineNum">     120 </span>            : {
+<span class="lineNum">     121 </span><span class="lineCov">         10 :     ctx-&gt;proxy_address = address;</span>
+<span class="lineNum">     122 </span><span class="lineCov">         10 : }</span>
+<a name="123"><span class="lineNum">     123 </span>            : </a>
+<span class="lineNum">     124 </span>            : 
+<span class="lineNum">     125 </span>            : void serf_config_credentials_callback(serf_context_t *ctx,
+<span class="lineNum">     126 </span>            :                                       serf_credentials_callback_t cred_cb)
+<span class="lineNum">     127 </span>            : {
+<span class="lineNum">     128 </span><span class="lineCov">         23 :     ctx-&gt;cred_cb = cred_cb;</span>
+<span class="lineNum">     129 </span><span class="lineCov">         23 : }</span>
+<a name="130"><span class="lineNum">     130 </span>            : </a>
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span>            : void serf_config_authn_types(serf_context_t *ctx,
+<span class="lineNum">     133 </span>            :                              int authn_types)
+<span class="lineNum">     134 </span>            : {
+<span class="lineNum">     135 </span><span class="lineCov">         19 :     ctx-&gt;authn_types = authn_types;</span>
+<span class="lineNum">     136 </span><span class="lineCov">         19 : }</span>
+<a name="137"><span class="lineNum">     137 </span>            : </a>
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span>            : serf_context_t *serf_context_create_ex(
+<span class="lineNum">     140 </span>            :     void *user_baton,
+<span class="lineNum">     141 </span>            :     serf_socket_add_t addf,
+<span class="lineNum">     142 </span>            :     serf_socket_remove_t rmf,
+<span class="lineNum">     143 </span>            :     apr_pool_t *pool)
+<span class="lineNum">     144 </span>            : {
+<span class="lineNum">     145 </span><span class="lineCov">         69 :     serf_context_t *ctx = apr_pcalloc(pool, sizeof(*ctx));</span>
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span><span class="lineCov">         69 :     ctx-&gt;pool = pool;</span>
+<span class="lineNum">     148 </span>            : 
+<span class="lineNum">     149 </span><span class="lineCov">         69 :     if (user_baton != NULL) {</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :         ctx-&gt;pollset_baton = user_baton;</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :         ctx-&gt;pollset_add = addf;</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :         ctx-&gt;pollset_rm = rmf;</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     154 </span>            :     else {
+<span class="lineNum">     155 </span>            :         /* build the pollset with a (default) number of connections */
+<span class="lineNum">     156 </span><span class="lineCov">         69 :         serf_pollset_t *ps = apr_pcalloc(pool, sizeof(*ps));</span>
+<span class="lineNum">     157 </span>            : 
+<span class="lineNum">     158 </span>            :         /* ### TODO: As of APR 1.4.x apr_pollset_create_ex can return a status
+<span class="lineNum">     159 </span>            :            ### other than APR_SUCCESS, so we should handle it.
+<span class="lineNum">     160 </span>            :            ### Probably move creation of the pollset to later when we have
+<span class="lineNum">     161 </span>            :            ### the possibility of returning status to the caller.
+<span class="lineNum">     162 </span>            :          */
+<span class="lineNum">     163 </span>            : #ifdef BROKEN_WSAPOLL
+<span class="lineNum">     164 </span>            :         /* APR 1.4.x switched to using WSAPoll() on Win32, but it does not
+<span class="lineNum">     165 </span>            :          * properly handle errors on a non-blocking sockets (such as
+<span class="lineNum">     166 </span>            :          * connecting to a server where no listener is active).
+<span class="lineNum">     167 </span>            :          *
+<span class="lineNum">     168 </span>            :          * So, sadly, we must force using select() on Win32.
+<span class="lineNum">     169 </span>            :          *
+<span class="lineNum">     170 </span>            :          * http://mail-archives.apache.org/mod_mbox/apr-dev/201105.mbox/%3CBANLkTin3rBCecCBRvzUA5B-14u-NWxR_Kg@mail.gmail.com%3E
+<span class="lineNum">     171 </span>            :          */
+<span class="lineNum">     172 </span>            :         (void) apr_pollset_create_ex(&amp;ps-&gt;pollset, MAX_CONN, pool, 0,
+<span class="lineNum">     173 </span>            :                                      APR_POLLSET_SELECT);
+<span class="lineNum">     174 </span>            : #else
+<span class="lineNum">     175 </span><span class="lineCov">         69 :         (void) apr_pollset_create(&amp;ps-&gt;pollset, MAX_CONN, pool, 0);</span>
+<span class="lineNum">     176 </span>            : #endif
+<span class="lineNum">     177 </span><span class="lineCov">         69 :         ctx-&gt;pollset_baton = ps;</span>
+<span class="lineNum">     178 </span><span class="lineCov">         69 :         ctx-&gt;pollset_add = pollset_add;</span>
+<span class="lineNum">     179 </span><span class="lineCov">         69 :         ctx-&gt;pollset_rm = pollset_rm;</span>
+<span class="lineNum">     180 </span>            :     }
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span>            :     /* default to a single connection since that is the typical case */
+<span class="lineNum">     183 </span><span class="lineCov">         69 :     ctx-&gt;conns = apr_array_make(pool, 1, sizeof(serf_connection_t *));</span>
+<span class="lineNum">     184 </span>            : 
+<span class="lineNum">     185 </span>            :     /* and we typically have no servers */
+<span class="lineNum">     186 </span><span class="lineCov">         69 :     ctx-&gt;incomings = apr_array_make(pool, 0, sizeof(serf_incoming_t *));</span>
+<span class="lineNum">     187 </span>            : 
+<span class="lineNum">     188 </span>            :     /* Initialize progress status */
+<span class="lineNum">     189 </span><span class="lineCov">         69 :     ctx-&gt;progress_read = 0;</span>
+<span class="lineNum">     190 </span><span class="lineCov">         69 :     ctx-&gt;progress_written = 0;</span>
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span><span class="lineCov">         69 :     ctx-&gt;authn_types = SERF_AUTHN_ALL;</span>
+<span class="lineNum">     193 </span><span class="lineCov">         69 :     ctx-&gt;server_authn_info = apr_hash_make(pool);</span>
+<span class="lineNum">     194 </span>            : 
+<span class="lineNum">     195 </span>            :     /* Assume returned status is APR_SUCCESS */
+<span class="lineNum">     196 </span><span class="lineCov">         69 :     serf__config_store_init(ctx);</span>
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span><span class="lineCov">         69 :     serf__config_store_create_ctx_config(ctx, &amp;ctx-&gt;config);</span>
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span><span class="lineCov">         69 :     serf__log_init(ctx);</span>
+<span class="lineNum">     201 </span>            : 
+<span class="lineNum">     202 </span><span class="lineCov">         69 :     return ctx;</span>
+<span class="lineNum">     203 </span>            : }
+<a name="204"><span class="lineNum">     204 </span>            : </a>
+<span class="lineNum">     205 </span>            : 
+<span class="lineNum">     206 </span>            : serf_context_t *serf_context_create(apr_pool_t *pool)
+<span class="lineNum">     207 </span>            : {
+<span class="lineNum">     208 </span><span class="lineCov">         69 :     return serf_context_create_ex(NULL, NULL, NULL, pool);</span>
+<a name="209"><span class="lineNum">     209 </span>            : }</a>
+<span class="lineNum">     210 </span>            : 
+<span class="lineNum">     211 </span>            : apr_status_t serf_context_prerun(serf_context_t *ctx)
+<span class="lineNum">     212 </span>            : {
+<span class="lineNum">     213 </span><span class="lineCov">       3039 :     apr_status_t status = APR_SUCCESS;</span>
+<span class="lineNum">     214 </span><span class="lineCov">       3039 :     if ((status = serf__open_connections(ctx)) != APR_SUCCESS)</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :         return status;</span>
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span><span class="lineCov">       3039 :     if ((status = check_dirty_pollsets(ctx)) != APR_SUCCESS)</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :         return status;</span>
+<span class="lineNum">     219 </span><span class="lineCov">       3039 :     return status;</span>
+<span class="lineNum">     220 </span><span class="lineCov">       3039 : }</span>
+<a name="221"><span class="lineNum">     221 </span>            : </a>
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span>            : apr_status_t serf_event_trigger(
+<span class="lineNum">     224 </span>            :     serf_context_t *s,
+<span class="lineNum">     225 </span>            :     void *serf_baton,
+<span class="lineNum">     226 </span>            :     const apr_pollfd_t *desc)
+<span class="lineNum">     227 </span>            : {
+<span class="lineNum">     228 </span><span class="lineCov">       1140 :     apr_status_t status = APR_SUCCESS;</span>
+<span class="lineNum">     229 </span><span class="lineCov">       1140 :     serf_io_baton_t *io = serf_baton;</span>
+<span class="lineNum">     230 </span>            : 
+<span class="lineNum">     231 </span><span class="lineCov">       1140 :     if (io-&gt;type == SERF_IO_CONN) {</span>
+<span class="lineNum">     232 </span><span class="lineCov">       1126 :         serf_connection_t *conn = io-&gt;u.conn;</span>
+<span class="lineNum">     233 </span>            : 
+<span class="lineNum">     234 </span><span class="lineCov">       1126 :         status = serf__process_connection(conn, desc-&gt;rtnevents);</span>
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span><span class="lineCov">       1126 :         if (status) {</span>
+<span class="lineNum">     237 </span><span class="lineCov">          9 :             return status;</span>
+<span class="lineNum">     238 </span>            :         }
+<span class="lineNum">     239 </span><span class="lineCov">       1117 :     }</span>
+<span class="lineNum">     240 </span><span class="lineCov">         14 :     else if (io-&gt;type == SERF_IO_LISTENER) {</span>
+<span class="lineNum">     241 </span><span class="lineCov">          4 :         serf_listener_t *l = io-&gt;u.listener;</span>
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span><span class="lineCov">          4 :         status = serf__process_listener(l);</span>
+<span class="lineNum">     244 </span>            : 
+<span class="lineNum">     245 </span><span class="lineCov">          4 :         if (status) {</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :             return status;</span>
+<span class="lineNum">     247 </span>            :         }
+<span class="lineNum">     248 </span><span class="lineCov">          4 :     }</span>
+<span class="lineNum">     249 </span><span class="lineCov">         10 :     else if (io-&gt;type == SERF_IO_CLIENT) {</span>
+<span class="lineNum">     250 </span><span class="lineCov">         10 :         serf_incoming_t *c = io-&gt;u.client;</span>
+<span class="lineNum">     251 </span>            : 
+<span class="lineNum">     252 </span><span class="lineCov">         10 :         status = serf__process_client(c, desc-&gt;rtnevents);</span>
+<span class="lineNum">     253 </span>            : 
+<span class="lineNum">     254 </span><span class="lineCov">         10 :         if (status) {</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :             return status;</span>
+<span class="lineNum">     256 </span>            :         }
+<span class="lineNum">     257 </span><span class="lineCov">         10 :     }</span>
+<span class="lineNum">     258 </span><span class="lineCov">       1131 :     return status;</span>
+<span class="lineNum">     259 </span><span class="lineCov">       1140 : }</span>
+<a name="260"><span class="lineNum">     260 </span>            : </a>
+<span class="lineNum">     261 </span>            : 
+<span class="lineNum">     262 </span>            : apr_status_t serf_context_run(
+<span class="lineNum">     263 </span>            :     serf_context_t *ctx,
+<span class="lineNum">     264 </span>            :     apr_short_interval_time_t duration,
+<span class="lineNum">     265 </span>            :     apr_pool_t *pool)
+<span class="lineNum">     266 </span>            : {
+<span class="lineNum">     267 </span>            :     apr_status_t status;
+<span class="lineNum">     268 </span>            :     apr_int32_t num;
+<span class="lineNum">     269 </span>            :     const apr_pollfd_t *desc;
+<span class="lineNum">     270 </span><span class="lineCov">       3039 :     serf_pollset_t *ps = (serf_pollset_t*)ctx-&gt;pollset_baton;</span>
+<span class="lineNum">     271 </span>            : 
+<span class="lineNum">     272 </span><span class="lineCov">       3039 :     if ((status = serf_context_prerun(ctx)) != APR_SUCCESS) {</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :         return status;</span>
+<span class="lineNum">     274 </span>            :     }
+<span class="lineNum">     275 </span>            : 
+<span class="lineNum">     276 </span><span class="lineCov">       6078 :     if ((status = apr_pollset_poll(ps-&gt;pollset, duration, &amp;num,</span>
+<span class="lineNum">     277 </span><span class="lineCov">       3039 :                                    &amp;desc)) != APR_SUCCESS) {</span>
+<span class="lineNum">     278 </span>            :         /* EINTR indicates a handled signal happened during the poll call,
+<span class="lineNum">     279 </span>            :            ignore, the application can safely retry. */
+<span class="lineNum">     280 </span><span class="lineCov">       1950 :         if (APR_STATUS_IS_EINTR(status))</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :             return APR_SUCCESS;</span>
+<span class="lineNum">     282 </span>            : 
+<span class="lineNum">     283 </span>            :         /* ### do we still need to dispatch stuff here?
+<span class="lineNum">     284 </span>            :            ### look at the potential return codes. map to our defined
+<span class="lineNum">     285 </span>            :            ### return values? ...
+<span class="lineNum">     286 </span>            :         */
+<span class="lineNum">     287 </span>            : 
+<span class="lineNum">     288 </span>            :         /* Use the strict documented error for poll timeouts, to allow proper
+<span class="lineNum">     289 </span>            :            handling of the other timeout types when returned from
+<span class="lineNum">     290 </span>            :            serf_event_trigger */
+<span class="lineNum">     291 </span><span class="lineCov">       1950 :         if (APR_STATUS_IS_TIMEUP(status))</span>
+<span class="lineNum">     292 </span><span class="lineCov">       1950 :             return APR_TIMEUP; /* Return the documented error */</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :         return status;</span>
+<span class="lineNum">     294 </span>            :     }
+<span class="lineNum">     295 </span>            : 
+<span class="lineNum">     296 </span><span class="lineCov">       4440 :     while (num--) {</span>
+<span class="lineNum">     297 </span><span class="lineCov">       1140 :         serf_io_baton_t *io  = desc-&gt;client_data;</span>
+<span class="lineNum">     298 </span>            : 
+<span class="lineNum">     299 </span><span class="lineCov">       1140 :         status = serf_event_trigger(ctx, io, desc);</span>
+<span class="lineNum">     300 </span><span class="lineCov">       1140 :         if (status) {</span>
+<span class="lineNum">     301 </span>            :             /* Don't return APR_TIMEUP as a connection error, as our caller
+<span class="lineNum">     302 </span>            :                will use that as a trigger to call us again */
+<span class="lineNum">     303 </span><span class="lineCov">          9 :             if (APR_STATUS_IS_TIMEUP(status))</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :                 status = SERF_ERROR_CONNECTION_TIMEDOUT;</span>
+<span class="lineNum">     305 </span><span class="lineCov">          9 :             return status;</span>
+<span class="lineNum">     306 </span>            :         }
+<span class="lineNum">     307 </span>            : 
+<span class="lineNum">     308 </span><span class="lineCov">       1131 :         desc++;</span>
+<span class="lineNum">     309 </span>            :     }
+<span class="lineNum">     310 </span>            : 
+<span class="lineNum">     311 </span><span class="lineCov">       1080 :     return APR_SUCCESS;</span>
+<span class="lineNum">     312 </span><span class="lineCov">       3039 : }</span>
+<a name="313"><span class="lineNum">     313 </span>            : </a>
+<span class="lineNum">     314 </span>            : 
+<span class="lineNum">     315 </span>            : void serf_context_set_progress_cb(
+<span class="lineNum">     316 </span>            :     serf_context_t *ctx,
+<span class="lineNum">     317 </span>            :     const serf_progress_t progress_func,
+<span class="lineNum">     318 </span>            :     void *progress_baton)
+<span class="lineNum">     319 </span>            : {
+<span class="lineNum">     320 </span><span class="lineCov">          1 :     ctx-&gt;progress_func = progress_func;</span>
+<span class="lineNum">     321 </span><span class="lineCov">          1 :     ctx-&gt;progress_baton = progress_baton;</span>
+<span class="lineNum">     322 </span><span class="lineCov">          1 : }</span>
+<a name="323"><span class="lineNum">     323 </span>            : </a>
+<span class="lineNum">     324 </span>            : 
+<span class="lineNum">     325 </span>            : serf_bucket_t *serf_context_bucket_socket_create(
+<span class="lineNum">     326 </span>            :     serf_context_t *ctx,
+<span class="lineNum">     327 </span>            :     apr_socket_t *skt,
+<span class="lineNum">     328 </span>            :     serf_bucket_alloc_t *allocator)
+<span class="lineNum">     329 </span>            : {
+<span class="lineNum">     330 </span><span class="lineCov">         25 :     serf_bucket_t *bucket = serf_bucket_socket_create(skt, allocator);</span>
+<span class="lineNum">     331 </span>            : 
+<span class="lineNum">     332 </span><span class="lineCov">         50 :     bucket = serf__bucket_log_wrapper_create(bucket, &quot;receiving raw&quot;,</span>
+<span class="lineNum">     333 </span><span class="lineCov">         25 :                                              allocator);</span>
+<span class="lineNum">     334 </span>            : 
+<span class="lineNum">     335 </span>            :     /* Use serf's default bytes read/written callback */
+<span class="lineNum">     336 </span><span class="lineCov">         50 :     serf_bucket_socket_set_read_progress_cb(bucket,</span>
+<span class="lineNum">     337 </span>            :                                             serf__context_progress_delta,
+<span class="lineNum">     338 </span><span class="lineCov">         25 :                                             ctx);</span>
+<span class="lineNum">     339 </span>            : 
+<span class="lineNum">     340 </span><span class="lineCov">         25 :     return bucket;</span>
+<span class="lineNum">     341 </span>            : }
+<span class="lineNum">     342 </span>            : 
+<a name="343"><span class="lineNum">     343 </span>            : </a>
+<span class="lineNum">     344 </span>            : /* ### this really ought to go somewhere else, but... meh.  */
+<span class="lineNum">     345 </span>            : void serf_lib_version(int *major, int *minor, int *patch)
+<span class="lineNum">     346 </span>            : {
+<span class="lineNum">     347 </span><span class="lineNoCov">          0 :     *major = SERF_MAJOR_VERSION;</span>
+<span class="lineNum">     348 </span><span class="lineNoCov">          0 :     *minor = SERF_MINOR_VERSION;</span>
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :     *patch = SERF_PATCH_VERSION;</span>
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 : }</span>
+<a name="351"><span class="lineNum">     351 </span>            : </a>
+<span class="lineNum">     352 </span>            : 
+<span class="lineNum">     353 </span>            : const char *serf_error_string(apr_status_t errcode)
+<span class="lineNum">     354 </span>            : {
+<span class="lineNum">     355 </span><span class="lineCov">         25 :     switch (errcode)</span>
+<span class="lineNum">     356 </span>            :     {
+<span class="lineNum">     357 </span>            :     case SERF_ERROR_CLOSING:
+<span class="lineNum">     358 </span><span class="lineNoCov">          0 :         return &quot;The connection is closing&quot;;</span>
+<span class="lineNum">     359 </span>            :     case SERF_ERROR_REQUEST_LOST:
+<span class="lineNum">     360 </span><span class="lineNoCov">          0 :         return &quot;A request has been lost&quot;;</span>
+<span class="lineNum">     361 </span>            :     case SERF_ERROR_WAIT_CONN:
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :         return &quot;The connection is blocked, pending further action&quot;;</span>
+<span class="lineNum">     363 </span>            :     case SERF_ERROR_DECOMPRESSION_FAILED:
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :         return &quot;An error occurred during decompression&quot;;</span>
+<span class="lineNum">     365 </span>            :     case SERF_ERROR_BAD_HTTP_RESPONSE:
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :         return &quot;The server sent an improper HTTP response&quot;;</span>
+<span class="lineNum">     367 </span>            :     case SERF_ERROR_TRUNCATED_HTTP_RESPONSE:
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :         return &quot;The server sent a truncated HTTP response body.&quot;;</span>
+<span class="lineNum">     369 </span>            :     case SERF_ERROR_ABORTED_CONNECTION:
+<span class="lineNum">     370 </span><span class="lineNoCov">          0 :         return &quot;The server unexpectedly closed the connection.&quot;;</span>
+<span class="lineNum">     371 </span>            :     case SERF_ERROR_LINE_TOO_LONG:
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :         return &quot;The line too long&quot;;</span>
+<span class="lineNum">     373 </span>            :     case SERF_ERROR_STATUS_LINE_TOO_LONG:
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :         return &quot;The HTTP response status line too long&quot;;</span>
+<span class="lineNum">     375 </span>            :     case SERF_ERROR_RESPONSE_HEADER_TOO_LONG:
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :         return &quot;The HTTP response header too long&quot;;</span>
+<span class="lineNum">     377 </span>            :     case SERF_ERROR_CONNECTION_TIMEDOUT:
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :         return &quot;The connection timed out&quot;;</span>
+<span class="lineNum">     379 </span>            :     case SERF_ERROR_TRUNCATED_STREAM:
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :         return &quot;The stream returned less data than was expected&quot;;</span>
+<span class="lineNum">     381 </span>            :     case SERF_ERROR_EMPTY_STREAM:
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :         return &quot;The stream is empty&quot;;</span>
+<span class="lineNum">     383 </span>            :     case SERF_ERROR_EMPTY_READ:
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :         return &quot;A successfull read of nothing occured&quot;;</span>
+<span class="lineNum">     385 </span>            : 
+<span class="lineNum">     386 </span>            :     case SERF_ERROR_SSL_COMM_FAILED:
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :         return &quot;An error occurred during SSL communication&quot;;</span>
+<span class="lineNum">     388 </span>            :     case SERF_ERROR_SSL_SETUP_FAILED:
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :         return &quot;An error occurred during SSL setup&quot;;</span>
+<span class="lineNum">     390 </span>            :     case SERF_ERROR_SSL_CERT_FAILED:
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :         return &quot;An SSL certificate related error occurred &quot;;</span>
+<span class="lineNum">     392 </span>            :     case SERF_ERROR_AUTHN_FAILED:
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :         return &quot;An error occurred during authentication&quot;;</span>
+<span class="lineNum">     394 </span>            :     case SERF_ERROR_AUTHN_NOT_SUPPORTED:
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :         return &quot;The requested authentication type(s) are not supported&quot;;</span>
+<span class="lineNum">     396 </span>            :     case SERF_ERROR_AUTHN_MISSING_ATTRIBUTE:
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 :         return &quot;An authentication attribute is missing&quot;;</span>
+<span class="lineNum">     398 </span>            :     case SERF_ERROR_AUTHN_INITALIZATION_FAILED:
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :         return &quot;Initialization of an authentication type failed&quot;;</span>
+<span class="lineNum">     400 </span>            :     case SERF_ERROR_AUTHN_CREDENTIALS_REJECTED:
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :         return &quot;The user credentials were rejected by the server&quot;;</span>
+<span class="lineNum">     402 </span>            :     case SERF_ERROR_SSLTUNNEL_SETUP_FAILED:
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :         return &quot;The proxy server returned an error while setting up the &quot;</span>
+<span class="lineNum">     404 </span>            :                &quot;SSL tunnel.&quot;;
+<span class="lineNum">     405 </span>            : 
+<span class="lineNum">     406 </span>            :     /* HTTP2 protocol errors */
+<span class="lineNum">     407 </span>            :     case SERF_ERROR_HTTP2_NO_ERROR:
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :         return &quot;HTTP2: Graceful shutdown&quot;;</span>
+<span class="lineNum">     409 </span>            :     case SERF_ERROR_HTTP2_PROTOCOL_ERROR:
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :         return &quot;HTTP2 protocol error detected&quot;;</span>
+<span class="lineNum">     411 </span>            :     case SERF_ERROR_HTTP2_INTERNAL_ERROR:
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :         return &quot;HTTP2 internal error&quot;;</span>
+<span class="lineNum">     413 </span>            :     case SERF_ERROR_HTTP2_FLOW_CONTROL_ERROR:
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :         return &quot;HTTP2 flow control limits exceeded&quot;;</span>
+<span class="lineNum">     415 </span>            :     case SERF_ERROR_HTTP2_SETTINGS_TIMEOUT:
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :         return &quot;HTTP2 settings not acknowledged&quot;;</span>
+<span class="lineNum">     417 </span>            :     case SERF_ERROR_HTTP2_STREAM_CLOSED:
+<span class="lineNum">     418 </span><span class="lineNoCov">          0 :         return &quot;HTTP2 frame received for closed stream&quot;;</span>
+<span class="lineNum">     419 </span>            :     case SERF_ERROR_HTTP2_FRAME_SIZE_ERROR:
+<span class="lineNum">     420 </span><span class="lineNoCov">          0 :         return &quot;HTTP2 frame size incorrect&quot;;</span>
+<span class="lineNum">     421 </span>            :     case SERF_ERROR_HTTP2_REFUSED_STREAM:
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :         return &quot;HTTP2 stream not processed&quot;;</span>
+<span class="lineNum">     423 </span>            :     case SERF_ERROR_HTTP2_CANCEL:
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :         return &quot;HTTP2 stream cancelled&quot;;</span>
+<span class="lineNum">     425 </span>            :     case SERF_ERROR_HTTP2_COMPRESSION_ERROR:
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :         return &quot;HTTP2 compression state not updated&quot;;</span>
+<span class="lineNum">     427 </span>            :     case SERF_ERROR_HTTP2_CONNECT_ERROR:
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :         return &quot;TCP connection error for HTTP2 connect method&quot;;</span>
+<span class="lineNum">     429 </span>            :     case SERF_ERROR_HTTP2_ENHANCE_YOUR_CALM:
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :         return &quot;HTTP2 processing capacity exceeded&quot;;</span>
+<span class="lineNum">     431 </span>            :     case SERF_ERROR_HTTP2_INADEQUATE_SECURITY:
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :         return &quot;HTTP2 negotiated TLS parameters not acceptable&quot;;</span>
+<span class="lineNum">     433 </span>            :     case SERF_ERROR_HTTP2_HTTP_1_1_REQUIRED:
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :         return &quot;HTTP 1.1 is required for this request&quot;;</span>
+<span class="lineNum">     435 </span>            :     default:
+<span class="lineNum">     436 </span><span class="lineCov">         25 :         return NULL;</span>
+<span class="lineNum">     437 </span>            :     }
+<span class="lineNum">     438 </span>            : 
+<span class="lineNum">     439 </span>            :     /* NOTREACHED  */
+<span class="lineNum">     440 </span><span class="lineCov">         25 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

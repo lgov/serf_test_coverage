@@ -1,0 +1,480 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - src/pump.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">src</a> - pump.c<span style="font-size: 80%;"> (source / <a href="pump.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">151</td>
+            <td class="headerCovTableEntry">176</td>
+            <td class="headerCovTableEntryMed">85.8 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-12-25 11:14:27</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">11</td>
+            <td class="headerCovTableEntry">12</td>
+            <td class="headerCovTableEntryHi">91.7 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* ====================================================================</a>
+<span class="lineNum">       2 </span>            :  *    Licensed to the Apache Software Foundation (ASF) under one
+<span class="lineNum">       3 </span>            :  *    or more contributor license agreements.  See the NOTICE file
+<span class="lineNum">       4 </span>            :  *    distributed with this work for additional information
+<span class="lineNum">       5 </span>            :  *    regarding copyright ownership.  The ASF licenses this file
+<span class="lineNum">       6 </span>            :  *    to you under the Apache License, Version 2.0 (the
+<span class="lineNum">       7 </span>            :  *    &quot;License&quot;); you may not use this file except in compliance
+<span class="lineNum">       8 </span>            :  *    with the License.  You may obtain a copy of the License at
+<span class="lineNum">       9 </span>            :  *
+<span class="lineNum">      10 </span>            :  *      http://www.apache.org/licenses/LICENSE-2.0
+<span class="lineNum">      11 </span>            :  *
+<span class="lineNum">      12 </span>            :  *    Unless required by applicable law or agreed to in writing,
+<span class="lineNum">      13 </span>            :  *    software distributed under the License is distributed on an
+<span class="lineNum">      14 </span>            :  *    &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+<span class="lineNum">      15 </span>            :  *    KIND, either express or implied.  See the License for the
+<span class="lineNum">      16 </span>            :  *    specific language governing permissions and limitations
+<span class="lineNum">      17 </span>            :  *    under the License.
+<span class="lineNum">      18 </span>            :  * ====================================================================
+<span class="lineNum">      19 </span>            :  */
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #include &lt;apr_pools.h&gt;
+<span class="lineNum">      22 </span>            : #include &lt;apr_poll.h&gt;
+<span class="lineNum">      23 </span>            : #include &lt;apr_version.h&gt;
+<span class="lineNum">      24 </span>            : #include &lt;apr_portable.h&gt;
+<span class="lineNum">      25 </span>            : #include &lt;apr_strings.h&gt;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #include &quot;serf.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;serf_bucket_util.h&quot;
+<span class="lineNum">      29 </span>            : 
+<a name="30"><span class="lineNum">      30 </span>            : #include &quot;serf_private.h&quot;</a>
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : static apr_status_t pump_cleanup(void *baton)
+<span class="lineNum">      33 </span>            : {
+<span class="lineNum">      34 </span><span class="lineCov">        137 :     serf_pump_t *pump = baton;</span>
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span><span class="lineCov">        137 :     if (pump-&gt;ostream_head != NULL) {</span>
+<span class="lineNum">      37 </span>            : #ifdef SERF_DEBUG_BUCKET_USE
+<span class="lineNum">      38 </span>            :         serf__bucket_drain(conn-&gt;ostream_head);
+<span class="lineNum">      39 </span>            : #endif
+<span class="lineNum">      40 </span><span class="lineCov">        137 :         serf_bucket_destroy(pump-&gt;ostream_head);</span>
+<span class="lineNum">      41 </span><span class="lineCov">        137 :         pump-&gt;ostream_head = NULL;</span>
+<span class="lineNum">      42 </span><span class="lineCov">        137 :         pump-&gt;ostream_tail = NULL;</span>
+<span class="lineNum">      43 </span><span class="lineCov">        137 :     }</span>
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span><span class="lineCov">        137 :     pump-&gt;pool = NULL; /* Don't run again */</span>
+<span class="lineNum">      46 </span><span class="lineCov">        137 :     pump-&gt;allocator = NULL;</span>
+<span class="lineNum">      47 </span><span class="lineCov">        137 :     pump-&gt;skt = NULL;</span>
+<span class="lineNum">      48 </span><span class="lineCov">        137 :     pump-&gt;vec_len = 0;</span>
+<span class="lineNum">      49 </span>            : 
+<span class="lineNum">      50 </span><span class="lineCov">        137 :     return APR_SUCCESS;</span>
+<a name="51"><span class="lineNum">      51 </span>            : }</a>
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span>            : void serf_pump__init(serf_pump_t *pump,
+<span class="lineNum">      54 </span>            :                      serf_io_baton_t *io,
+<span class="lineNum">      55 </span>            :                      apr_socket_t *skt,
+<span class="lineNum">      56 </span>            :                      serf_config_t *config,
+<span class="lineNum">      57 </span>            :                      serf_bucket_alloc_t *allocator,
+<span class="lineNum">      58 </span>            :                      apr_pool_t *pool)
+<span class="lineNum">      59 </span>            : {
+<span class="lineNum">      60 </span><span class="lineCov">        137 :     memset(pump, 0, sizeof(*pump));</span>
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span><span class="lineCov">        137 :     pump-&gt;io = io;</span>
+<span class="lineNum">      63 </span><span class="lineCov">        137 :     pump-&gt;allocator = allocator;</span>
+<span class="lineNum">      64 </span><span class="lineCov">        137 :     pump-&gt;config = config;</span>
+<span class="lineNum">      65 </span><span class="lineCov">        137 :     pump-&gt;skt = skt;</span>
+<span class="lineNum">      66 </span><span class="lineCov">        137 :     pump-&gt;pool = pool;</span>
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span><span class="lineCov">        137 :     apr_pool_cleanup_register(pool, pump, pump_cleanup,</span>
+<span class="lineNum">      69 </span>            :                               apr_pool_cleanup_null);
+<a name="70"><span class="lineNum">      70 </span><span class="lineCov">        137 : }</span></a>
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span>            : void serf_pump__done(serf_pump_t *pump)
+<span class="lineNum">      73 </span>            : {
+<span class="lineNum">      74 </span><span class="lineCov">        146 :     if (pump-&gt;pool) {</span>
+<span class="lineNum">      75 </span><span class="lineCov">         76 :         apr_pool_cleanup_run(pump-&gt;pool, pump, pump_cleanup);</span>
+<span class="lineNum">      76 </span><span class="lineCov">         76 :     }</span>
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span><span class="lineCov">        146 :     pump-&gt;io = NULL;</span>
+<span class="lineNum">      79 </span><span class="lineCov">        146 :     pump-&gt;allocator = NULL;</span>
+<span class="lineNum">      80 </span><span class="lineCov">        146 :     pump-&gt;config = NULL;</span>
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span>            :     /* pump-&gt;stream is managed by the current reader! */
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span><span class="lineCov">        146 :     pump-&gt;ostream_head = NULL;</span>
+<span class="lineNum">      85 </span><span class="lineCov">        146 :     pump-&gt;ostream_tail = NULL;</span>
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span><span class="lineCov">        146 :     pump-&gt;done_writing = false;</span>
+<span class="lineNum">      88 </span><span class="lineCov">        146 :     pump-&gt;stop_writing = false;</span>
+<span class="lineNum">      89 </span><span class="lineCov">        146 :     pump-&gt;hit_eof = false;</span>
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span><span class="lineCov">        146 :     pump-&gt;pool = NULL;</span>
+<span class="lineNum">      92 </span><span class="lineCov">        146 : }</span>
+<span class="lineNum">      93 </span>            : 
+<a name="94"><span class="lineNum">      94 </span>            : /* Safely check if there is still data pending on the connection, carefull</a>
+<span class="lineNum">      95 </span>            :    to not accidentally make it invalid. */
+<span class="lineNum">      96 </span>            : bool serf_pump__data_pending(serf_pump_t *pump)
+<span class="lineNum">      97 </span>            : {
+<span class="lineNum">      98 </span><span class="lineCov">        670 :     if (pump-&gt;vec_len &gt; 0)</span>
+<span class="lineNum">      99 </span><span class="lineCov">          1 :         return TRUE; /* We can't poll right now! */</span>
+<span class="lineNum">     100 </span>            : 
+<span class="lineNum">     101 </span><span class="lineCov">        669 :     if (pump-&gt;ostream_head) {</span>
+<span class="lineNum">     102 </span>            :         const char *data;
+<span class="lineNum">     103 </span>            :         apr_size_t len;
+<span class="lineNum">     104 </span>            :         apr_status_t status;
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span><span class="lineCov">        669 :         status = serf_bucket_peek(pump-&gt;ostream_head, &amp;data, &amp;len);</span>
+<span class="lineNum">     107 </span><span class="lineCov">        669 :         if (!SERF_BUCKET_READ_ERROR(status)) {</span>
+<span class="lineNum">     108 </span><span class="lineCov">        669 :             if (len &gt; 0) {</span>
+<span class="lineNum">     109 </span><span class="lineCov">         67 :                 return true;</span>
+<span class="lineNum">     110 </span>            :             }
+<span class="lineNum">     111 </span><span class="lineCov">        602 :         }</span>
+<span class="lineNum">     112 </span>            :         else
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :             return true; /* Sure, we have data (an error) */</span>
+<span class="lineNum">     114 </span><span class="lineCov">        602 :     }</span>
+<span class="lineNum">     115 </span>            : 
+<span class="lineNum">     116 </span><span class="lineCov">        602 :     return false;</span>
+<a name="117"><span class="lineNum">     117 </span><span class="lineCov">        670 : }</span></a>
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span>            : static apr_status_t detect_eof(void *baton, serf_bucket_t *aggregate_bucket)
+<span class="lineNum">     120 </span>            : {
+<span class="lineNum">     121 </span><span class="lineCov">       1993 :     serf_pump_t *pump = baton;</span>
+<span class="lineNum">     122 </span><span class="lineCov">       1993 :     pump-&gt;hit_eof = true;</span>
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span><span class="lineCov">       1993 :     if (pump-&gt;done_writing) {</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :         pump-&gt;ostream_tail = NULL;</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :         return APR_EOF;</span>
+<span class="lineNum">     127 </span>            :     }
+<span class="lineNum">     128 </span>            :     else
+<span class="lineNum">     129 </span><span class="lineCov">       1993 :         return APR_EAGAIN;</span>
+<a name="130"><span class="lineNum">     130 </span><span class="lineCov">       1993 : }</span></a>
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span>            : void serf_pump__prepare_setup(serf_pump_t *pump)
+<span class="lineNum">     133 </span>            : {
+<span class="lineNum">     134 </span><span class="lineCov">        145 :     if (pump-&gt;ostream_head == NULL) {</span>
+<span class="lineNum">     135 </span><span class="lineCov">        145 :         pump-&gt;ostream_head = serf_bucket_aggregate_create(pump-&gt;allocator);</span>
+<span class="lineNum">     136 </span><span class="lineCov">        145 :     }</span>
+<span class="lineNum">     137 </span>            : 
+<span class="lineNum">     138 </span><span class="lineCov">        145 :     if (pump-&gt;ostream_tail == NULL) {</span>
+<span class="lineNum">     139 </span><span class="lineCov">        137 :         pump-&gt;ostream_tail = serf_bucket_aggregate_create(pump-&gt;allocator);</span>
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span><span class="lineCov">        137 :         serf_bucket_aggregate_hold_open(pump-&gt;ostream_tail, detect_eof, pump);</span>
+<span class="lineNum">     142 </span><span class="lineCov">        137 :     }</span>
+<a name="143"><span class="lineNum">     143 </span><span class="lineCov">        145 : }</span></a>
+<span class="lineNum">     144 </span>            : 
+<span class="lineNum">     145 </span>            : void serf_pump__complete_setup(serf_pump_t *pump,
+<span class="lineNum">     146 </span>            :                                serf_bucket_t *stream,
+<span class="lineNum">     147 </span>            :                                serf_bucket_t *ostream)
+<span class="lineNum">     148 </span>            : {
+<span class="lineNum">     149 </span><span class="lineCov">        145 :     pump-&gt;stream = stream;</span>
+<span class="lineNum">     150 </span><span class="lineCov">        145 :     if (ostream)</span>
+<span class="lineNum">     151 </span><span class="lineCov">        145 :         serf_bucket_aggregate_append(pump-&gt;ostream_head, ostream);</span>
+<span class="lineNum">     152 </span>            :     else
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :         serf_bucket_aggregate_append(pump-&gt;ostream_head, pump-&gt;ostream_tail);</span>
+<span class="lineNum">     154 </span>            : 
+<span class="lineNum">     155 </span>            :     /* Share the configuration with all the buckets in the newly created output
+<span class="lineNum">     156 </span>            :      chain (see PLAIN or ENCRYPTED scenario's), including the request buckets
+<span class="lineNum">     157 </span>            :      created by the application (ostream_tail will handle this for us). */
+<span class="lineNum">     158 </span><span class="lineCov">        145 :     serf_bucket_set_config(pump-&gt;ostream_head, pump-&gt;config);</span>
+<span class="lineNum">     159 </span>            : 
+<span class="lineNum">     160 </span>            :     /* Share the configuration with the ssl_decrypt and socket buckets. The
+<span class="lineNum">     161 </span>            :      response buckets wrapping the ssl_decrypt/socket buckets won't get the
+<span class="lineNum">     162 </span>            :      config automatically because they are upstream. */
+<span class="lineNum">     163 </span><span class="lineCov">        145 :     if (stream != NULL) {</span>
+<span class="lineNum">     164 </span><span class="lineCov">        145 :         pump-&gt;stream = stream;</span>
+<span class="lineNum">     165 </span><span class="lineCov">        145 :         serf_bucket_set_config(pump-&gt;stream, pump-&gt;config);</span>
+<span class="lineNum">     166 </span><span class="lineCov">        145 :     }</span>
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span>            :     /* We typically have one of two scenarios, based on whether the
+<span class="lineNum">     169 </span>            :        application decided to encrypt this connection:
+<span class="lineNum">     170 </span>            : 
+<span class="lineNum">     171 </span>            :        PLAIN:
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span>            :          conn-&gt;stream = SOCKET(skt)
+<span class="lineNum">     174 </span>            :          conn-&gt;ostream_head = AGGREGATE(ostream_tail)
+<span class="lineNum">     175 </span>            :          conn-&gt;ostream_tail = STREAM(&lt;detect_eof&gt;, REQ1, REQ2, ...)
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span>            :        ENCRYPTED:
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span>            :          conn-&gt;stream = DECRYPT(SOCKET(skt))
+<span class="lineNum">     180 </span>            :          conn-&gt;ostream_head = AGGREGATE(ENCRYPT(ostream_tail))
+<span class="lineNum">     181 </span>            :          conn-&gt;ostream_tail = STREAM(&lt;detect_eof&gt;, REQ1, REQ2, ...)
+<span class="lineNum">     182 </span>            : 
+<span class="lineNum">     183 </span>            :        where STREAM is an internal variant of AGGREGATE.
+<span class="lineNum">     184 </span>            :     */
+<a name="185"><span class="lineNum">     185 </span><span class="lineCov">        145 : }</span></a>
+<span class="lineNum">     186 </span>            : 
+<span class="lineNum">     187 </span>            : void serf_pump__store_ipaddresses_in_config(serf_pump_t *pump)
+<span class="lineNum">     188 </span>            : {
+<span class="lineNum">     189 </span>            :     apr_sockaddr_t *sa;
+<span class="lineNum">     190 </span>            : 
+<span class="lineNum">     191 </span><span class="lineCov">        137 :     if (apr_socket_addr_get(&amp;sa, APR_LOCAL, pump-&gt;skt) == APR_SUCCESS) {</span>
+<span class="lineNum">     192 </span>            :         char buf[48];
+<span class="lineNum">     193 </span><span class="lineCov">        137 :         if (!apr_sockaddr_ip_getbuf(buf, sizeof(buf), sa))</span>
+<span class="lineNum">     194 </span><span class="lineCov">        274 :             serf_config_set_stringf(pump-&gt;config, SERF_CONFIG_CONN_LOCALIP,</span>
+<span class="lineNum">     195 </span><span class="lineCov">        137 :                                     pump-&gt;pool, &quot;%s:%d&quot;, buf, (int)sa-&gt;port);</span>
+<span class="lineNum">     196 </span><span class="lineCov">        137 :     }</span>
+<span class="lineNum">     197 </span><span class="lineCov">        137 :     if (apr_socket_addr_get(&amp;sa, APR_REMOTE, pump-&gt;skt) == APR_SUCCESS) {</span>
+<span class="lineNum">     198 </span>            :         char buf[48];
+<span class="lineNum">     199 </span><span class="lineCov">        137 :         if (!apr_sockaddr_ip_getbuf(buf, sizeof(buf), sa))</span>
+<span class="lineNum">     200 </span><span class="lineCov">        274 :             serf_config_set_stringf(pump-&gt;config, SERF_CONFIG_CONN_REMOTEIP,</span>
+<span class="lineNum">     201 </span><span class="lineCov">        137 :                                     pump-&gt;pool, &quot;%s:%d&quot;, buf, (int)sa-&gt;port);</span>
+<span class="lineNum">     202 </span><span class="lineCov">        137 :     }</span>
+<a name="203"><span class="lineNum">     203 </span><span class="lineCov">        137 : }</span></a>
+<span class="lineNum">     204 </span>            : 
+<span class="lineNum">     205 </span>            : static apr_status_t no_more_writes(serf_pump_t *pump)
+<span class="lineNum">     206 </span>            : {
+<span class="lineNum">     207 </span>            :     /* Note that we should hold new requests until we open our new socket. */
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :     pump-&gt;done_writing = true;</span>
+<span class="lineNum">     209 </span><span class="lineNoCov">          0 :     serf__log(LOGLVL_DEBUG, LOGCOMP_CONN, __FILE__, pump-&gt;config,</span>
+<span class="lineNum">     210 </span><span class="lineNoCov">          0 :               &quot;stop writing on 0x%p\n&quot;, pump-&gt;io-&gt;u.v);</span>
+<span class="lineNum">     211 </span>            : 
+<span class="lineNum">     212 </span>            :     /* Clear our iovec. */
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :     pump-&gt;vec_len = 0;</span>
+<span class="lineNum">     214 </span>            : 
+<span class="lineNum">     215 </span>            :     /* Update the pollset to know we don't want to write on this socket any
+<span class="lineNum">     216 </span>            :      * more.
+<span class="lineNum">     217 </span>            :      */
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :     serf_io__set_pollset_dirty(pump-&gt;io);</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :     return APR_SUCCESS;</span>
+<a name="220"><span class="lineNum">     220 </span>            : }</a>
+<span class="lineNum">     221 </span>            : 
+<span class="lineNum">     222 </span>            : static apr_status_t socket_writev(serf_pump_t *pump)
+<span class="lineNum">     223 </span>            : {
+<span class="lineNum">     224 </span>            :     apr_size_t written;
+<span class="lineNum">     225 </span>            :     apr_status_t status;
+<span class="lineNum">     226 </span><span class="lineCov">       1716 :     serf_pump_t *conn = pump;</span>
+<span class="lineNum">     227 </span>            : 
+<span class="lineNum">     228 </span><span class="lineCov">       3432 :     status = apr_socket_sendv(pump-&gt;skt, pump-&gt;vec,</span>
+<span class="lineNum">     229 </span><span class="lineCov">       1716 :                               pump-&gt;vec_len, &amp;written);</span>
+<span class="lineNum">     230 </span><span class="lineCov">       1727 :     if (status &amp;&amp; !APR_STATUS_IS_EAGAIN(status))</span>
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :         serf__log(LOGLVL_DEBUG, LOGCOMP_CONN, __FILE__, pump-&gt;config,</span>
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :                   &quot;socket_sendv error %d on 0x%p\n&quot;, status, pump-&gt;io-&gt;u.v);</span>
+<span class="lineNum">     233 </span>            : 
+<span class="lineNum">     234 </span>            :     /* did we write everything? */
+<span class="lineNum">     235 </span><span class="lineCov">       1716 :     if (written) {</span>
+<span class="lineNum">     236 </span><span class="lineCov">       1705 :         apr_size_t len = 0;</span>
+<span class="lineNum">     237 </span>            :         int i;
+<span class="lineNum">     238 </span>            : 
+<span class="lineNum">     239 </span><span class="lineCov">       3410 :         serf__log(LOGLVL_DEBUG, LOGCOMP_CONN, __FILE__, conn-&gt;config,</span>
+<span class="lineNum">     240 </span>            :                   &quot;--- socket_sendv: %d bytes on 0x%p. --\n&quot;,
+<span class="lineNum">     241 </span><span class="lineCov">       1705 :                   (int)written, pump-&gt;io-&gt;u.v);</span>
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span><span class="lineCov">      27276 :         for (i = 0; i &lt; conn-&gt;vec_len; i++) {</span>
+<span class="lineNum">     244 </span><span class="lineCov">      11944 :             len += conn-&gt;vec[i].iov_len;</span>
+<span class="lineNum">     245 </span><span class="lineCov">      11944 :             if (written &lt; len) {</span>
+<span class="lineNum">     246 </span><span class="lineCov">         22 :                 serf__log_nopref(LOGLVL_DEBUG, LOGCOMP_RAWMSG, conn-&gt;config,</span>
+<span class="lineNum">     247 </span>            :                                  &quot;%.*s&quot;,
+<span class="lineNum">     248 </span><span class="lineCov">         11 :                                  (int)(conn-&gt;vec[i].iov_len - (len - written)),</span>
+<span class="lineNum">     249 </span><span class="lineCov">         11 :                                  (const char *)conn-&gt;vec[i].iov_base);</span>
+<span class="lineNum">     250 </span><span class="lineCov">         11 :                 if (i) {</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :                     memmove(conn-&gt;vec, &amp;conn-&gt;vec[i],</span>
+<span class="lineNum">     252 </span>            :                             sizeof(struct iovec) * (conn-&gt;vec_len - i));
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :                     conn-&gt;vec_len -= i;</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">     255 </span><span class="lineCov">         22 :                 conn-&gt;vec[0].iov_base = (char *)conn-&gt;vec[0].iov_base</span>
+<span class="lineNum">     256 </span><span class="lineCov">         11 :                                         + conn-&gt;vec[0].iov_len</span>
+<span class="lineNum">     257 </span><span class="lineCov">         11 :                                         - (len - written);</span>
+<span class="lineNum">     258 </span><span class="lineCov">         11 :                 conn-&gt;vec[0].iov_len = len - written;</span>
+<span class="lineNum">     259 </span><span class="lineCov">         11 :                 break;</span>
+<span class="lineNum">     260 </span>            :             } else {
+<span class="lineNum">     261 </span><span class="lineCov">      23866 :                 serf__log_nopref(LOGLVL_DEBUG, LOGCOMP_RAWMSG, conn-&gt;config,</span>
+<span class="lineNum">     262 </span>            :                                  &quot;%.*s&quot;,
+<span class="lineNum">     263 </span><span class="lineCov">      11933 :                                  (int)conn-&gt;vec[i].iov_len,</span>
+<span class="lineNum">     264 </span><span class="lineCov">      11933 :                                  (const char*)conn-&gt;vec[i].iov_base);</span>
+<span class="lineNum">     265 </span>            :             }
+<span class="lineNum">     266 </span><span class="lineCov">      11933 :         }</span>
+<span class="lineNum">     267 </span><span class="lineCov">       1705 :         if (len == written) {</span>
+<span class="lineNum">     268 </span><span class="lineCov">       1694 :             conn-&gt;vec_len = 0;</span>
+<span class="lineNum">     269 </span><span class="lineCov">       1694 :         }</span>
+<span class="lineNum">     270 </span><span class="lineCov">       1705 :         serf__log_nopref(LOGLVL_DEBUG, LOGCOMP_RAWMSG, conn-&gt;config, &quot;\n&quot;);</span>
+<span class="lineNum">     271 </span>            : 
+<span class="lineNum">     272 </span>            :         /* Log progress information */
+<span class="lineNum">     273 </span><span class="lineCov">       1705 :         serf__context_progress_delta(conn-&gt;io-&gt;ctx, 0, written);</span>
+<span class="lineNum">     274 </span><span class="lineCov">       1705 :     }</span>
+<span class="lineNum">     275 </span>            : 
+<span class="lineNum">     276 </span><span class="lineCov">       1716 :     return status;</span>
+<a name="277"><span class="lineNum">     277 </span>            : }</a>
+<span class="lineNum">     278 </span>            : 
+<span class="lineNum">     279 </span>            : apr_status_t serf_pump__write(serf_pump_t *pump,
+<span class="lineNum">     280 </span>            :                               bool fetch_new)
+<span class="lineNum">     281 </span>            : {
+<span class="lineNum">     282 </span><span class="lineCov">       3510 :     apr_status_t status = APR_SUCCESS;</span>
+<span class="lineNum">     283 </span><span class="lineCov">       3510 :     apr_status_t read_status = APR_SUCCESS;</span>
+<span class="lineNum">     284 </span>            : 
+<span class="lineNum">     285 </span><span class="lineCov">       3510 :     pump-&gt;hit_eof = FALSE;</span>
+<span class="lineNum">     286 </span>            : 
+<span class="lineNum">     287 </span><span class="lineCov">      12388 :     while (status == APR_SUCCESS) {</span>
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span>            :         /* First try to write out what is already stored in the
+<span class="lineNum">     290 </span>            :            connection vecs. */
+<span class="lineNum">     291 </span><span class="lineCov">      25457 :         while (pump-&gt;vec_len &amp;&amp; !status) {</span>
+<span class="lineNum">     292 </span><span class="lineCov">       1716 :             status = socket_writev(pump);</span>
+<span class="lineNum">     293 </span>            : 
+<span class="lineNum">     294 </span>            :             /* If the write would have blocked, then we're done.
+<span class="lineNum">     295 </span>            :              * Don't try to write anything else to the socket.
+<span class="lineNum">     296 </span>            :              */
+<span class="lineNum">     297 </span><span class="lineCov">       3432 :             if (APR_STATUS_IS_EPIPE(status)</span>
+<span class="lineNum">     298 </span><span class="lineCov">       3432 :                 || APR_STATUS_IS_ECONNRESET(status)</span>
+<span class="lineNum">     299 </span><span class="lineCov">       5148 :                 || APR_STATUS_IS_ECONNABORTED(status))</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :               return no_more_writes(pump);</span>
+<span class="lineNum">     301 </span>            :         }
+<span class="lineNum">     302 </span>            : 
+<span class="lineNum">     303 </span><span class="lineCov">      12377 :         if (status || !fetch_new) {</span>
+<span class="lineNum">     304 </span>            : 
+<span class="lineNum">     305 </span>            :             /* If we couldn't write everything that we tried,
+<span class="lineNum">     306 </span>            :                make sure that we will receive a write event next time */
+<span class="lineNum">     307 </span><span class="lineCov">       1834 :             if (APR_STATUS_IS_EAGAIN(status)</span>
+<span class="lineNum">     308 </span><span class="lineCov">       1835 :                 &amp;&amp; !pump-&gt;io-&gt;dirty_conn</span>
+<span class="lineNum">     309 </span><span class="lineCov">         21 :                 &amp;&amp; !(pump-&gt;io-&gt;reqevents &amp; APR_POLLOUT))</span>
+<span class="lineNum">     310 </span>            :             {
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :                 serf_io__set_pollset_dirty(pump-&gt;io);</span>
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">     313 </span><span class="lineCov">       1824 :             return status;</span>
+<span class="lineNum">     314 </span>            :         }
+<span class="lineNum">     315 </span><span class="lineCov">      12514 :         else if (read_status || pump-&gt;vec_len || pump-&gt;hit_eof)</span>
+<span class="lineNum">     316 </span><span class="lineCov">       1686 :             return read_status;</span>
+<span class="lineNum">     317 </span>            : 
+<span class="lineNum">     318 </span>            :         /* ### optimize at some point by using read_for_sendfile */
+<span class="lineNum">     319 </span>            :         /* TODO: now that read_iovec will effectively try to return as much
+<span class="lineNum">     320 </span>            :            data as available, we probably don't want to read ALL_AVAIL, but
+<span class="lineNum">     321 </span>            :            a lower number, like the size of one or a few TCP packets, the
+<span class="lineNum">     322 </span>            :            available TCP buffer size ... */
+<span class="lineNum">     323 </span><span class="lineCov">       2684 :         pump-&gt;hit_eof = false;</span>
+<span class="lineNum">     324 </span><span class="lineCov">       2684 :         read_status = serf_bucket_read_iovec(pump-&gt;ostream_head,</span>
+<span class="lineNum">     325 </span>            :                                              SERF_READ_ALL_AVAIL,
+<span class="lineNum">     326 </span>            :                                              COUNT_OF(pump-&gt;vec),
+<span class="lineNum">     327 </span>            :                                              pump-&gt;vec,
+<span class="lineNum">     328 </span>            :                                              &amp;pump-&gt;vec_len);
+<span class="lineNum">     329 </span>            : 
+<span class="lineNum">     330 </span><span class="lineCov">       2684 :         if (read_status == SERF_ERROR_WAIT_CONN) {</span>
+<span class="lineNum">     331 </span>            :             /* The bucket told us that it can't provide more data until
+<span class="lineNum">     332 </span>            :             more data is read from the socket. This normally happens
+<span class="lineNum">     333 </span>            :             during a SSL handshake.
+<span class="lineNum">     334 </span>            : 
+<span class="lineNum">     335 </span>            :             We should avoid looking for writability for a while so
+<span class="lineNum">     336 </span>            :             that (hopefully) something will appear in the bucket so
+<span class="lineNum">     337 </span>            :             we can actually write something. otherwise, we could
+<span class="lineNum">     338 </span>            :             end up in a CPU spin: socket wants something, but we
+<span class="lineNum">     339 </span>            :             don't have anything (and keep returning EAGAIN) */
+<span class="lineNum">     340 </span>            : 
+<span class="lineNum">     341 </span><span class="lineCov">         58 :             serf__log(LOGLVL_INFO, LOGCOMP_CONN, __FILE__, pump-&gt;config,</span>
+<span class="lineNum">     342 </span>            :                       &quot;Output stream requested temporary write delay &quot;
+<span class="lineNum">     343 </span><span class="lineCov">         29 :                       &quot;on 0x%p\n&quot;, pump-&gt;io-&gt;u.v);</span>
+<span class="lineNum">     344 </span>            : 
+<span class="lineNum">     345 </span><span class="lineCov">         29 :             pump-&gt;stop_writing = true;</span>
+<span class="lineNum">     346 </span><span class="lineCov">         58 :             serf_io__set_pollset_dirty(pump-&gt;io);</span>
+<span class="lineNum">     347 </span>            : 
+<span class="lineNum">     348 </span><span class="lineCov">         29 :             read_status = APR_EAGAIN;</span>
+<span class="lineNum">     349 </span><span class="lineCov">         29 :         }</span>
+<span class="lineNum">     350 </span><span class="lineCov">       2655 :         else if (APR_STATUS_IS_EAGAIN(read_status)) {</span>
+<span class="lineNum">     351 </span>            : 
+<span class="lineNum">     352 </span>            :             /* We read some stuff, but did we read everything ? */
+<span class="lineNum">     353 </span><span class="lineCov">       1658 :             if (pump-&gt;hit_eof)</span>
+<span class="lineNum">     354 </span><span class="lineCov">       1389 :                 read_status = APR_SUCCESS;</span>
+<span class="lineNum">     355 </span><span class="lineCov">       1658 :         }</span>
+<span class="lineNum">     356 </span><span class="lineCov">        997 :         else if (SERF_BUCKET_READ_ERROR(read_status)) {</span>
+<span class="lineNum">     357 </span>            : 
+<span class="lineNum">     358 </span>            :             /* Something bad happened. Propagate any errors. */
+<span class="lineNum">     359 </span><span class="lineNoCov">          0 :             return read_status;</span>
+<span class="lineNum">     360 </span>            :         }
+<span class="lineNum">     361 </span>            :     }
+<span class="lineNum">     362 </span>            : 
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :     return status;</span>
+<a name="364"><span class="lineNum">     364 </span><span class="lineCov">       3510 : }</span></a>
+<span class="lineNum">     365 </span>            : 
+<span class="lineNum">     366 </span>            : apr_status_t serf_pump__add_output(serf_pump_t *pump,
+<span class="lineNum">     367 </span>            :                                    serf_bucket_t *bucket,
+<span class="lineNum">     368 </span>            :                                    bool flush)
+<span class="lineNum">     369 </span>            : {
+<span class="lineNum">     370 </span>            :     apr_status_t status;
+<span class="lineNum">     371 </span>            : 
+<span class="lineNum">     372 </span><span class="lineCov">        708 :     if (!pump-&gt;ostream_tail) {</span>
+<span class="lineNum">     373 </span><span class="lineNoCov">          0 :         serf_bucket_destroy(bucket);</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :         return APR_ENOSOCKET;</span>
+<span class="lineNum">     375 </span>            :     }
+<span class="lineNum">     376 </span>            : 
+<span class="lineNum">     377 </span><span class="lineCov">        708 :     if (!flush</span>
+<span class="lineNum">     378 </span><span class="lineCov">       1395 :         &amp;&amp; !pump-&gt;io-&gt;dirty_conn</span>
+<span class="lineNum">     379 </span><span class="lineCov">        731 :         &amp;&amp; !pump-&gt;stop_writing</span>
+<span class="lineNum">     380 </span><span class="lineCov">         88 :         &amp;&amp; !(pump-&gt;io-&gt;reqevents &amp; APR_POLLOUT)</span>
+<span class="lineNum">     381 </span><span class="lineCov">         44 :         &amp;&amp; !serf_pump__data_pending(pump))</span>
+<span class="lineNum">     382 </span>            :     {
+<span class="lineNum">     383 </span>            :         /* If not writing now,
+<span class="lineNum">     384 </span>            :            * and not already dirty
+<span class="lineNum">     385 </span>            :            * and nothing pending yet
+<span class="lineNum">     386 </span>            :            Then mark the pollset dirty to trigger a write */
+<span class="lineNum">     387 </span>            : 
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :         serf_io__set_pollset_dirty(pump-&gt;io);</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     390 </span>            : 
+<span class="lineNum">     391 </span><span class="lineCov">        708 :     serf_bucket_aggregate_append(pump-&gt;ostream_tail, bucket);</span>
+<span class="lineNum">     392 </span>            : 
+<span class="lineNum">     393 </span><span class="lineCov">        708 :     if (!flush)</span>
+<span class="lineNum">     394 </span><span class="lineCov">        687 :         return APR_SUCCESS;</span>
+<span class="lineNum">     395 </span>            : 
+<span class="lineNum">     396 </span>            :     /* Flush final output buffer (after ssl, etc.) */
+<span class="lineNum">     397 </span><span class="lineCov">         21 :     status = serf_pump__write(pump, TRUE);</span>
+<span class="lineNum">     398 </span>            : 
+<span class="lineNum">     399 </span><span class="lineCov">         21 :     if (SERF_BUCKET_READ_ERROR(status))</span>
+<span class="lineNum">     400 </span><span class="lineNoCov">          0 :         return status;</span>
+<span class="lineNum">     401 </span>            :     else
+<span class="lineNum">     402 </span><span class="lineCov">         21 :         return APR_SUCCESS;</span>
+<span class="lineNum">     403 </span><span class="lineCov">        708 : }</span>
+<span class="lineNum">     404 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

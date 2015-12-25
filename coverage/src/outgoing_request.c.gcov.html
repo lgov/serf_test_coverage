@@ -1,0 +1,945 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - src/outgoing_request.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">src</a> - outgoing_request.c<span style="font-size: 80%;"> (source / <a href="outgoing_request.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">228</td>
+            <td class="headerCovTableEntry">370</td>
+            <td class="headerCovTableEntryLo">61.6 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-12-25 11:14:27</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">20</td>
+            <td class="headerCovTableEntry">24</td>
+            <td class="headerCovTableEntryMed">83.3 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* ====================================================================</a>
+<span class="lineNum">       2 </span>            :  *    Licensed to the Apache Software Foundation (ASF) under one
+<span class="lineNum">       3 </span>            :  *    or more contributor license agreements.  See the NOTICE file
+<span class="lineNum">       4 </span>            :  *    distributed with this work for additional information
+<span class="lineNum">       5 </span>            :  *    regarding copyright ownership.  The ASF licenses this file
+<span class="lineNum">       6 </span>            :  *    to you under the Apache License, Version 2.0 (the
+<span class="lineNum">       7 </span>            :  *    &quot;License&quot;); you may not use this file except in compliance
+<span class="lineNum">       8 </span>            :  *    with the License.  You may obtain a copy of the License at
+<span class="lineNum">       9 </span>            :  *
+<span class="lineNum">      10 </span>            :  *      http://www.apache.org/licenses/LICENSE-2.0
+<span class="lineNum">      11 </span>            :  *
+<span class="lineNum">      12 </span>            :  *    Unless required by applicable law or agreed to in writing,
+<span class="lineNum">      13 </span>            :  *    software distributed under the License is distributed on an
+<span class="lineNum">      14 </span>            :  *    &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+<span class="lineNum">      15 </span>            :  *    KIND, either express or implied.  See the License for the
+<span class="lineNum">      16 </span>            :  *    specific language governing permissions and limitations
+<span class="lineNum">      17 </span>            :  *    under the License.
+<span class="lineNum">      18 </span>            :  * ====================================================================
+<span class="lineNum">      19 </span>            :  */
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            : #include &lt;apr_pools.h&gt;
+<span class="lineNum">      24 </span>            : #include &lt;apr_poll.h&gt;
+<span class="lineNum">      25 </span>            : #include &lt;apr_version.h&gt;
+<span class="lineNum">      26 </span>            : #include &lt;apr_portable.h&gt;
+<span class="lineNum">      27 </span>            : #include &lt;apr_strings.h&gt;
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : #include &quot;serf.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;serf_bucket_util.h&quot;
+<span class="lineNum">      31 </span>            : 
+<a name="32"><span class="lineNum">      32 </span>            : #include &quot;serf_private.h&quot;</a>
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : static apr_status_t clean_resp(void *data)
+<span class="lineNum">      35 </span>            : {
+<span class="lineNum">      36 </span><span class="lineCov">        682 :     serf_request_t *request = data;</span>
+<span class="lineNum">      37 </span><span class="lineCov">        682 :     apr_pool_t *respool = request-&gt;respool;</span>
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            :     /* Note that this function must handle rehooking several
+<span class="lineNum">      40 </span>            :        variables to a different request!
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            :        See serf_connection__request_requeue() */
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span><span class="lineCov">        682 :     request-&gt;respool = NULL;</span>
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span>            :     /* The request's RESPOOL is being cleared.  */
+<span class="lineNum">      47 </span><span class="lineCov">       2046 :     if (respool &amp;&amp; request-&gt;writing &gt;= SERF_WRITING_STARTED</span>
+<span class="lineNum">      48 </span><span class="lineCov">       1364 :                 &amp;&amp; request-&gt;writing &lt; SERF_WRITING_FINISHED) {</span>
+<span class="lineNum">      49 </span>            : 
+<span class="lineNum">      50 </span>            :         /* HOUSTON, WE HAVE A PROBLEM.
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span>            :            We created buckets inside the pool that is now cleaned and
+<span class="lineNum">      53 </span>            :            stored them in an aggregate that still lives on.
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span>            :            This happens when the application decides that it doesn't
+<span class="lineNum">      56 </span>            :            need the connection any more and clears the pool of the
+<span class="lineNum">      57 </span>            :            connection, of which the request pool is a subpool.
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span>            :            Let's ask the connection to take care of things */
+<span class="lineNum">      60 </span><span class="lineCov">          5 :         serf__connection_pre_cleanup(request-&gt;conn);</span>
+<span class="lineNum">      61 </span><span class="lineCov">          5 :     }</span>
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span>            : #ifdef SERF_DEBUG_BUCKET_USE
+<span class="lineNum">      64 </span>            :     if (respool &amp;&amp; request-&gt;allocator) {
+<span class="lineNum">      65 </span>            :         serf_debug__closed_conn(request-&gt;allocator);
+<span class="lineNum">      66 </span>            :     }
+<span class="lineNum">      67 </span>            : #endif
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span>            :     /* If the response has allocated some buckets, then destroy them (since
+<span class="lineNum">      70 </span>            :        the bucket may hold resources other than memory in RESPOOL). Also
+<span class="lineNum">      71 </span>            :        make sure to set their fields to NULL so connection closure does
+<span class="lineNum">      72 </span>            :        not attempt to free them again.  */
+<span class="lineNum">      73 </span><span class="lineCov">        682 :     if (request-&gt;resp_bkt) {</span>
+<span class="lineNum">      74 </span><span class="lineCov">        397 :         serf_bucket_destroy(request-&gt;resp_bkt);</span>
+<span class="lineNum">      75 </span><span class="lineCov">        397 :         request-&gt;resp_bkt = NULL;</span>
+<span class="lineNum">      76 </span><span class="lineCov">        397 :     }</span>
+<span class="lineNum">      77 </span><span class="lineCov">        682 :     if (request-&gt;req_bkt) {</span>
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :         if (request-&gt;writing == SERF_WRITING_NONE)</span>
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :             serf_bucket_destroy(request-&gt;req_bkt);</span>
+<span class="lineNum">      80 </span><span class="lineNoCov">          0 :         request-&gt;req_bkt = NULL;</span>
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span>            : #ifdef SERF_DEBUG_BUCKET_USE
+<span class="lineNum">      84 </span>            :     if (respool &amp;&amp; request-&gt;allocator) {
+<span class="lineNum">      85 </span>            :         serf_debug__bucket_alloc_check(request-&gt;allocator);
+<span class="lineNum">      86 </span>            :     }
+<span class="lineNum">      87 </span>            : #endif
+<span class="lineNum">      88 </span>            : 
+<span class="lineNum">      89 </span><span class="lineCov">        682 :     request-&gt;allocator = NULL;</span>
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span><span class="lineCov">        682 :     return APR_SUCCESS;</span>
+<a name="92"><span class="lineNum">      92 </span>            : }</a>
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span>            : void serf__link_requests(serf_request_t **list, serf_request_t **tail,
+<span class="lineNum">      95 </span>            :                          serf_request_t *request)
+<span class="lineNum">      96 </span>            : {
+<span class="lineNum">      97 </span><span class="lineCov">       5998 :     if (*list == NULL) {</span>
+<span class="lineNum">      98 </span><span class="lineCov">        314 :         *list = request;</span>
+<span class="lineNum">      99 </span><span class="lineCov">        314 :         *tail = request;</span>
+<span class="lineNum">     100 </span><span class="lineCov">        314 :     }</span>
+<span class="lineNum">     101 </span>            :     else {
+<span class="lineNum">     102 </span><span class="lineCov">       5684 :         (*tail)-&gt;next = request;</span>
+<span class="lineNum">     103 </span><span class="lineCov">       5684 :         *tail = request;</span>
+<span class="lineNum">     104 </span>            :     }
+<a name="105"><span class="lineNum">     105 </span><span class="lineCov">       5998 : }</span></a>
+<span class="lineNum">     106 </span>            : 
+<span class="lineNum">     107 </span>            : apr_status_t serf__destroy_request(serf_request_t *request)
+<span class="lineNum">     108 </span>            : {
+<span class="lineNum">     109 </span><span class="lineCov">        686 :     serf_connection_t *conn = request-&gt;conn;</span>
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span><span class="lineCov">        686 :     if (request-&gt;depends_first &amp;&amp; request-&gt;depends_on) {</span>
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :         apr_uint64_t total = 0;</span>
+<span class="lineNum">     113 </span>            :         serf_request_t *r, **pr;
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :         apr_uint64_t rqd = request-&gt;dep_priority;</span>
+<span class="lineNum">     115 </span>            : 
+<span class="lineNum">     116 </span>            :         /* Calculate total priority of descendants */
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :         for (r = request-&gt;depends_first; r; r = r-&gt;depends_next) {</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :             total += r-&gt;dep_priority;</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     120 </span>            : 
+<span class="lineNum">     121 </span>            :         /* Apply now, as if they depend on the parent */
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :         for (r = request-&gt;depends_first; r; r = r-&gt;depends_next) {</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :             if (total) {</span>
+<span class="lineNum">     124 </span>            : 
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :                 r-&gt;dep_priority = (apr_uint16_t)(rqd * r-&gt;dep_priority</span>
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :                                                  / total);</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">     128 </span>            :             else
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :                 r-&gt;dep_priority = 0;</span>
+<span class="lineNum">     130 </span>            : 
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :             r-&gt;depends_on = request-&gt;depends_on;</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     133 </span>            : 
+<span class="lineNum">     134 </span>            :         /* Remove us from parent */
+<span class="lineNum">     135 </span><span class="lineNoCov">          0 :         pr = &amp;request-&gt;depends_on-&gt;depends_first;</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :         while (*pr) {</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :             if (*pr == request) {</span>
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :                 *pr = request-&gt;depends_next;</span>
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     140 </span>            :             }
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :             pr = &amp;(*pr)-&gt;depends_next;</span>
+<span class="lineNum">     143 </span>            :         }
+<span class="lineNum">     144 </span>            : 
+<span class="lineNum">     145 </span>            :         /* And append all our descendants */
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :         *pr = request-&gt;depends_first;</span>
+<span class="lineNum">     147 </span>            : 
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :         request-&gt;depends_on = NULL;</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :         request-&gt;depends_first = NULL;</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :         request-&gt;depends_next = NULL;</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     152 </span><span class="lineCov">        686 :     else if (request-&gt;depends_first) {</span>
+<span class="lineNum">     153 </span>            :         /* Dependencies will lose their parent */
+<span class="lineNum">     154 </span>            :         serf_request_t *r, *next;
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :         for (r = request-&gt;depends_first; r; r = next) {</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :             next = r-&gt;next;</span>
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :             r-&gt;depends_on = NULL;</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :             r-&gt;depends_next = NULL;</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :         request-&gt;depends_first = NULL;</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     164 </span><span class="lineCov">        686 :     else if (request-&gt;depends_on) {</span>
+<span class="lineNum">     165 </span>            :         serf_request_t **pr;
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span>            :         /* Remove us from parent */
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :         pr = &amp;request-&gt;depends_on-&gt;depends_first;</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :         while (*pr) {</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :             if (*pr == request) {</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :                 *pr = request-&gt;depends_next;</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     173 </span>            :             }
+<span class="lineNum">     174 </span>            : 
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :             pr = &amp;(*pr)-&gt;depends_next;</span>
+<span class="lineNum">     176 </span>            :         }
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :         request-&gt;depends_on = NULL;</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     179 </span>            : 
+<span class="lineNum">     180 </span><span class="lineCov">       1368 :     if (request-&gt;writing &gt;= SERF_WRITING_STARTED</span>
+<span class="lineNum">     181 </span><span class="lineCov">       1368 :         &amp;&amp; request-&gt;writing &lt; SERF_WRITING_FINISHED) {</span>
+<span class="lineNum">     182 </span>            : 
+<span class="lineNum">     183 </span>            :         /* Schedule for destroy when it is safe again.
+<span class="lineNum">     184 </span>            : 
+<span class="lineNum">     185 </span>            :            Destroying now will destroy memory of buckets that we
+<span class="lineNum">     186 </span>            :            may still need.
+<span class="lineNum">     187 </span>            :         */
+<span class="lineNum">     188 </span><span class="lineCov">          8 :         serf__link_requests(&amp;conn-&gt;done_reqs, &amp;conn-&gt;done_reqs_tail,</span>
+<span class="lineNum">     189 </span><span class="lineCov">          4 :                             request);</span>
+<span class="lineNum">     190 </span><span class="lineCov">          4 :     }</span>
+<span class="lineNum">     191 </span>            :     else {
+<span class="lineNum">     192 </span>            : 
+<span class="lineNum">     193 </span><span class="lineCov">        682 :         if (request-&gt;respool) {</span>
+<span class="lineNum">     194 </span><span class="lineCov">        672 :           apr_pool_t *pool = request-&gt;respool;</span>
+<span class="lineNum">     195 </span>            : 
+<span class="lineNum">     196 </span><span class="lineCov">        672 :           apr_pool_cleanup_run(pool, request, clean_resp);</span>
+<span class="lineNum">     197 </span><span class="lineCov">        672 :           apr_pool_destroy(pool);</span>
+<span class="lineNum">     198 </span><span class="lineCov">        672 :         }</span>
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span><span class="lineCov">        682 :         serf_bucket_mem_free(conn-&gt;allocator, request);</span>
+<span class="lineNum">     201 </span>            :     }
+<span class="lineNum">     202 </span>            : 
+<span class="lineNum">     203 </span><span class="lineCov">        686 :     return APR_SUCCESS;</span>
+<a name="204"><span class="lineNum">     204 </span>            : }</a>
+<span class="lineNum">     205 </span>            : 
+<span class="lineNum">     206 </span>            : apr_status_t serf__cancel_request(serf_request_t *request,
+<span class="lineNum">     207 </span>            :                                   serf_request_t **list,
+<span class="lineNum">     208 </span>            :                                   int notify_request)
+<span class="lineNum">     209 </span>            : {
+<span class="lineNum">     210 </span>            :     /* If we haven't run setup, then we won't have a handler to call. */
+<span class="lineNum">     211 </span><span class="lineCov">        614 :     if (request-&gt;handler &amp;&amp; notify_request) {</span>
+<span class="lineNum">     212 </span>            :         /* We actually don't care what the handler returns.
+<span class="lineNum">     213 </span>            :          * We have bigger matters at hand.
+<span class="lineNum">     214 </span>            :          */
+<span class="lineNum">     215 </span><span class="lineCov">        590 :         (void)request-&gt;handler(request, NULL, request-&gt;handler_baton,</span>
+<span class="lineNum">     216 </span><span class="lineCov">        295 :                                request-&gt;respool);</span>
+<span class="lineNum">     217 </span>            : 
+<span class="lineNum">     218 </span><span class="lineCov">        295 :         request-&gt;handler = NULL;</span>
+<span class="lineNum">     219 </span><span class="lineCov">        295 :     }</span>
+<span class="lineNum">     220 </span>            : 
+<span class="lineNum">     221 </span><span class="lineCov">        618 :     if (request-&gt;conn &amp;&amp; request-&gt;conn-&gt;perform_cancel_request) {</span>
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :         request-&gt;conn-&gt;perform_cancel_request(request,</span>
+<span class="lineNum">     223 </span>            :                                               SERF_ERROR_HTTP2_CANCEL);
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     225 </span>            : 
+<span class="lineNum">     226 </span><span class="lineCov">        309 :     if (*list == request) {</span>
+<span class="lineNum">     227 </span><span class="lineCov">        309 :         *list = request-&gt;next;</span>
+<span class="lineNum">     228 </span><span class="lineCov">        309 :     }</span>
+<span class="lineNum">     229 </span>            :     else {
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :         serf_request_t *scan = *list;</span>
+<span class="lineNum">     231 </span>            : 
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :         while (scan-&gt;next &amp;&amp; scan-&gt;next != request)</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :             scan = scan-&gt;next;</span>
+<span class="lineNum">     234 </span>            : 
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :         if (scan-&gt;next) {</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :             scan-&gt;next = scan-&gt;next-&gt;next;</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     238 </span>            :     }
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span><span class="lineCov">        309 :     return serf__destroy_request(request);</span>
+<span class="lineNum">     241 </span>            : }
+<a name="242"><span class="lineNum">     242 </span>            : </a>
+<span class="lineNum">     243 </span>            : /* Calculate the length of a linked list of requests. */
+<span class="lineNum">     244 </span>            : unsigned int serf__req_list_length(serf_request_t *req)
+<span class="lineNum">     245 </span>            : {
+<span class="lineNum">     246 </span><span class="lineCov">         71 :     unsigned int length = 0;</span>
+<span class="lineNum">     247 </span>            : 
+<span class="lineNum">     248 </span><span class="lineCov">      10070 :     while (req) {</span>
+<span class="lineNum">     249 </span><span class="lineCov">       4964 :         length++;</span>
+<span class="lineNum">     250 </span><span class="lineCov">       4964 :         req = req-&gt;next;</span>
+<span class="lineNum">     251 </span>            :     }
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span><span class="lineCov">         71 :     return length;</span>
+<a name="254"><span class="lineNum">     254 </span>            : }</a>
+<span class="lineNum">     255 </span>            : 
+<span class="lineNum">     256 </span>            : apr_status_t serf__setup_request(serf_request_t *request)
+<span class="lineNum">     257 </span>            : {
+<span class="lineNum">     258 </span><span class="lineCov">        682 :     serf_connection_t *conn = request-&gt;conn;</span>
+<span class="lineNum">     259 </span>            :     apr_status_t status;
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span>            :     /* Now that we are about to serve the request, allocate a pool. */
+<span class="lineNum">     262 </span><span class="lineCov">        682 :     apr_pool_create(&amp;request-&gt;respool, conn-&gt;pool);</span>
+<span class="lineNum">     263 </span><span class="lineCov">        682 :     request-&gt;allocator = serf_bucket_allocator_create(request-&gt;respool,</span>
+<span class="lineNum">     264 </span>            :                                                       NULL, NULL);
+<span class="lineNum">     265 </span><span class="lineCov">        682 :     apr_pool_cleanup_register(request-&gt;respool, request,</span>
+<span class="lineNum">     266 </span>            :                               clean_resp, apr_pool_cleanup_null);
+<span class="lineNum">     267 </span>            : 
+<span class="lineNum">     268 </span>            :     /* Fill in the rest of the values for the request. */
+<span class="lineNum">     269 </span><span class="lineCov">       1364 :     status = request-&gt;setup(request, request-&gt;setup_baton,</span>
+<span class="lineNum">     270 </span><span class="lineCov">        682 :                             &amp;request-&gt;req_bkt,</span>
+<span class="lineNum">     271 </span><span class="lineCov">        682 :                             &amp;request-&gt;acceptor,</span>
+<span class="lineNum">     272 </span><span class="lineCov">        682 :                             &amp;request-&gt;acceptor_baton,</span>
+<span class="lineNum">     273 </span><span class="lineCov">        682 :                             &amp;request-&gt;handler,</span>
+<span class="lineNum">     274 </span><span class="lineCov">        682 :                             &amp;request-&gt;handler_baton,</span>
+<span class="lineNum">     275 </span><span class="lineCov">        682 :                             request-&gt;respool);</span>
+<span class="lineNum">     276 </span><span class="lineCov">        682 :     return status;</span>
+<span class="lineNum">     277 </span>            : }
+<span class="lineNum">     278 </span>            : 
+<a name="279"><span class="lineNum">     279 </span>            : /* A response message was received from the server, so call</a>
+<span class="lineNum">     280 </span>            :    the handler as specified on the original request. */
+<span class="lineNum">     281 </span>            : apr_status_t serf__handle_response(serf_request_t *request,
+<span class="lineNum">     282 </span>            :                                    apr_pool_t *pool)
+<span class="lineNum">     283 </span>            : {
+<span class="lineNum">     284 </span><span class="lineCov">        861 :     bool consumed_response = false;</span>
+<span class="lineNum">     285 </span>            : 
+<span class="lineNum">     286 </span>            :     /* Only enable the new authentication framework if the program has
+<span class="lineNum">     287 </span>            :      * registered an authentication credential callback.
+<span class="lineNum">     288 </span>            :      *
+<span class="lineNum">     289 </span>            :      * This permits older Serf apps to still handle authentication
+<span class="lineNum">     290 </span>            :      * themselves by not registering credential callbacks.
+<span class="lineNum">     291 </span>            :      */
+<span class="lineNum">     292 </span><span class="lineCov">       1679 :     if (!request-&gt;auth_done &amp;&amp; request-&gt;conn-&gt;ctx-&gt;cred_cb) {</span>
+<span class="lineNum">     293 </span>            :         apr_status_t status;
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span><span class="lineCov">        119 :         if (!SERF_BUCKET_IS_RESPONSE(request-&gt;resp_bkt)) {</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :             request-&gt;auth_done = true;</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :             status = APR_SUCCESS;</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     299 </span>            :         else
+<span class="lineNum">     300 </span><span class="lineCov">        119 :             status = serf__handle_auth_response(&amp;consumed_response,</span>
+<span class="lineNum">     301 </span><span class="lineCov">        119 :                                                 request,</span>
+<span class="lineNum">     302 </span><span class="lineCov">        119 :                                                 request-&gt;resp_bkt,</span>
+<span class="lineNum">     303 </span><span class="lineCov">        119 :                                                 pool);</span>
+<span class="lineNum">     304 </span>            : 
+<span class="lineNum">     305 </span><span class="lineCov">        204 :         if (SERF_BUCKET_READ_ERROR(status)) {</span>
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span>            :             /* There was an error while checking the authentication headers of
+<span class="lineNum">     308 </span>            :                the response. We need to inform the application - which
+<span class="lineNum">     309 </span>            :                hasn't seen this response yet - of the error.
+<span class="lineNum">     310 </span>            : 
+<span class="lineNum">     311 </span>            :                These are the possible causes of the error:
+<span class="lineNum">     312 </span>            : 
+<span class="lineNum">     313 </span>            :                1. A communication error while reading the response status line,
+<span class="lineNum">     314 </span>            :                   headers or while discarding the response body: pass the
+<span class="lineNum">     315 </span>            :                   response unchanged to the application, it will see the same
+<span class="lineNum">     316 </span>            :                   error as serf did.
+<span class="lineNum">     317 </span>            : 
+<span class="lineNum">     318 </span>            :                2. A 401/407 response status for a supported authn scheme that
+<span class="lineNum">     319 </span>            :                   resulted in authn failure:
+<span class="lineNum">     320 </span>            :                   Pass the response as received to the application, the response
+<span class="lineNum">     321 </span>            :                   body can contain an error description. Terminate the response
+<span class="lineNum">     322 </span>            :                   body with the AUTHN error instead of APR_EOF.
+<span class="lineNum">     323 </span>            : 
+<span class="lineNum">     324 </span>            :                3. A 401/407 response status for a supported authn scheme that
+<span class="lineNum">     325 </span>            :                   resulted in an unknown error returned by the application in
+<span class="lineNum">     326 </span>            :                   the credentials callback (Basic/Digest):
+<span class="lineNum">     327 </span>            :                   Handle the same as 2.
+<span class="lineNum">     328 </span>            : 
+<span class="lineNum">     329 </span>            :                4. A 2xx response status for a supported authn scheme that
+<span class="lineNum">     330 </span>            :                   resulted in authn failure:
+<span class="lineNum">     331 </span>            :                   Pass the response headers to the application. The response
+<span class="lineNum">     332 </span>            :                   body is untrusted, so we should drop it and return the AUTHN
+<span class="lineNum">     333 </span>            :                   error instead of APR_EOF.
+<span class="lineNum">     334 </span>            : 
+<span class="lineNum">     335 </span>            :                   serf__handle_auth_response will already discard the response
+<span class="lineNum">     336 </span>            :                   body, so we can handle this case the same as 2.
+<span class="lineNum">     337 </span>            : 
+<span class="lineNum">     338 </span>            :                In summary, all these cases can be handled in the same way: call
+<span class="lineNum">     339 </span>            :                the application's response handler with the response bucket, but
+<span class="lineNum">     340 </span>            :                make sure that the application sees error code STATUS instead of
+<span class="lineNum">     341 </span>            :                APR_EOF after reading the response body.
+<span class="lineNum">     342 </span>            :             */
+<span class="lineNum">     343 </span>            : 
+<span class="lineNum">     344 </span><span class="lineCov">         11 :             serf__bucket_response_set_error_on_eof(request-&gt;resp_bkt, status);</span>
+<span class="lineNum">     345 </span>            : 
+<span class="lineNum">     346 </span>            :             /* Ignore the application's status code here, use the error status
+<span class="lineNum">     347 </span>            :                from serf__handle_auth_response. */
+<span class="lineNum">     348 </span><span class="lineCov">         22 :             (void)(*request-&gt;handler)(request,</span>
+<span class="lineNum">     349 </span><span class="lineCov">         11 :                                       request-&gt;resp_bkt,</span>
+<span class="lineNum">     350 </span><span class="lineCov">         11 :                                       request-&gt;handler_baton,</span>
+<span class="lineNum">     351 </span><span class="lineCov">         11 :                                       pool);</span>
+<span class="lineNum">     352 </span><span class="lineCov">         11 :         }</span>
+<span class="lineNum">     353 </span>            : 
+<span class="lineNum">     354 </span><span class="lineCov">        119 :         if (status)</span>
+<span class="lineNum">     355 </span><span class="lineCov">         37 :             return status;</span>
+<span class="lineNum">     356 </span><span class="lineCov">         82 :     }</span>
+<span class="lineNum">     357 </span>            : 
+<span class="lineNum">     358 </span><span class="lineCov">        824 :     if (!consumed_response) {</span>
+<span class="lineNum">     359 </span><span class="lineCov">       1604 :         return (*request-&gt;handler)(request,</span>
+<span class="lineNum">     360 </span><span class="lineCov">        802 :                                    request-&gt;resp_bkt,</span>
+<span class="lineNum">     361 </span><span class="lineCov">        802 :                                    request-&gt;handler_baton,</span>
+<span class="lineNum">     362 </span><span class="lineCov">        802 :                                    pool);</span>
+<span class="lineNum">     363 </span>            :     }
+<span class="lineNum">     364 </span>            : 
+<span class="lineNum">     365 </span><span class="lineCov">         22 :     return APR_SUCCESS;</span>
+<span class="lineNum">     366 </span><span class="lineCov">        861 : }</span>
+<a name="367"><span class="lineNum">     367 </span>            : </a>
+<span class="lineNum">     368 </span>            : apr_status_t
+<span class="lineNum">     369 </span>            : serf__provide_credentials(serf_context_t *ctx,
+<span class="lineNum">     370 </span>            :                           char **username,
+<span class="lineNum">     371 </span>            :                           char **password,
+<span class="lineNum">     372 </span>            :                           serf_request_t *request,
+<span class="lineNum">     373 </span>            :                           int code, const char *authn_type,
+<span class="lineNum">     374 </span>            :                           const char *realm,
+<span class="lineNum">     375 </span>            :                           apr_pool_t *pool)
+<span class="lineNum">     376 </span>            : {
+<span class="lineNum">     377 </span><span class="lineCov">         22 :     serf_connection_t *conn = request-&gt;conn;</span>
+<span class="lineNum">     378 </span><span class="lineCov">         22 :     serf_request_t *authn_req = request;</span>
+<span class="lineNum">     379 </span>            :     apr_status_t status;
+<span class="lineNum">     380 </span>            : 
+<span class="lineNum">     381 </span><span class="lineCov">         29 :     if (request-&gt;ssltunnel == 1 &amp;&amp;</span>
+<span class="lineNum">     382 </span><span class="lineCov">          7 :         conn-&gt;state == SERF_CONN_SETUP_SSLTUNNEL) {</span>
+<span class="lineNum">     383 </span>            :         /* This is a CONNECT request to set up an SSL tunnel over a proxy.
+<span class="lineNum">     384 </span>            :            This request is created by serf, so if the proxy requires
+<span class="lineNum">     385 </span>            :            authentication, we can't ask the application for credentials with
+<span class="lineNum">     386 </span>            :            this request.
+<span class="lineNum">     387 </span>            : 
+<span class="lineNum">     388 </span>            :            Solution: setup the first request created by the application on
+<span class="lineNum">     389 </span>            :            this connection, and use that request and its handler_baton to
+<span class="lineNum">     390 </span>            :            call back to the application. */
+<span class="lineNum">     391 </span>            : 
+<span class="lineNum">     392 </span>            :         /* request-&gt;next will be NULL if this was the last request written */
+<span class="lineNum">     393 </span><span class="lineCov">          7 :         authn_req = request-&gt;next;</span>
+<span class="lineNum">     394 </span><span class="lineCov">          7 :         if (!authn_req)</span>
+<span class="lineNum">     395 </span><span class="lineCov">          7 :             authn_req = conn-&gt;unwritten_reqs;</span>
+<span class="lineNum">     396 </span>            : 
+<span class="lineNum">     397 </span>            :         /* assert: app_request != NULL */
+<span class="lineNum">     398 </span><span class="lineCov">          7 :         if (!authn_req)</span>
+<span class="lineNum">     399 </span><span class="lineNoCov">          0 :             return APR_EGENERAL;</span>
+<span class="lineNum">     400 </span>            : 
+<span class="lineNum">     401 </span><span class="lineCov">          7 :         if (!authn_req-&gt;req_bkt) {</span>
+<span class="lineNum">     402 </span><span class="lineCov">          6 :             status = serf__setup_request(authn_req);</span>
+<span class="lineNum">     403 </span>            :             /* If we can't setup a request, don't bother setting up the
+<span class="lineNum">     404 </span>            :                ssl tunnel. */
+<span class="lineNum">     405 </span><span class="lineCov">          6 :             if (status)</span>
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :                 return status;</span>
+<span class="lineNum">     407 </span><span class="lineCov">          6 :         }</span>
+<span class="lineNum">     408 </span><span class="lineCov">          7 :     }</span>
+<span class="lineNum">     409 </span>            : 
+<span class="lineNum">     410 </span>            :     /* Ask the application. */
+<span class="lineNum">     411 </span><span class="lineCov">         44 :     status = (*ctx-&gt;cred_cb)(username, password,</span>
+<span class="lineNum">     412 </span><span class="lineCov">         22 :                              authn_req, authn_req-&gt;handler_baton,</span>
+<span class="lineNum">     413 </span><span class="lineCov">         22 :                              code, authn_type, realm, pool);</span>
+<span class="lineNum">     414 </span><span class="lineCov">         22 :     if (status)</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :         return status;</span>
+<span class="lineNum">     416 </span>            : 
+<span class="lineNum">     417 </span><span class="lineCov">         22 :     return APR_SUCCESS;</span>
+<span class="lineNum">     418 </span><span class="lineCov">         22 : }</span>
+<a name="419"><span class="lineNum">     419 </span>            : </a>
+<span class="lineNum">     420 </span>            : static serf_request_t *
+<span class="lineNum">     421 </span>            : create_request(serf_connection_t *conn,
+<span class="lineNum">     422 </span>            :                serf_request_setup_t setup,
+<span class="lineNum">     423 </span>            :                void *setup_baton,
+<span class="lineNum">     424 </span>            :                bool priority,
+<span class="lineNum">     425 </span>            :                bool ssltunnel)
+<span class="lineNum">     426 </span>            : {
+<span class="lineNum">     427 </span>            :     serf_request_t *request;
+<span class="lineNum">     428 </span>            : 
+<span class="lineNum">     429 </span><span class="lineCov">        686 :     request = serf_bucket_mem_alloc(conn-&gt;allocator, sizeof(*request));</span>
+<span class="lineNum">     430 </span><span class="lineCov">        686 :     request-&gt;conn = conn;</span>
+<span class="lineNum">     431 </span><span class="lineCov">        686 :     request-&gt;setup = setup;</span>
+<span class="lineNum">     432 </span><span class="lineCov">        686 :     request-&gt;setup_baton = setup_baton;</span>
+<span class="lineNum">     433 </span><span class="lineCov">        686 :     request-&gt;handler = NULL;</span>
+<span class="lineNum">     434 </span><span class="lineCov">        686 :     request-&gt;acceptor = NULL;</span>
+<span class="lineNum">     435 </span><span class="lineCov">        686 :     request-&gt;respool = NULL;</span>
+<span class="lineNum">     436 </span><span class="lineCov">        686 :     request-&gt;req_bkt = NULL;</span>
+<span class="lineNum">     437 </span><span class="lineCov">        686 :     request-&gt;resp_bkt = NULL;</span>
+<span class="lineNum">     438 </span><span class="lineCov">        686 :     request-&gt;priority = priority;</span>
+<span class="lineNum">     439 </span><span class="lineCov">        686 :     request-&gt;writing = SERF_WRITING_NONE;</span>
+<span class="lineNum">     440 </span><span class="lineCov">        686 :     request-&gt;ssltunnel = ssltunnel;</span>
+<span class="lineNum">     441 </span><span class="lineCov">        686 :     request-&gt;auth_done = FALSE;</span>
+<span class="lineNum">     442 </span><span class="lineCov">        686 :     request-&gt;next = NULL;</span>
+<span class="lineNum">     443 </span><span class="lineCov">        686 :     request-&gt;auth_baton = NULL;</span>
+<span class="lineNum">     444 </span><span class="lineCov">        686 :     request-&gt;protocol_baton = NULL;</span>
+<span class="lineNum">     445 </span><span class="lineCov">        686 :     request-&gt;depends_on = NULL;</span>
+<span class="lineNum">     446 </span><span class="lineCov">        686 :     request-&gt;depends_next = NULL;</span>
+<span class="lineNum">     447 </span><span class="lineCov">        686 :     request-&gt;depends_first = NULL;</span>
+<span class="lineNum">     448 </span><span class="lineCov">        686 :     request-&gt;dep_priority = SERF_REQUEST_PRIORITY_DEFAULT;</span>
+<span class="lineNum">     449 </span>            : 
+<span class="lineNum">     450 </span><span class="lineCov">        686 :     return request;</span>
+<a name="451"><span class="lineNum">     451 </span>            : }</a>
+<span class="lineNum">     452 </span>            : 
+<span class="lineNum">     453 </span>            : serf_request_t *serf_connection_request_create(
+<span class="lineNum">     454 </span>            :     serf_connection_t *conn,
+<span class="lineNum">     455 </span>            :     serf_request_setup_t setup,
+<span class="lineNum">     456 </span>            :     void *setup_baton)
+<span class="lineNum">     457 </span>            : {
+<span class="lineNum">     458 </span>            :     serf_request_t *request;
+<span class="lineNum">     459 </span>            : 
+<span class="lineNum">     460 </span><span class="lineCov">        647 :     request = create_request(conn, setup, setup_baton,</span>
+<span class="lineNum">     461 </span>            :                              false /* priority */,
+<span class="lineNum">     462 </span>            :                              false /* ssl tunnel */);
+<span class="lineNum">     463 </span>            : 
+<span class="lineNum">     464 </span>            :     /* Link the request to the end of the request chain. */
+<span class="lineNum">     465 </span><span class="lineCov">        647 :     serf__link_requests(&amp;conn-&gt;unwritten_reqs, &amp;conn-&gt;unwritten_reqs_tail, request);</span>
+<span class="lineNum">     466 </span><span class="lineCov">        647 :     conn-&gt;nr_of_unwritten_reqs++;</span>
+<span class="lineNum">     467 </span>            : 
+<span class="lineNum">     468 </span>            :     /* Ensure our pollset becomes writable in context run */
+<span class="lineNum">     469 </span><span class="lineCov">       1294 :     serf_io__set_pollset_dirty(&amp;conn-&gt;io);</span>
+<span class="lineNum">     470 </span>            : 
+<span class="lineNum">     471 </span><span class="lineCov">        647 :     return request;</span>
+<span class="lineNum">     472 </span>            : }
+<a name="473"><span class="lineNum">     473 </span>            : </a>
+<span class="lineNum">     474 </span>            : static void
+<span class="lineNum">     475 </span>            : insert_priority_request(serf_request_t *request)
+<span class="lineNum">     476 </span>            : {
+<span class="lineNum">     477 </span>            :     serf_request_t *iter, *prev;
+<span class="lineNum">     478 </span><span class="lineCov">         39 :     serf_connection_t *conn = request-&gt;conn;</span>
+<span class="lineNum">     479 </span>            : 
+<span class="lineNum">     480 </span>            :     /* Link the new request after the last written request. */
+<span class="lineNum">     481 </span><span class="lineCov">         39 :     iter = conn-&gt;unwritten_reqs;</span>
+<span class="lineNum">     482 </span><span class="lineCov">         39 :     prev = NULL;</span>
+<span class="lineNum">     483 </span>            : 
+<span class="lineNum">     484 </span>            :     /* TODO: what if a request is partially written? */
+<span class="lineNum">     485 </span>            :     /* Find a request that has data which needs to be delivered. */
+<span class="lineNum">     486 </span><span class="lineCov">        141 :     while (iter != NULL &amp;&amp; iter-&gt;req_bkt == NULL</span>
+<span class="lineNum">     487 </span><span class="lineCov">         39 :            &amp;&amp; (iter-&gt;writing &gt;= SERF_WRITING_STARTED)) {</span>
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :         prev = iter;</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :         iter = iter-&gt;next;</span>
+<span class="lineNum">     490 </span>            :     }
+<span class="lineNum">     491 </span>            : 
+<span class="lineNum">     492 </span>            :     /* A CONNECT request to setup an ssltunnel has absolute priority over all
+<span class="lineNum">     493 </span>            :        other requests on the connection, so:
+<span class="lineNum">     494 </span>            :        a. add it first to the queue
+<span class="lineNum">     495 </span>            :        b. ensure that other priority requests are added after the CONNECT
+<span class="lineNum">     496 </span>            :           request */
+<span class="lineNum">     497 </span><span class="lineCov">         39 :     if (!request-&gt;ssltunnel) {</span>
+<span class="lineNum">     498 </span>            :         /* Advance to next non priority request */
+<span class="lineNum">     499 </span><span class="lineCov">         65 :         while (iter != NULL &amp;&amp; iter-&gt;priority) {</span>
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :             prev = iter;</span>
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :             iter = iter-&gt;next;</span>
+<span class="lineNum">     502 </span>            :         }
+<span class="lineNum">     503 </span><span class="lineCov">         20 :     }</span>
+<span class="lineNum">     504 </span>            : 
+<span class="lineNum">     505 </span><span class="lineCov">         39 :     if (prev) {</span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :         request-&gt;next = iter;</span>
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :         prev-&gt;next = request;</span>
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :     } else {</span>
+<span class="lineNum">     509 </span><span class="lineCov">         39 :         request-&gt;next = iter;</span>
+<span class="lineNum">     510 </span><span class="lineCov">         39 :         conn-&gt;unwritten_reqs = request;</span>
+<span class="lineNum">     511 </span>            :     }
+<span class="lineNum">     512 </span><span class="lineCov">         39 :     conn-&gt;nr_of_unwritten_reqs++;</span>
+<span class="lineNum">     513 </span>            : 
+<span class="lineNum">     514 </span>            :     /* Ensure our pollset becomes writable in context run */
+<span class="lineNum">     515 </span><span class="lineCov">         78 :     serf_io__set_pollset_dirty(&amp;conn-&gt;io);</span>
+<span class="lineNum">     516 </span><span class="lineCov">         39 : }</span>
+<a name="517"><span class="lineNum">     517 </span>            : </a>
+<span class="lineNum">     518 </span>            : static serf_request_t *
+<span class="lineNum">     519 </span>            : priority_request_create(serf_connection_t *conn,
+<span class="lineNum">     520 </span>            :                         int ssltunnelreq,
+<span class="lineNum">     521 </span>            :                         serf_request_setup_t setup,
+<span class="lineNum">     522 </span>            :                         void *setup_baton)
+<span class="lineNum">     523 </span>            : {
+<span class="lineNum">     524 </span>            :     serf_request_t *request;
+<span class="lineNum">     525 </span>            : 
+<span class="lineNum">     526 </span><span class="lineCov">         34 :     request = create_request(conn, setup, setup_baton,</span>
+<span class="lineNum">     527 </span>            :                              true /* priority */,
+<span class="lineNum">     528 </span><span class="lineCov">         17 :                              ssltunnelreq);</span>
+<span class="lineNum">     529 </span>            : 
+<span class="lineNum">     530 </span><span class="lineCov">         17 :     insert_priority_request(request);</span>
+<span class="lineNum">     531 </span>            : 
+<span class="lineNum">     532 </span><span class="lineCov">         17 :     return request;</span>
+<a name="533"><span class="lineNum">     533 </span>            : }</a>
+<span class="lineNum">     534 </span>            : 
+<span class="lineNum">     535 </span>            : serf_request_t *serf_connection_priority_request_create(
+<span class="lineNum">     536 </span>            :     serf_connection_t *conn,
+<span class="lineNum">     537 </span>            :     serf_request_setup_t setup,
+<span class="lineNum">     538 </span>            :     void *setup_baton)
+<span class="lineNum">     539 </span>            : {
+<span class="lineNum">     540 </span><span class="lineCov">         10 :     return priority_request_create(conn,</span>
+<span class="lineNum">     541 </span>            :                                    0, /* not a ssltunnel CONNECT request */
+<span class="lineNum">     542 </span><span class="lineCov">          5 :                                    setup, setup_baton);</span>
+<a name="543"><span class="lineNum">     543 </span>            : }</a>
+<span class="lineNum">     544 </span>            : 
+<span class="lineNum">     545 </span>            : serf_request_t *serf__ssltunnel_request_create(serf_connection_t *conn,
+<span class="lineNum">     546 </span>            :                                                serf_request_setup_t setup,
+<span class="lineNum">     547 </span>            :                                                void *setup_baton)
+<span class="lineNum">     548 </span>            : {
+<span class="lineNum">     549 </span><span class="lineCov">         24 :     return priority_request_create(conn,</span>
+<span class="lineNum">     550 </span>            :                                    1, /* This is a ssltunnel CONNECT request */
+<span class="lineNum">     551 </span><span class="lineCov">         12 :                                    setup, setup_baton);</span>
+<span class="lineNum">     552 </span>            : }
+<a name="553"><span class="lineNum">     553 </span>            : </a>
+<span class="lineNum">     554 </span>            : /* Serf request_handler_t to discard a request */
+<span class="lineNum">     555 </span>            : static apr_status_t discard_response_handler(serf_request_t *request,
+<span class="lineNum">     556 </span>            :                                              serf_bucket_t *response,
+<span class="lineNum">     557 </span>            :                                              void *handler_baton,
+<span class="lineNum">     558 </span>            :                                              apr_pool_t *pool)
+<span class="lineNum">     559 </span>            : {
+<span class="lineNum">     560 </span>            :     apr_status_t status;
+<span class="lineNum">     561 </span>            :     apr_size_t len;
+<span class="lineNum">     562 </span>            : 
+<span class="lineNum">     563 </span><span class="lineCov">         41 :     do</span>
+<span class="lineNum">     564 </span>            :     {
+<span class="lineNum">     565 </span>            :         const char *data;
+<span class="lineNum">     566 </span>            : 
+<span class="lineNum">     567 </span><span class="lineCov">         54 :         status = serf_bucket_read(response, SERF_READ_ALL_AVAIL, &amp;data, &amp;len);</span>
+<span class="lineNum">     568 </span><span class="lineCov">        194 :     } while (!status &amp;&amp; len);</span>
+<span class="lineNum">     569 </span>            : 
+<span class="lineNum">     570 </span><span class="lineCov">         41 :     return status;</span>
+<a name="571"><span class="lineNum">     571 </span>            : }</a>
+<span class="lineNum">     572 </span>            : 
+<span class="lineNum">     573 </span>            : apr_status_t serf_connection__request_requeue(serf_request_t *request)
+<span class="lineNum">     574 </span>            : {
+<span class="lineNum">     575 </span>            :     serf_request_t *discard;
+<span class="lineNum">     576 </span>            :     serf_request_t **pr;
+<span class="lineNum">     577 </span>            : 
+<span class="lineNum">     578 </span>            :     /* For some reason, somebody wants to restart this request, that was
+<span class="lineNum">     579 </span>            :        at least partially written and partially read. Most likely to
+<span class="lineNum">     580 </span>            :        slightly change it. (E.g. to add auth headers).
+<span class="lineNum">     581 </span>            : 
+<span class="lineNum">     582 </span>            :        To handle this we have to do two things: we have to handle remaining
+<span class="lineNum">     583 </span>            :        incoming data on the existing request. And we have to make the request
+<span class="lineNum">     584 </span>            :        ready to write it again.. preferably as the first new request.
+<span class="lineNum">     585 </span>            :      */
+<span class="lineNum">     586 </span>            : 
+<span class="lineNum">     587 </span>            :     /* Setup a new request to handle discarding the remaining body */
+<span class="lineNum">     588 </span><span class="lineCov">         44 :     discard = create_request(request-&gt;conn,</span>
+<span class="lineNum">     589 </span>            :                              NULL, NULL,
+<span class="lineNum">     590 </span><span class="lineCov">         22 :                              request-&gt;priority,</span>
+<span class="lineNum">     591 </span><span class="lineCov">         22 :                              request-&gt;ssltunnel);</span>
+<span class="lineNum">     592 </span>            : 
+<span class="lineNum">     593 </span><span class="lineCov">         22 :     discard-&gt;respool = request-&gt;respool;</span>
+<span class="lineNum">     594 </span><span class="lineCov">         22 :     discard-&gt;allocator = request-&gt;allocator;</span>
+<span class="lineNum">     595 </span><span class="lineCov">         22 :     discard-&gt;req_bkt = request-&gt;req_bkt;</span>
+<span class="lineNum">     596 </span><span class="lineCov">         22 :     discard-&gt;resp_bkt = request-&gt;resp_bkt;</span>
+<span class="lineNum">     597 </span>            : 
+<span class="lineNum">     598 </span><span class="lineCov">         22 :     discard-&gt;setup = NULL;  /* Already setup */</span>
+<span class="lineNum">     599 </span><span class="lineCov">         22 :     discard-&gt;setup_baton = NULL;</span>
+<span class="lineNum">     600 </span>            : 
+<span class="lineNum">     601 </span><span class="lineCov">         22 :     discard-&gt;acceptor = NULL;</span>
+<span class="lineNum">     602 </span><span class="lineCov">         22 :     discard-&gt;acceptor_baton = NULL; /* Already accepted */</span>
+<span class="lineNum">     603 </span>            : 
+<span class="lineNum">     604 </span><span class="lineCov">         22 :     discard-&gt;handler = discard_response_handler;</span>
+<span class="lineNum">     605 </span><span class="lineCov">         22 :     discard-&gt;handler_baton = NULL;</span>
+<span class="lineNum">     606 </span>            : 
+<span class="lineNum">     607 </span><span class="lineCov">         22 :     discard-&gt;protocol_baton = request-&gt;protocol_baton;</span>
+<span class="lineNum">     608 </span><span class="lineCov">         22 :     discard-&gt;auth_done = request-&gt;auth_done;</span>
+<span class="lineNum">     609 </span><span class="lineCov">         22 :     discard-&gt;auth_baton = request-&gt;auth_baton;</span>
+<span class="lineNum">     610 </span>            : 
+<span class="lineNum">     611 </span><span class="lineCov">         22 :     discard-&gt;writing = request-&gt;writing;</span>
+<span class="lineNum">     612 </span>            : 
+<span class="lineNum">     613 </span><span class="lineCov">         22 :     if (discard-&gt;respool) {</span>
+<span class="lineNum">     614 </span><span class="lineCov">         22 :         apr_pool_cleanup_kill(discard-&gt;respool, request, clean_resp);</span>
+<span class="lineNum">     615 </span><span class="lineCov">         22 :         apr_pool_cleanup_register(discard-&gt;respool, discard,</span>
+<span class="lineNum">     616 </span>            :                                   clean_resp, apr_pool_cleanup_null);
+<span class="lineNum">     617 </span><span class="lineCov">         22 :     }</span>
+<span class="lineNum">     618 </span>            : 
+<span class="lineNum">     619 </span><span class="lineCov">         22 :     if (request-&gt;depends_on) {</span>
+<span class="lineNum">     620 </span>            :         /* Update request dependencies */
+<span class="lineNum">     621 </span><span class="lineNoCov">          0 :         discard-&gt;depends_on = request-&gt;depends_on;</span>
+<span class="lineNum">     622 </span>            : 
+<span class="lineNum">     623 </span><span class="lineNoCov">          0 :         for (pr = &amp;discard-&gt;depends_on-&gt;depends_first;</span>
+<span class="lineNum">     624 </span><span class="lineNoCov">          0 :              *pr;</span>
+<span class="lineNum">     625 </span><span class="lineNoCov">          0 :              pr = &amp;(*pr)-&gt;depends_next)</span>
+<span class="lineNum">     626 </span>            :         {
+<span class="lineNum">     627 </span><span class="lineNoCov">          0 :             if (*pr == request) {</span>
+<span class="lineNum">     628 </span><span class="lineNoCov">          0 :                 *pr = discard;</span>
+<span class="lineNum">     629 </span><span class="lineNoCov">          0 :                 discard-&gt;depends_next = request-&gt;depends_next;</span>
+<span class="lineNum">     630 </span><span class="lineNoCov">          0 :                 request-&gt;depends_next = NULL;</span>
+<span class="lineNum">     631 </span><span class="lineNoCov">          0 :                 request-&gt;depends_on = NULL;</span>
+<span class="lineNum">     632 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     633 </span>            :             }
+<span class="lineNum">     634 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     635 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     636 </span><span class="lineCov">         22 :     if (request-&gt;depends_first) {</span>
+<span class="lineNum">     637 </span>            :         serf_request_t *r;
+<span class="lineNum">     638 </span>            : 
+<span class="lineNum">     639 </span><span class="lineNoCov">          0 :         for (r = request-&gt;depends_first; r; r = r-&gt;depends_next) {</span>
+<span class="lineNum">     640 </span><span class="lineNoCov">          0 :             r-&gt;depends_on = discard;</span>
+<span class="lineNum">     641 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     642 </span><span class="lineNoCov">          0 :         discard-&gt;depends_first = request-&gt;depends_first;</span>
+<span class="lineNum">     643 </span><span class="lineNoCov">          0 :         request-&gt;depends_first = NULL;</span>
+<span class="lineNum">     644 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     645 </span>            : 
+<span class="lineNum">     646 </span>            :     /* And now make the discard request take the place of the old request */
+<span class="lineNum">     647 </span><span class="lineCov">         44 :     for (pr = &amp;request-&gt;conn-&gt;written_reqs; *pr; pr = &amp;(*pr)-&gt;next) {</span>
+<span class="lineNum">     648 </span><span class="lineCov">         22 :         if (*pr == request) {</span>
+<span class="lineNum">     649 </span><span class="lineCov">         22 :             *pr = discard;</span>
+<span class="lineNum">     650 </span><span class="lineCov">         22 :             discard-&gt;next = request-&gt;next;</span>
+<span class="lineNum">     651 </span><span class="lineCov">         22 :             request-&gt;next = NULL;</span>
+<span class="lineNum">     652 </span>            : 
+<span class="lineNum">     653 </span><span class="lineCov">         22 :             if (!discard-&gt;next)</span>
+<span class="lineNum">     654 </span><span class="lineCov">         20 :                 request-&gt;conn-&gt;written_reqs_tail = discard;</span>
+<span class="lineNum">     655 </span><span class="lineCov">         22 :             break;</span>
+<span class="lineNum">     656 </span>            :         }
+<span class="lineNum">     657 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     658 </span>            : 
+<span class="lineNum">     659 </span>            :     /* Tell the protocol handler (if any) that we are no longer looking at the
+<span class="lineNum">     660 </span>            :        request */
+<span class="lineNum">     661 </span>            : 
+<span class="lineNum">     662 </span><span class="lineCov">         22 :     if (request-&gt;conn-&gt;perform_cancel_request)</span>
+<span class="lineNum">     663 </span><span class="lineCov">          1 :         request-&gt;conn-&gt;perform_cancel_request(discard, SERF_ERROR_HTTP2_CANCEL);</span>
+<span class="lineNum">     664 </span>            : 
+<span class="lineNum">     665 </span>            :     /* And now unhook the existing request */
+<span class="lineNum">     666 </span><span class="lineCov">         22 :     request-&gt;allocator = NULL;</span>
+<span class="lineNum">     667 </span><span class="lineCov">         22 :     request-&gt;respool = NULL;</span>
+<span class="lineNum">     668 </span><span class="lineCov">         22 :     request-&gt;req_bkt = NULL;</span>
+<span class="lineNum">     669 </span><span class="lineCov">         22 :     request-&gt;resp_bkt = NULL;</span>
+<span class="lineNum">     670 </span><span class="lineCov">         22 :     request-&gt;writing = SERF_WRITING_NONE;</span>
+<span class="lineNum">     671 </span><span class="lineCov">         22 :     request-&gt;auth_baton = NULL;</span>
+<span class="lineNum">     672 </span><span class="lineCov">         22 :     request-&gt;protocol_baton = NULL;</span>
+<span class="lineNum">     673 </span>            : 
+<span class="lineNum">     674 </span><span class="lineCov">         22 :     request-&gt;acceptor = NULL;</span>
+<span class="lineNum">     675 </span><span class="lineCov">         22 :     request-&gt;acceptor_baton = NULL;</span>
+<span class="lineNum">     676 </span><span class="lineCov">         22 :     request-&gt;handler = NULL;</span>
+<span class="lineNum">     677 </span><span class="lineCov">         22 :     request-&gt;handler_baton = NULL;</span>
+<span class="lineNum">     678 </span><span class="lineCov">         22 :     request-&gt;auth_done = false;</span>
+<span class="lineNum">     679 </span>            : 
+<span class="lineNum">     680 </span><span class="lineCov">         44 :     if (discard-&gt;depends_first || discard-&gt;depends_on) {</span>
+<span class="lineNum">     681 </span><span class="lineNoCov">          0 :         serf_connection_request_prioritize(request, discard, 0xFFFF,</span>
+<span class="lineNum">     682 </span>            :                                            TRUE);
+<span class="lineNum">     683 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     684 </span>            : 
+<span class="lineNum">     685 </span><span class="lineCov">         22 :     insert_priority_request(request);</span>
+<span class="lineNum">     686 </span>            : 
+<span class="lineNum">     687 </span><span class="lineCov">         22 :     return APR_SUCCESS;</span>
+<a name="688"><span class="lineNum">     688 </span>            : }</a>
+<span class="lineNum">     689 </span>            : 
+<span class="lineNum">     690 </span>            : apr_status_t serf_request_cancel(serf_request_t *request)
+<span class="lineNum">     691 </span>            : {
+<span class="lineNum">     692 </span><span class="lineNoCov">          0 :     serf_connection_t *conn = request-&gt;conn;</span>
+<span class="lineNum">     693 </span><span class="lineNoCov">          0 :     serf_request_t *tmp = conn-&gt;unwritten_reqs;</span>
+<span class="lineNum">     694 </span>            : 
+<span class="lineNum">     695 </span>            :     /* Find out which queue holds the request */
+<span class="lineNum">     696 </span><span class="lineNoCov">          0 :     while (tmp != NULL &amp;&amp; tmp != request)</span>
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :         tmp = tmp-&gt;next;</span>
+<span class="lineNum">     698 </span>            : 
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :     if (tmp)</span>
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :         return serf__cancel_request(request, &amp;conn-&gt;unwritten_reqs, 0);</span>
+<span class="lineNum">     701 </span>            :     else
+<span class="lineNum">     702 </span><span class="lineNoCov">          0 :         return serf__cancel_request(request, &amp;conn-&gt;written_reqs, 0);</span>
+<span class="lineNum">     703 </span>            : 
+<a name="704"><span class="lineNum">     704 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     705 </span>            : 
+<span class="lineNum">     706 </span>            : void serf_connection_request_prioritize(serf_request_t *request,
+<span class="lineNum">     707 </span>            :                                         serf_request_t *depends_on,
+<span class="lineNum">     708 </span>            :                                         apr_uint16_t priority,
+<span class="lineNum">     709 </span>            :                                         int exclusive)
+<span class="lineNum">     710 </span>            : {
+<span class="lineNum">     711 </span><span class="lineNoCov">          0 :     if (request-&gt;depends_on != depends_on) {</span>
+<span class="lineNum">     712 </span>            :         serf_request_t *r;
+<span class="lineNum">     713 </span>            : 
+<span class="lineNum">     714 </span><span class="lineNoCov">          0 :         if (depends_on-&gt;conn != request-&gt;conn || depends_on == request)</span>
+<span class="lineNum">     715 </span><span class="lineNoCov">          0 :             abort();</span>
+<span class="lineNum">     716 </span>            : 
+<span class="lineNum">     717 </span>            :         /* If we are indirectly made dependent on ourself, we first
+<span class="lineNum">     718 </span>            :            reprioritize the descendant on our current parent. See
+<span class="lineNum">     719 </span>            :            https://tools.ietf.org/html/rfc7540#section-5.3.3
+<span class="lineNum">     720 </span>            : 
+<span class="lineNum">     721 </span>            :            If a stream is made dependent on one of its own dependencies, the
+<span class="lineNum">     722 </span>            :            formerly dependent stream is first moved to be dependent on the
+<span class="lineNum">     723 </span>            :            reprioritized stream's previous parent.  The moved dependency
+<span class="lineNum">     724 </span>            :            retains its weight. */
+<span class="lineNum">     725 </span>            : 
+<span class="lineNum">     726 </span><span class="lineNoCov">          0 :         r = depends_on;</span>
+<span class="lineNum">     727 </span>            : 
+<span class="lineNum">     728 </span><span class="lineNoCov">          0 :         while (r &amp;&amp; r != request &amp;&amp; r-&gt;depends_on)</span>
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 :             r = r-&gt;depends_on;</span>
+<span class="lineNum">     730 </span>            : 
+<span class="lineNum">     731 </span><span class="lineNoCov">          0 :         if (r == request)</span>
+<span class="lineNum">     732 </span>            :         {
+<span class="lineNum">     733 </span><span class="lineNoCov">          0 :             serf_connection_request_prioritize(depends_on,</span>
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 :                                                request-&gt;depends_on,</span>
+<span class="lineNum">     735 </span><span class="lineNoCov">          0 :                                                depends_on-&gt;dep_priority,</span>
+<span class="lineNum">     736 </span>            :                                                false /* exclusive */);
+<span class="lineNum">     737 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     738 </span>            : 
+<span class="lineNum">     739 </span><span class="lineNoCov">          0 :         if (request-&gt;depends_on) {</span>
+<span class="lineNum">     740 </span>            :         /* Ok, we can now update our dependency */
+<span class="lineNum">     741 </span>            : 
+<span class="lineNum">     742 </span><span class="lineNoCov">          0 :             serf_request_t **pr = &amp;request-&gt;depends_on-&gt;depends_first;</span>
+<span class="lineNum">     743 </span>            : 
+<span class="lineNum">     744 </span><span class="lineNoCov">          0 :             while (*pr) {</span>
+<span class="lineNum">     745 </span><span class="lineNoCov">          0 :                 if (*pr == request) {</span>
+<span class="lineNum">     746 </span><span class="lineNoCov">          0 :                     *pr = request-&gt;depends_next;</span>
+<span class="lineNum">     747 </span><span class="lineNoCov">          0 :                     break;</span>
+<span class="lineNum">     748 </span>            :                 }
+<span class="lineNum">     749 </span><span class="lineNoCov">          0 :                 pr = &amp;(*pr)-&gt;depends_next;</span>
+<span class="lineNum">     750 </span>            :             }
+<span class="lineNum">     751 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     752 </span>            : 
+<span class="lineNum">     753 </span><span class="lineNoCov">          0 :         request-&gt;depends_on = depends_on;</span>
+<span class="lineNum">     754 </span>            : 
+<span class="lineNum">     755 </span><span class="lineNoCov">          0 :         if (depends_on) {</span>
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :             if (exclusive) {</span>
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :                 r = depends_on-&gt;depends_first;</span>
+<span class="lineNum">     758 </span>            : 
+<span class="lineNum">     759 </span><span class="lineNoCov">          0 :                 while (r) {</span>
+<span class="lineNum">     760 </span><span class="lineNoCov">          0 :                     r-&gt;depends_on = request;</span>
+<span class="lineNum">     761 </span>            : 
+<span class="lineNum">     762 </span><span class="lineNoCov">          0 :                     if (r-&gt;depends_next)</span>
+<span class="lineNum">     763 </span><span class="lineNoCov">          0 :                         r = r-&gt;depends_next;</span>
+<span class="lineNum">     764 </span>            :                     else
+<span class="lineNum">     765 </span><span class="lineNoCov">          0 :                         break;</span>
+<span class="lineNum">     766 </span>            :                 }
+<span class="lineNum">     767 </span>            : 
+<span class="lineNum">     768 </span><span class="lineNoCov">          0 :                 if (r) {</span>
+<span class="lineNum">     769 </span><span class="lineNoCov">          0 :                     r-&gt;depends_next = request-&gt;depends_first;</span>
+<span class="lineNum">     770 </span><span class="lineNoCov">          0 :                     r-&gt;depends_first = depends_on-&gt;depends_first;</span>
+<span class="lineNum">     771 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">     772 </span><span class="lineNoCov">          0 :                 request-&gt;depends_next = NULL;</span>
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">     774 </span>            :             else {
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :                 request-&gt;depends_next = depends_on-&gt;depends_first;</span>
+<span class="lineNum">     776 </span>            :             }
+<span class="lineNum">     777 </span><span class="lineNoCov">          0 :             depends_on-&gt;depends_first = request;</span>
+<span class="lineNum">     778 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     779 </span>            :         else
+<span class="lineNum">     780 </span><span class="lineNoCov">          0 :             request-&gt;depends_next = NULL;</span>
+<span class="lineNum">     781 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     782 </span>            : 
+<span class="lineNum">     783 </span><span class="lineNoCov">          0 :     if (priority)</span>
+<span class="lineNum">     784 </span><span class="lineNoCov">          0 :         request-&gt;dep_priority = priority;</span>
+<span class="lineNum">     785 </span>            : 
+<span class="lineNum">     786 </span>            :     /* And now tell the protocol about this */
+<span class="lineNum">     787 </span><span class="lineNoCov">          0 :     if (request-&gt;conn-&gt;perform_prioritize_request)</span>
+<span class="lineNum">     788 </span><span class="lineNoCov">          0 :         request-&gt;conn-&gt;perform_prioritize_request(request, exclusive != 0);</span>
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 : }</span>
+<a name="790"><span class="lineNum">     790 </span>            : </a>
+<span class="lineNum">     791 </span>            : 
+<span class="lineNum">     792 </span>            : apr_status_t serf_request_is_written(serf_request_t *request)
+<span class="lineNum">     793 </span>            : {
+<span class="lineNum">     794 </span><span class="lineCov">          1 :     if (request-&gt;writing &gt;= SERF_WRITING_FINISHED)</span>
+<span class="lineNum">     795 </span><span class="lineNoCov">          0 :         return APR_SUCCESS;</span>
+<span class="lineNum">     796 </span>            : 
+<span class="lineNum">     797 </span><span class="lineCov">          1 :     return APR_EBUSY;</span>
+<a name="798"><span class="lineNum">     798 </span><span class="lineCov">          1 : }</span></a>
+<span class="lineNum">     799 </span>            : 
+<span class="lineNum">     800 </span>            : apr_pool_t *serf_request_get_pool(const serf_request_t *request)
+<span class="lineNum">     801 </span>            : {
+<span class="lineNum">     802 </span><span class="lineNoCov">          0 :     return request-&gt;respool;</span>
+<span class="lineNum">     803 </span>            : }
+<a name="804"><span class="lineNum">     804 </span>            : </a>
+<span class="lineNum">     805 </span>            : 
+<span class="lineNum">     806 </span>            : serf_bucket_alloc_t *serf_request_get_alloc(
+<span class="lineNum">     807 </span>            :     const serf_request_t *request)
+<span class="lineNum">     808 </span>            : {
+<span class="lineNum">     809 </span><span class="lineCov">       1740 :     return request-&gt;allocator;</span>
+<span class="lineNum">     810 </span>            : }
+<a name="811"><span class="lineNum">     811 </span>            : </a>
+<span class="lineNum">     812 </span>            : 
+<span class="lineNum">     813 </span>            : serf_connection_t *serf_request_get_conn(
+<span class="lineNum">     814 </span>            :     const serf_request_t *request)
+<span class="lineNum">     815 </span>            : {
+<span class="lineNum">     816 </span><span class="lineCov">          5 :     return request-&gt;conn;</span>
+<span class="lineNum">     817 </span>            : }
+<a name="818"><span class="lineNum">     818 </span>            : </a>
+<span class="lineNum">     819 </span>            : 
+<span class="lineNum">     820 </span>            : void serf_request_set_handler(
+<span class="lineNum">     821 </span>            :     serf_request_t *request,
+<span class="lineNum">     822 </span>            :     const serf_response_handler_t handler,
+<span class="lineNum">     823 </span>            :     const void **handler_baton)
+<span class="lineNum">     824 </span>            : {
+<span class="lineNum">     825 </span><span class="lineNoCov">          0 :     request-&gt;handler = handler;</span>
+<span class="lineNum">     826 </span><span class="lineNoCov">          0 :     request-&gt;handler_baton = handler_baton;</span>
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 : }</span>
+<a name="828"><span class="lineNum">     828 </span>            : </a>
+<span class="lineNum">     829 </span>            : 
+<span class="lineNum">     830 </span>            : serf_bucket_t *serf_request_bucket_request_create(
+<span class="lineNum">     831 </span>            :     serf_request_t *request,
+<span class="lineNum">     832 </span>            :     const char *method,
+<span class="lineNum">     833 </span>            :     const char *uri,
+<span class="lineNum">     834 </span>            :     serf_bucket_t *body,
+<span class="lineNum">     835 </span>            :     serf_bucket_alloc_t *allocator)
+<span class="lineNum">     836 </span>            : {
+<span class="lineNum">     837 </span>            :     serf_bucket_t *req_bkt;
+<span class="lineNum">     838 </span>            :     serf_bucket_t *hdrs_bkt;
+<span class="lineNum">     839 </span><span class="lineCov">        662 :     serf_connection_t *conn = request-&gt;conn;</span>
+<span class="lineNum">     840 </span><span class="lineCov">        662 :     serf_context_t *ctx = conn-&gt;ctx;</span>
+<span class="lineNum">     841 </span>            :     int tunneled;
+<span class="lineNum">     842 </span>            : 
+<span class="lineNum">     843 </span><span class="lineCov">       1324 :     tunneled = ctx-&gt;proxy_address</span>
+<span class="lineNum">     844 </span><span class="lineCov">       1336 :                &amp;&amp; (strcmp(conn-&gt;host_info.scheme, &quot;https&quot;) == 0);</span>
+<span class="lineNum">     845 </span>            : 
+<span class="lineNum">     846 </span><span class="lineCov">        662 :     req_bkt = serf_bucket_request_create(method, uri, body, allocator);</span>
+<span class="lineNum">     847 </span><span class="lineCov">        662 :     hdrs_bkt = serf_bucket_request_get_headers(req_bkt);</span>
+<span class="lineNum">     848 </span>            : 
+<span class="lineNum">     849 </span>            :     /* Use absolute uri's in requests to a proxy. USe relative uri's in
+<span class="lineNum">     850 </span>            :        requests directly to a server or sent through an SSL tunnel. */
+<span class="lineNum">     851 </span><span class="lineCov">        686 :     if (ctx-&gt;proxy_address &amp;&amp; conn-&gt;host_url &amp;&amp; !tunneled)</span>
+<span class="lineNum">     852 </span>            :     {
+<span class="lineNum">     853 </span><span class="lineCov">          1 :         serf_bucket_request_set_root(req_bkt, conn-&gt;host_url);</span>
+<span class="lineNum">     854 </span><span class="lineCov">          1 :     }</span>
+<span class="lineNum">     855 </span>            : 
+<span class="lineNum">     856 </span><span class="lineCov">        662 :     if (conn-&gt;host_info.hostinfo)</span>
+<span class="lineNum">     857 </span>            :     {
+<span class="lineNum">     858 </span><span class="lineCov">        662 :         serf_bucket_headers_setn(hdrs_bkt, &quot;Host&quot;,  conn-&gt;host_info.hostinfo);</span>
+<span class="lineNum">     859 </span><span class="lineCov">        662 :     }</span>
+<span class="lineNum">     860 </span>            : 
+<span class="lineNum">     861 </span>            :     /* Setup server authentication headers.  */
+<span class="lineNum">     862 </span><span class="lineCov">        662 :     serf__auth_setup_request(HOST, request, method, uri, hdrs_bkt);</span>
+<span class="lineNum">     863 </span>            : 
+<span class="lineNum">     864 </span>            :     /* Setup proxy authentication headers, unless we're tunneling.  */
+<span class="lineNum">     865 </span><span class="lineCov">        662 :     if (!tunneled)</span>
+<span class="lineNum">     866 </span><span class="lineCov">        651 :         serf__auth_setup_request(PROXY, request, method, uri, hdrs_bkt);</span>
+<span class="lineNum">     867 </span>            : 
+<span class="lineNum">     868 </span><span class="lineCov">        662 :     return req_bkt;</span>
+<span class="lineNum">     869 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

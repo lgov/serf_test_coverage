@@ -1,0 +1,513 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - test/test_internal.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">test</a> - test_internal.c<span style="font-size: 80%;"> (source / <a href="test_internal.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">167</td>
+            <td class="headerCovTableEntry">169</td>
+            <td class="headerCovTableEntryHi">98.8 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-12-25 11:14:27</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">8</td>
+            <td class="headerCovTableEntry">10</td>
+            <td class="headerCovTableEntryMed">80.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* ====================================================================</a>
+<span class="lineNum">       2 </span>            :  *    Licensed to the Apache Software Foundation (ASF) under one
+<span class="lineNum">       3 </span>            :  *    or more contributor license agreements.  See the NOTICE file
+<span class="lineNum">       4 </span>            :  *    distributed with this work for additional information
+<span class="lineNum">       5 </span>            :  *    regarding copyright ownership.  The ASF licenses this file
+<span class="lineNum">       6 </span>            :  *    to you under the Apache License, Version 2.0 (the
+<span class="lineNum">       7 </span>            :  *    &quot;License&quot;); you may not use this file except in compliance
+<span class="lineNum">       8 </span>            :  *    with the License.  You may obtain a copy of the License at
+<span class="lineNum">       9 </span>            :  *
+<span class="lineNum">      10 </span>            :  *      http://www.apache.org/licenses/LICENSE-2.0
+<span class="lineNum">      11 </span>            :  *
+<span class="lineNum">      12 </span>            :  *    Unless required by applicable law or agreed to in writing,
+<span class="lineNum">      13 </span>            :  *    software distributed under the License is distributed on an
+<span class="lineNum">      14 </span>            :  *    &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+<span class="lineNum">      15 </span>            :  *    KIND, either express or implied.  See the License for the
+<span class="lineNum">      16 </span>            :  *    specific language governing permissions and limitations
+<span class="lineNum">      17 </span>            :  *    under the License.
+<span class="lineNum">      18 </span>            :  * ====================================================================
+<span class="lineNum">      19 </span>            :  */
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #include &lt;apr_version.h&gt;
+<span class="lineNum">      22 </span>            : #include &lt;apr_strings.h&gt;
+<span class="lineNum">      23 </span>            : #include &lt;openssl/ssl.h&gt;
+<span class="lineNum">      24 </span>            : #include &lt;openssl/opensslv.h&gt;
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #if APR_VERSION_MAJOR &lt; 2
+<span class="lineNum">      27 </span>            : #include &lt;apu_version.h&gt;
+<span class="lineNum">      28 </span>            : #endif
+<span class="lineNum">      29 </span>            : 
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span>            : #include &quot;serf.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;test_serf.h&quot;
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : /* These test cases have access to internal functions. */
+<span class="lineNum">      35 </span>            : #include &quot;serf_private.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;serf_bucket_util.h&quot;
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span>            : #define PER_CONN_UNKNOWN_KEY    SERF_CONFIG_PER_CONNECTION | 0xFF0001
+<span class="lineNum">      39 </span>            : /* #define PER_HOST_UNKNOWN_KEY    SERF_CONFIG_PER_HOST | 0xFF0002 */
+<span class="lineNum">      40 </span>            : #define PER_CONTEXT_UNKNOWN_KEY SERF_CONFIG_PER_CONTEXT | 0xFF0003
+<span class="lineNum">      41 </span>            : #define PER_CONN_TEST_KEY       SERF_CONFIG_PER_CONNECTION | 0xFFFFFF
+<span class="lineNum">      42 </span>            : #define PER_HOST_TEST_KEY       SERF_CONFIG_PER_HOST | 0xFFFFFF
+<a name="43"><span class="lineNum">      43 </span>            : #define PER_CONTEXT_TEST_KEY    SERF_CONFIG_PER_CONTEXT | 0xFFFFFF</a>
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span>            : static void test_config_store_per_context(CuTest *tc)
+<span class="lineNum">      46 </span>            : {
+<span class="lineNum">      47 </span><span class="lineCov">          1 :     test_baton_t *tb = tc-&gt;testBaton;</span>
+<span class="lineNum">      48 </span>            :     serf_config_t *cfg;
+<span class="lineNum">      49 </span>            : 
+<span class="lineNum">      50 </span><span class="lineCov">          1 :     serf_context_t *ctx = serf_context_create(tb-&gt;pool);</span>
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span>            :     /* The config store is empty initially, so we can play all we want */
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span>            :     /* We don't have a serf connection yet, so only the per context config
+<span class="lineNum">      55 </span>            :        should be available to read and write */
+<span class="lineNum">      56 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">      57 </span>            :                       serf__config_store_create_ctx_config(ctx, &amp;cfg));
+<span class="lineNum">      58 </span><span class="lineCov">          1 :     CuAssertPtrEquals(tc, NULL, cfg-&gt;per_conn);</span>
+<span class="lineNum">      59 </span><span class="lineCov">          1 :     CuAssertPtrEquals(tc, NULL, cfg-&gt;per_host);</span>
+<span class="lineNum">      60 </span><span class="lineCov">          1 :     CuAssertPtrNotNull(tc, cfg-&gt;per_context);</span>
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span>            :     /* Get a non-existing key, value should be NULL */
+<span class="lineNum">      63 </span>            :     {
+<span class="lineNum">      64 </span>            :         const char *actual;
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span><span class="lineCov">          1 :         CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">      67 </span>            :                           serf_config_get_string(cfg, PER_CONTEXT_UNKNOWN_KEY,
+<span class="lineNum">      68 </span>            :                                                  &amp;actual));
+<span class="lineNum">      69 </span><span class="lineCov">          1 :         CuAssertPtrEquals(tc, NULL, actual);</span>
+<span class="lineNum">      70 </span>            :     }
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span>            :     /* Store and retrieve a string value for a per-context key */
+<span class="lineNum">      73 </span>            :     {
+<span class="lineNum">      74 </span>            :         const char *actual;
+<span class="lineNum">      75 </span>            : 
+<span class="lineNum">      76 </span><span class="lineCov">          1 :         CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">      77 </span>            :                           serf_config_set_string(cfg, PER_CONTEXT_TEST_KEY,
+<span class="lineNum">      78 </span>            :                                                  &quot;test_value&quot;));
+<span class="lineNum">      79 </span><span class="lineCov">          1 :         CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">      80 </span>            :                           serf_config_get_string(cfg, PER_CONTEXT_TEST_KEY,
+<span class="lineNum">      81 </span>            :                                                  &amp;actual));
+<span class="lineNum">      82 </span><span class="lineCov">          1 :         CuAssertStrEquals(tc, &quot;test_value&quot;, actual);</span>
+<span class="lineNum">      83 </span>            :     }
+<span class="lineNum">      84 </span><span class="lineCov">          1 : }</span>
+<a name="85"><span class="lineNum">      85 </span>            : </a>
+<span class="lineNum">      86 </span>            : /* Empty implementations, they won't be called. */
+<span class="lineNum">      87 </span>            : static void conn_closed(serf_connection_t *conn, void *closed_baton,
+<span class="lineNum">      88 </span>            :                         apr_status_t why, apr_pool_t *pool)
+<span class="lineNum">      89 </span>            : {
+<a name="90"><span class="lineNum">      90 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span>            : static apr_status_t conn_setup(apr_socket_t *skt,
+<span class="lineNum">      93 </span>            :                                serf_bucket_t **input_bkt,
+<span class="lineNum">      94 </span>            :                                serf_bucket_t **output_bkt,
+<span class="lineNum">      95 </span>            :                                void *setup_baton,
+<span class="lineNum">      96 </span>            :                                apr_pool_t *pool)
+<span class="lineNum">      97 </span>            : {
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :     return APR_SUCCESS;</span>
+<a name="99"><span class="lineNum">      99 </span>            : }</a>
+<span class="lineNum">     100 </span>            : 
+<span class="lineNum">     101 </span>            : static void test_config_store_per_connection_different_host(CuTest *tc)
+<span class="lineNum">     102 </span>            : {
+<span class="lineNum">     103 </span><span class="lineCov">          1 :     test_baton_t *tb = tc-&gt;testBaton;</span>
+<span class="lineNum">     104 </span>            :     serf_config_t *cfg1, *cfg2;
+<span class="lineNum">     105 </span>            :     apr_uri_t url;
+<span class="lineNum">     106 </span>            :     const char *actual;
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span><span class="lineCov">          1 :     serf_context_t *ctx = serf_context_create(tb-&gt;pool);</span>
+<span class="lineNum">     109 </span>            :     serf_connection_t *conn1, *conn2;
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span>            :     /* Create two connections conn1 and conn2 to a different host */
+<span class="lineNum">     112 </span><span class="lineCov">          1 :     apr_uri_parse(tb-&gt;pool, &quot;http://localhost:12345&quot;, &amp;url);</span>
+<span class="lineNum">     113 </span><span class="lineCov">          2 :     serf_connection_create2(&amp;conn1, ctx, url, conn_setup, NULL,</span>
+<span class="lineNum">     114 </span><span class="lineCov">          1 :                             conn_closed, NULL, tb-&gt;pool);</span>
+<span class="lineNum">     115 </span><span class="lineCov">          1 :     apr_uri_parse(tb-&gt;pool, &quot;http://localhost:54321&quot;, &amp;url);</span>
+<span class="lineNum">     116 </span><span class="lineCov">          2 :     serf_connection_create2(&amp;conn2, ctx, url, conn_setup, NULL,</span>
+<span class="lineNum">     117 </span><span class="lineCov">          1 :                             conn_closed, NULL, tb-&gt;pool);</span>
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span>            :     /* Test 1: This should return a config object with per_context, per_host and
+<span class="lineNum">     120 </span>            :        per_connection hash_table's initialized. */
+<span class="lineNum">     121 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">     122 </span>            :                       serf__config_store_create_conn_config(conn1, &amp;cfg1));
+<span class="lineNum">     123 </span><span class="lineCov">          1 :     CuAssertPtrNotNull(tc, cfg1-&gt;per_context);</span>
+<span class="lineNum">     124 </span><span class="lineCov">          1 :     CuAssertPtrNotNull(tc, cfg1-&gt;per_host);</span>
+<span class="lineNum">     125 </span><span class="lineCov">          1 :     CuAssertPtrNotNull(tc, cfg1-&gt;per_conn);</span>
+<span class="lineNum">     126 </span>            :     /* Get a config object for the other connection also. */
+<span class="lineNum">     127 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">     128 </span>            :                       serf__config_store_create_conn_config(conn2, &amp;cfg2));
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span>            :     /* Test 2: Get a non-existing per connection key, value should be NULL */
+<span class="lineNum">     131 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">     132 </span>            :                       serf_config_get_string(cfg1, PER_CONN_UNKNOWN_KEY, &amp;actual));
+<span class="lineNum">     133 </span><span class="lineCov">          1 :     CuAssertPtrEquals(tc, NULL, actual);</span>
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span>            :     /* Test 3: Store and retrieve a string value for a per-connection key */
+<span class="lineNum">     136 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">     137 </span>            :                       serf_config_set_string(cfg1, PER_CONN_TEST_KEY,
+<span class="lineNum">     138 </span>            :                                              &quot;test_value&quot;));
+<span class="lineNum">     139 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">     140 </span>            :                       serf_config_get_string(cfg1, PER_CONN_TEST_KEY, &amp;actual));
+<span class="lineNum">     141 </span><span class="lineCov">          1 :     CuAssertStrEquals(tc, &quot;test_value&quot;, actual);</span>
+<span class="lineNum">     142 </span>            : 
+<span class="lineNum">     143 </span>            :     /* Test that the key was set in the config for the first connection only. */
+<span class="lineNum">     144 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">     145 </span>            :                       serf_config_get_string(cfg2, PER_CONN_TEST_KEY, &amp;actual));
+<span class="lineNum">     146 </span><span class="lineCov">          1 :     CuAssertPtrEquals(tc, NULL, actual);</span>
+<span class="lineNum">     147 </span>            : 
+<span class="lineNum">     148 </span>            :     /* Test 4: Store and retrieve a string value for a per-host key */
+<span class="lineNum">     149 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">     150 </span>            :                       serf_config_set_string(cfg1, PER_HOST_TEST_KEY,
+<span class="lineNum">     151 </span>            :                                              &quot;test_value&quot;));
+<span class="lineNum">     152 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">     153 </span>            :                       serf_config_get_string(cfg1, PER_HOST_TEST_KEY, &amp;actual));
+<span class="lineNum">     154 </span><span class="lineCov">          1 :     CuAssertStrEquals(tc, &quot;test_value&quot;, actual);</span>
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span>            :     /* Test that the key was NOT set in the config for the second connection,
+<span class="lineNum">     157 </span>            :        since they are to a different host. */
+<span class="lineNum">     158 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">     159 </span>            :                       serf_config_get_string(cfg2, PER_HOST_TEST_KEY, &amp;actual));
+<span class="lineNum">     160 </span><span class="lineCov">          1 :     CuAssertPtrEquals(tc, NULL, actual);</span>
+<a name="161"><span class="lineNum">     161 </span><span class="lineCov">          1 : }</span></a>
+<span class="lineNum">     162 </span>            : 
+<span class="lineNum">     163 </span>            : static void test_config_store_per_connection_same_host(CuTest *tc)
+<span class="lineNum">     164 </span>            : {
+<span class="lineNum">     165 </span><span class="lineCov">          1 :     test_baton_t *tb = tc-&gt;testBaton;</span>
+<span class="lineNum">     166 </span>            :     serf_config_t *cfg1, *cfg2;
+<span class="lineNum">     167 </span>            :     apr_uri_t url;
+<span class="lineNum">     168 </span>            :     const char *actual;
+<span class="lineNum">     169 </span>            : 
+<span class="lineNum">     170 </span><span class="lineCov">          1 :     serf_context_t *ctx = serf_context_create(tb-&gt;pool);</span>
+<span class="lineNum">     171 </span>            :     serf_connection_t *conn1, *conn2;
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span>            :     /* Create two connections conn1 and conn2 to the same host */
+<span class="lineNum">     174 </span><span class="lineCov">          1 :     apr_uri_parse(tb-&gt;pool, &quot;http://localhost:12345&quot;, &amp;url);</span>
+<span class="lineNum">     175 </span><span class="lineCov">          2 :     serf_connection_create2(&amp;conn1, ctx, url, conn_setup, NULL,</span>
+<span class="lineNum">     176 </span><span class="lineCov">          1 :                             conn_closed, NULL, tb-&gt;pool);</span>
+<span class="lineNum">     177 </span><span class="lineCov">          2 :     serf_connection_create2(&amp;conn2, ctx, url, conn_setup, NULL,</span>
+<span class="lineNum">     178 </span><span class="lineCov">          1 :                             conn_closed, NULL, tb-&gt;pool);</span>
+<span class="lineNum">     179 </span>            : 
+<span class="lineNum">     180 </span>            :     /* Test 1: This should return a config object with per_context, per_host and
+<span class="lineNum">     181 </span>            :      per_connection hash_table's initialized. */
+<span class="lineNum">     182 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">     183 </span>            :                       serf__config_store_create_conn_config(conn1, &amp;cfg1));
+<span class="lineNum">     184 </span><span class="lineCov">          1 :     CuAssertPtrNotNull(tc, cfg1-&gt;per_context);</span>
+<span class="lineNum">     185 </span><span class="lineCov">          1 :     CuAssertPtrNotNull(tc, cfg1-&gt;per_host);</span>
+<span class="lineNum">     186 </span><span class="lineCov">          1 :     CuAssertPtrNotNull(tc, cfg1-&gt;per_conn);</span>
+<span class="lineNum">     187 </span>            :     /* Get a config object for the other connection also. */
+<span class="lineNum">     188 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">     189 </span>            :                       serf__config_store_create_conn_config(conn2, &amp;cfg2));
+<span class="lineNum">     190 </span>            : 
+<span class="lineNum">     191 </span>            :     /* Test 2: Get a non-existing per connection key, value should be NULL */
+<span class="lineNum">     192 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">     193 </span>            :                       serf_config_get_string(cfg1, PER_CONN_UNKNOWN_KEY,
+<span class="lineNum">     194 </span>            :                                              &amp;actual));
+<span class="lineNum">     195 </span><span class="lineCov">          1 :     CuAssertPtrEquals(tc, NULL, actual);</span>
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span>            :     /* Test 3: Store and retrieve a string value for a per-connection key */
+<span class="lineNum">     198 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">     199 </span>            :                       serf_config_set_string(cfg1, PER_CONN_TEST_KEY,
+<span class="lineNum">     200 </span>            :                                              &quot;test_value&quot;));
+<span class="lineNum">     201 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">     202 </span>            :                       serf_config_get_string(cfg1, PER_CONN_TEST_KEY, &amp;actual));
+<span class="lineNum">     203 </span><span class="lineCov">          1 :     CuAssertStrEquals(tc, &quot;test_value&quot;, actual);</span>
+<span class="lineNum">     204 </span>            : 
+<span class="lineNum">     205 </span>            :     /* Test that the key was set in the config for the first connection only. */
+<span class="lineNum">     206 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">     207 </span>            :                       serf_config_get_string(cfg2, PER_CONN_TEST_KEY, &amp;actual));
+<span class="lineNum">     208 </span><span class="lineCov">          1 :     CuAssertPtrEquals(tc, NULL, actual);</span>
+<span class="lineNum">     209 </span>            : 
+<span class="lineNum">     210 </span>            :     /* Test 4: Store and retrieve a string value for a per-host key */
+<span class="lineNum">     211 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">     212 </span>            :                       serf_config_set_string(cfg1, PER_HOST_TEST_KEY,
+<span class="lineNum">     213 </span>            :                                              &quot;test_value&quot;));
+<span class="lineNum">     214 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">     215 </span>            :                       serf_config_get_string(cfg1, PER_HOST_TEST_KEY, &amp;actual));
+<span class="lineNum">     216 </span><span class="lineCov">          1 :     CuAssertStrEquals(tc, &quot;test_value&quot;, actual);</span>
+<span class="lineNum">     217 </span>            : 
+<span class="lineNum">     218 </span>            :     /* Test that the key was also set in the config for the second connection,
+<span class="lineNum">     219 </span>            :        since they are the same host. */
+<span class="lineNum">     220 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">     221 </span>            :                       serf_config_get_string(cfg2, PER_HOST_TEST_KEY, &amp;actual));
+<span class="lineNum">     222 </span><span class="lineCov">          1 :     CuAssertStrEquals(tc, &quot;test_value&quot;, actual);</span>
+<a name="223"><span class="lineNum">     223 </span><span class="lineCov">          1 : }</span></a>
+<span class="lineNum">     224 </span>            : 
+<span class="lineNum">     225 </span>            : static void test_config_store_error_handling(CuTest *tc)
+<span class="lineNum">     226 </span>            : {
+<span class="lineNum">     227 </span><span class="lineCov">          1 :     test_baton_t *tb = tc-&gt;testBaton;</span>
+<span class="lineNum">     228 </span>            :     serf_config_t *cfg;
+<span class="lineNum">     229 </span>            :     const char *actual;
+<span class="lineNum">     230 </span>            :     void *actual_obj;
+<span class="lineNum">     231 </span>            : 
+<span class="lineNum">     232 </span><span class="lineCov">          1 :     serf_context_t *ctx = serf_context_create(tb-&gt;pool);</span>
+<span class="lineNum">     233 </span>            : 
+<span class="lineNum">     234 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">     235 </span>            :                       serf__config_store_create_ctx_config(ctx, &amp;cfg));
+<span class="lineNum">     236 </span>            : 
+<span class="lineNum">     237 </span>            :     /* Config only has per-context keys, check for no crashes when getting
+<span class="lineNum">     238 </span>            :        per-connection and per-host keys. */
+<span class="lineNum">     239 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_EINVAL,</span>
+<span class="lineNum">     240 </span>            :                       serf_config_get_string(cfg, PER_HOST_TEST_KEY, &amp;actual));
+<span class="lineNum">     241 </span><span class="lineCov">          1 :     CuAssertPtrEquals(tc, NULL, actual);</span>
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_EINVAL,</span>
+<span class="lineNum">     244 </span>            :                       serf_config_get_string(cfg, PER_CONN_TEST_KEY, &amp;actual));
+<span class="lineNum">     245 </span><span class="lineCov">          1 :     CuAssertPtrEquals(tc, NULL, actual);</span>
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_EINVAL,</span>
+<span class="lineNum">     248 </span>            :                       serf_config_set_string(cfg, PER_CONN_TEST_KEY,
+<span class="lineNum">     249 </span>            :                                              &quot;test_value&quot;));
+<span class="lineNum">     250 </span>            : 
+<span class="lineNum">     251 </span>            :     /* The same tests with objects instead of strings */
+<span class="lineNum">     252 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_EINVAL,</span>
+<span class="lineNum">     253 </span>            :                       serf_config_get_object(cfg, PER_HOST_TEST_KEY, &amp;actual_obj));
+<span class="lineNum">     254 </span><span class="lineCov">          1 :     CuAssertPtrEquals(tc, NULL, actual_obj);</span>
+<span class="lineNum">     255 </span>            : 
+<span class="lineNum">     256 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_EINVAL,</span>
+<span class="lineNum">     257 </span>            :                       serf_config_get_object(cfg, PER_CONN_TEST_KEY, &amp;actual_obj));
+<span class="lineNum">     258 </span><span class="lineCov">          1 :     CuAssertPtrEquals(tc, NULL, actual_obj);</span>
+<span class="lineNum">     259 </span>            : 
+<span class="lineNum">     260 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_EINVAL,</span>
+<span class="lineNum">     261 </span>            :                       serf_config_set_object(cfg, PER_CONN_TEST_KEY, stderr));
+<a name="262"><span class="lineNum">     262 </span><span class="lineCov">          1 : }</span></a>
+<span class="lineNum">     263 </span>            : 
+<span class="lineNum">     264 </span>            : static void test_config_store_remove_objects(CuTest *tc)
+<span class="lineNum">     265 </span>            : {
+<span class="lineNum">     266 </span><span class="lineCov">          1 :     test_baton_t *tb = tc-&gt;testBaton;</span>
+<span class="lineNum">     267 </span>            :     serf_config_t *cfg;
+<span class="lineNum">     268 </span>            :     serf_connection_t *conn;
+<span class="lineNum">     269 </span>            :     apr_uri_t url;
+<span class="lineNum">     270 </span>            :     const char *actual;
+<span class="lineNum">     271 </span>            : 
+<span class="lineNum">     272 </span><span class="lineCov">          1 :     serf_context_t *ctx = serf_context_create(tb-&gt;pool);</span>
+<span class="lineNum">     273 </span>            : 
+<span class="lineNum">     274 </span>            :     /* Create a connection conn */
+<span class="lineNum">     275 </span><span class="lineCov">          1 :     apr_uri_parse(tb-&gt;pool, &quot;http://localhost:12345&quot;, &amp;url);</span>
+<span class="lineNum">     276 </span><span class="lineCov">          2 :     serf_connection_create2(&amp;conn, ctx, url, conn_setup, NULL,</span>
+<span class="lineNum">     277 </span><span class="lineCov">          1 :                             conn_closed, NULL, tb-&gt;pool);</span>
+<span class="lineNum">     278 </span>            : 
+<span class="lineNum">     279 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">     280 </span>            :                       serf__config_store_create_conn_config(conn, &amp;cfg));
+<span class="lineNum">     281 </span>            : 
+<span class="lineNum">     282 </span>            :     /* Add and remove a key per-context */
+<span class="lineNum">     283 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">     284 </span>            :                       serf_config_set_string(cfg, PER_CONTEXT_TEST_KEY,
+<span class="lineNum">     285 </span>            :                                              &quot;test_value&quot;));
+<span class="lineNum">     286 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">     287 </span>            :                       serf_config_remove_value(cfg, PER_CONTEXT_TEST_KEY));
+<span class="lineNum">     288 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">     289 </span>            :                       serf_config_get_string(cfg, PER_CONTEXT_TEST_KEY,
+<span class="lineNum">     290 </span>            :                                              &amp;actual));
+<span class="lineNum">     291 </span><span class="lineCov">          1 :     CuAssertPtrEquals(tc, NULL, actual);</span>
+<span class="lineNum">     292 </span>            : 
+<span class="lineNum">     293 </span>            :     /* Add and remove a key per-context */
+<span class="lineNum">     294 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">     295 </span>            :                       serf_config_set_string(cfg, PER_HOST_TEST_KEY,
+<span class="lineNum">     296 </span>            :                                              &quot;test_value&quot;));
+<span class="lineNum">     297 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">     298 </span>            :                       serf_config_remove_value(cfg, PER_HOST_TEST_KEY));
+<span class="lineNum">     299 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">     300 </span>            :                       serf_config_get_string(cfg, PER_HOST_TEST_KEY,
+<span class="lineNum">     301 </span>            :                                              &amp;actual));
+<span class="lineNum">     302 </span><span class="lineCov">          1 :     CuAssertPtrEquals(tc, NULL, actual);</span>
+<span class="lineNum">     303 </span>            : 
+<span class="lineNum">     304 </span>            : 
+<span class="lineNum">     305 </span>            :     /* Add and remove a key per-context */
+<span class="lineNum">     306 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">     307 </span>            :                       serf_config_set_string(cfg, PER_CONN_TEST_KEY,
+<span class="lineNum">     308 </span>            :                                              &quot;test_value&quot;));
+<span class="lineNum">     309 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">     310 </span>            :                       serf_config_remove_value(cfg, PER_CONN_TEST_KEY));
+<span class="lineNum">     311 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS,</span>
+<span class="lineNum">     312 </span>            :                       serf_config_get_string(cfg, PER_CONN_TEST_KEY,
+<span class="lineNum">     313 </span>            :                                              &amp;actual));
+<span class="lineNum">     314 </span><span class="lineCov">          1 :     CuAssertPtrEquals(tc, NULL, actual);</span>
+<span class="lineNum">     315 </span><span class="lineCov">          1 : }</span>
+<span class="lineNum">     316 </span>            : 
+<a name="317"><span class="lineNum">     317 </span>            : /* Add and remove some headers from the headers bucket. */</a>
+<span class="lineNum">     318 </span>            : /* Note: serf__bucket_headers_remove is an internal function */
+<span class="lineNum">     319 </span>            : static void test_header_buckets_remove(CuTest *tc)
+<span class="lineNum">     320 </span>            : {
+<span class="lineNum">     321 </span><span class="lineCov">          1 :     test_baton_t *tb = tc-&gt;testBaton;</span>
+<span class="lineNum">     322 </span><span class="lineCov">          1 :     serf_bucket_alloc_t *alloc = test__create_bucket_allocator(tc, tb-&gt;pool);</span>
+<span class="lineNum">     323 </span>            :     const char *cur;
+<span class="lineNum">     324 </span>            : 
+<span class="lineNum">     325 </span><span class="lineCov">          1 :     serf_bucket_t *hdrs = serf_bucket_headers_create(alloc);</span>
+<span class="lineNum">     326 </span><span class="lineCov">          1 :     CuAssertTrue(tc, hdrs != NULL);</span>
+<span class="lineNum">     327 </span>            : 
+<span class="lineNum">     328 </span>            :     /* empty bucket, delete header */
+<span class="lineNum">     329 </span><span class="lineCov">          1 :     serf__bucket_headers_remove(hdrs, &quot;Content-Length&quot;);</span>
+<span class="lineNum">     330 </span>            : 
+<span class="lineNum">     331 </span>            :     /* bucket with one header, delete a non-existant header */
+<span class="lineNum">     332 </span><span class="lineCov">          1 :     serf_bucket_headers_set(hdrs, &quot;Content-Type&quot;, &quot;text/plain&quot;);</span>
+<span class="lineNum">     333 </span><span class="lineCov">          1 :     serf__bucket_headers_remove(hdrs, &quot;Content-Length&quot;);</span>
+<span class="lineNum">     334 </span><span class="lineCov">          1 :     cur = &quot;Content-Type: text/plain&quot; CRLF CRLF;</span>
+<span class="lineNum">     335 </span><span class="lineCov">          1 :     read_and_check_bucket(tc, hdrs, cur);</span>
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span><span class="lineCov">          1 :     serf_bucket_destroy(hdrs);</span>
+<span class="lineNum">     338 </span><span class="lineCov">          1 :     hdrs = serf_bucket_headers_create(alloc);</span>
+<span class="lineNum">     339 </span>            : 
+<span class="lineNum">     340 </span>            :     /* bucket with one header, delete it */
+<span class="lineNum">     341 </span><span class="lineCov">          1 :     serf_bucket_headers_set(hdrs, &quot;Content-Type&quot;, &quot;text/plain&quot;);</span>
+<span class="lineNum">     342 </span><span class="lineCov">          1 :     serf__bucket_headers_remove(hdrs, &quot;Content-Type&quot;);</span>
+<span class="lineNum">     343 </span><span class="lineCov">          1 :     cur = CRLF;</span>
+<span class="lineNum">     344 </span><span class="lineCov">          1 :     read_and_check_bucket(tc, hdrs, cur);</span>
+<span class="lineNum">     345 </span>            : 
+<span class="lineNum">     346 </span><span class="lineCov">          1 :     serf_bucket_destroy(hdrs);</span>
+<span class="lineNum">     347 </span><span class="lineCov">          1 :     hdrs = serf_bucket_headers_create(alloc);</span>
+<span class="lineNum">     348 </span>            : 
+<span class="lineNum">     349 </span>            :     /* bucket with two headers, delete the first */
+<span class="lineNum">     350 </span><span class="lineCov">          1 :     serf_bucket_headers_set(hdrs, &quot;Content-Type&quot;, &quot;text/plain&quot;);</span>
+<span class="lineNum">     351 </span><span class="lineCov">          1 :     serf_bucket_headers_set(hdrs, &quot;Content-Length&quot;, &quot;100&quot;);</span>
+<span class="lineNum">     352 </span><span class="lineCov">          1 :     serf__bucket_headers_remove(hdrs, &quot;Content-Type&quot;);</span>
+<span class="lineNum">     353 </span><span class="lineCov">          1 :     cur = &quot;Content-Length: 100&quot; CRLF CRLF;</span>
+<span class="lineNum">     354 </span><span class="lineCov">          1 :     read_and_check_bucket(tc, hdrs, cur);</span>
+<span class="lineNum">     355 </span>            : 
+<span class="lineNum">     356 </span><span class="lineCov">          1 :     serf_bucket_destroy(hdrs);</span>
+<span class="lineNum">     357 </span><span class="lineCov">          1 :     hdrs = serf_bucket_headers_create(alloc);</span>
+<span class="lineNum">     358 </span>            : 
+<span class="lineNum">     359 </span>            :     /* bucket with two headers, delete the second */
+<span class="lineNum">     360 </span><span class="lineCov">          1 :     serf_bucket_headers_set(hdrs, &quot;Content-Type&quot;, &quot;text/plain&quot;);</span>
+<span class="lineNum">     361 </span><span class="lineCov">          1 :     serf_bucket_headers_set(hdrs, &quot;Content-Length&quot;, &quot;100&quot;);</span>
+<span class="lineNum">     362 </span><span class="lineCov">          1 :     serf__bucket_headers_remove(hdrs, &quot;Content-Length&quot;);</span>
+<span class="lineNum">     363 </span><span class="lineCov">          1 :     cur = &quot;Content-Type: text/plain&quot; CRLF CRLF;</span>
+<span class="lineNum">     364 </span><span class="lineCov">          1 :     read_and_check_bucket(tc, hdrs, cur);</span>
+<span class="lineNum">     365 </span>            : 
+<span class="lineNum">     366 </span><span class="lineCov">          1 :     serf_bucket_destroy(hdrs);</span>
+<span class="lineNum">     367 </span><span class="lineCov">          1 :     hdrs = serf_bucket_headers_create(alloc);</span>
+<span class="lineNum">     368 </span>            : 
+<span class="lineNum">     369 </span>            :     /* bucket with more headers, delete one in the middle */
+<span class="lineNum">     370 </span><span class="lineCov">          1 :     serf_bucket_headers_set(hdrs, &quot;Content-Type&quot;, &quot;text/plain&quot;);</span>
+<span class="lineNum">     371 </span><span class="lineCov">          1 :     serf_bucket_headers_set(hdrs, &quot;Content-Location&quot;, &quot;/&quot;);</span>
+<span class="lineNum">     372 </span><span class="lineCov">          1 :     serf_bucket_headers_set(hdrs, &quot;Content-Length&quot;, &quot;100&quot;);</span>
+<span class="lineNum">     373 </span><span class="lineCov">          1 :     serf__bucket_headers_remove(hdrs, &quot;Content-Location&quot;);</span>
+<span class="lineNum">     374 </span><span class="lineCov">          1 :     cur = &quot;Content-Type: text/plain&quot; CRLF</span>
+<span class="lineNum">     375 </span>            :     &quot;Content-Length: 100&quot; CRLF CRLF;
+<span class="lineNum">     376 </span><span class="lineCov">          1 :     read_and_check_bucket(tc, hdrs, cur);</span>
+<span class="lineNum">     377 </span>            : 
+<span class="lineNum">     378 </span><span class="lineCov">          1 :     serf_bucket_destroy(hdrs);</span>
+<span class="lineNum">     379 </span><span class="lineCov">          1 :     hdrs = serf_bucket_headers_create(alloc);</span>
+<span class="lineNum">     380 </span>            : 
+<span class="lineNum">     381 </span>            :     /* bucket with more headers, delete more in the middle */
+<span class="lineNum">     382 </span><span class="lineCov">          1 :     serf_bucket_headers_set(hdrs, &quot;Content-Type&quot;, &quot;text/plain&quot;);</span>
+<span class="lineNum">     383 </span><span class="lineCov">          1 :     serf_bucket_headers_set(hdrs, &quot;Content-Location&quot;, &quot;/&quot;);</span>
+<span class="lineNum">     384 </span><span class="lineCov">          1 :     serf_bucket_headers_set(hdrs, &quot;Content-Location&quot;, &quot;/bla&quot;);</span>
+<span class="lineNum">     385 </span><span class="lineCov">          1 :     serf_bucket_headers_set(hdrs, &quot;Content-Length&quot;, &quot;100&quot;);</span>
+<span class="lineNum">     386 </span><span class="lineCov">          1 :     serf_bucket_headers_set(hdrs, &quot;Content-Location&quot;, &quot;/blub&quot;);</span>
+<span class="lineNum">     387 </span><span class="lineCov">          1 :     serf__bucket_headers_remove(hdrs, &quot;Content-Location&quot;);</span>
+<span class="lineNum">     388 </span><span class="lineCov">          1 :     cur = &quot;Content-Type: text/plain&quot; CRLF</span>
+<span class="lineNum">     389 </span>            :     &quot;Content-Length: 100&quot; CRLF CRLF;
+<span class="lineNum">     390 </span><span class="lineCov">          1 :     read_and_check_bucket(tc, hdrs, cur);</span>
+<span class="lineNum">     391 </span><span class="lineCov">          1 :     serf_bucket_destroy(hdrs);</span>
+<a name="392"><span class="lineNum">     392 </span><span class="lineCov">          1 : }</span></a>
+<span class="lineNum">     393 </span>            : 
+<span class="lineNum">     394 </span>            : static void test_runtime_versions(CuTest *tc)
+<span class="lineNum">     395 </span>            : {
+<span class="lineNum">     396 </span>            :   apr_version_t version_of_apr;
+<span class="lineNum">     397 </span>            : #if APR_MAJOR_VERSION &lt; 2
+<span class="lineNum">     398 </span>            :   apr_version_t version_of_aprutil;
+<span class="lineNum">     399 </span>            : #endif
+<span class="lineNum">     400 </span>            : 
+<span class="lineNum">     401 </span><span class="lineCov">          1 :   apr_version(&amp;version_of_apr);</span>
+<span class="lineNum">     402 </span>            : 
+<span class="lineNum">     403 </span><span class="lineCov">          1 :   CuAssertIntEquals(tc, APR_MAJOR_VERSION, version_of_apr.major);</span>
+<span class="lineNum">     404 </span><span class="lineCov">          1 :   CuAssertTrue(tc, version_of_apr.minor &gt;= APR_MINOR_VERSION);</span>
+<span class="lineNum">     405 </span>            : 
+<span class="lineNum">     406 </span><span class="lineCov">          1 :   if (version_of_apr.minor == APR_MINOR_VERSION)</span>
+<span class="lineNum">     407 </span><span class="lineCov">          1 :     CuAssertTrue(tc, version_of_apr.patch &gt;= APR_PATCH_VERSION);</span>
+<span class="lineNum">     408 </span>            : 
+<span class="lineNum">     409 </span>            : #if APR_MAJOR_VERSION &lt; 2
+<span class="lineNum">     410 </span><span class="lineCov">          1 :   apu_version(&amp;version_of_aprutil);</span>
+<span class="lineNum">     411 </span>            : 
+<span class="lineNum">     412 </span><span class="lineCov">          1 :   CuAssertIntEquals(tc, APU_MAJOR_VERSION, version_of_aprutil.major);</span>
+<span class="lineNum">     413 </span><span class="lineCov">          1 :   CuAssertTrue(tc, version_of_aprutil.minor &gt;= APU_MINOR_VERSION);</span>
+<span class="lineNum">     414 </span>            : 
+<span class="lineNum">     415 </span><span class="lineCov">          1 :   if (version_of_aprutil.minor == APU_MINOR_VERSION)</span>
+<span class="lineNum">     416 </span><span class="lineCov">          1 :     CuAssertTrue(tc, version_of_aprutil.patch &gt;= APU_PATCH_VERSION);</span>
+<span class="lineNum">     417 </span>            : 
+<span class="lineNum">     418 </span><span class="lineCov">          1 :   CuAssertIntEquals(tc, APR_MAJOR_VERSION, APU_MAJOR_VERSION);</span>
+<span class="lineNum">     419 </span>            : #endif
+<a name="420"><span class="lineNum">     420 </span><span class="lineCov">          1 : }</span></a>
+<span class="lineNum">     421 </span>            : 
+<span class="lineNum">     422 </span>            : CuSuite *test_internal(void)
+<span class="lineNum">     423 </span>            : {
+<span class="lineNum">     424 </span><span class="lineCov">          1 :     CuSuite *suite = CuSuiteNew();</span>
+<span class="lineNum">     425 </span>            : 
+<span class="lineNum">     426 </span><span class="lineCov">          1 :     CuSuiteSetSetupTeardownCallbacks(suite, test_setup, test_teardown);</span>
+<span class="lineNum">     427 </span>            : 
+<span class="lineNum">     428 </span><span class="lineCov">          1 :     SUITE_ADD_TEST(suite, test_config_store_per_context);</span>
+<span class="lineNum">     429 </span><span class="lineCov">          1 :     SUITE_ADD_TEST(suite, test_config_store_per_connection_different_host);</span>
+<span class="lineNum">     430 </span><span class="lineCov">          1 :     SUITE_ADD_TEST(suite, test_config_store_per_connection_same_host);</span>
+<span class="lineNum">     431 </span><span class="lineCov">          1 :     SUITE_ADD_TEST(suite, test_config_store_error_handling);</span>
+<span class="lineNum">     432 </span><span class="lineCov">          1 :     SUITE_ADD_TEST(suite, test_config_store_remove_objects);</span>
+<span class="lineNum">     433 </span><span class="lineCov">          1 :     SUITE_ADD_TEST(suite, test_header_buckets_remove);</span>
+<span class="lineNum">     434 </span><span class="lineCov">          1 :     SUITE_ADD_TEST(suite, test_runtime_versions);</span>
+<span class="lineNum">     435 </span>            : 
+<span class="lineNum">     436 </span><span class="lineCov">          1 :     return suite;</span>
+<span class="lineNum">     437 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

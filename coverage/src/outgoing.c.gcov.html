@@ -1,0 +1,1594 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - src/outgoing.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">src</a> - outgoing.c<span style="font-size: 80%;"> (source / <a href="outgoing.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">526</td>
+            <td class="headerCovTableEntry">664</td>
+            <td class="headerCovTableEntryMed">79.2 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-12-25 11:14:27</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">26</td>
+            <td class="headerCovTableEntry">33</td>
+            <td class="headerCovTableEntryMed">78.8 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* ====================================================================</a>
+<span class="lineNum">       2 </span>            :  *    Licensed to the Apache Software Foundation (ASF) under one
+<span class="lineNum">       3 </span>            :  *    or more contributor license agreements.  See the NOTICE file
+<span class="lineNum">       4 </span>            :  *    distributed with this work for additional information
+<span class="lineNum">       5 </span>            :  *    regarding copyright ownership.  The ASF licenses this file
+<span class="lineNum">       6 </span>            :  *    to you under the Apache License, Version 2.0 (the
+<span class="lineNum">       7 </span>            :  *    &quot;License&quot;); you may not use this file except in compliance
+<span class="lineNum">       8 </span>            :  *    with the License.  You may obtain a copy of the License at
+<span class="lineNum">       9 </span>            :  *
+<span class="lineNum">      10 </span>            :  *      http://www.apache.org/licenses/LICENSE-2.0
+<span class="lineNum">      11 </span>            :  *
+<span class="lineNum">      12 </span>            :  *    Unless required by applicable law or agreed to in writing,
+<span class="lineNum">      13 </span>            :  *    software distributed under the License is distributed on an
+<span class="lineNum">      14 </span>            :  *    &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+<span class="lineNum">      15 </span>            :  *    KIND, either express or implied.  See the License for the
+<span class="lineNum">      16 </span>            :  *    specific language governing permissions and limitations
+<span class="lineNum">      17 </span>            :  *    under the License.
+<span class="lineNum">      18 </span>            :  * ====================================================================
+<span class="lineNum">      19 </span>            :  */
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #include &lt;apr_pools.h&gt;
+<span class="lineNum">      22 </span>            : #include &lt;apr_poll.h&gt;
+<span class="lineNum">      23 </span>            : #include &lt;apr_version.h&gt;
+<span class="lineNum">      24 </span>            : #include &lt;apr_portable.h&gt;
+<span class="lineNum">      25 </span>            : #include &lt;apr_strings.h&gt;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #include &quot;serf.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;serf_bucket_util.h&quot;
+<span class="lineNum">      29 </span>            : 
+<span class="lineNum">      30 </span>            : #include &quot;serf_private.h&quot;
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : /* forward definitions */
+<span class="lineNum">      33 </span>            : static apr_status_t read_from_connection(serf_connection_t *conn);
+<span class="lineNum">      34 </span>            : static apr_status_t write_to_connection(serf_connection_t *conn);
+<span class="lineNum">      35 </span>            : static apr_status_t hangup_connection(serf_connection_t *conn);
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : #define REQS_IN_PROGRESS(conn) \
+<span class="lineNum">      38 </span>            :                 ((conn)-&gt;completed_requests - (conn)-&gt;completed_responses)
+<a name="39"><span class="lineNum">      39 </span>            : </a>
+<span class="lineNum">      40 </span>            : /* cleanup for sockets */
+<span class="lineNum">      41 </span>            : static apr_status_t clean_skt(void *data)
+<span class="lineNum">      42 </span>            : {
+<span class="lineNum">      43 </span><span class="lineCov">        204 :     serf_connection_t *conn = data;</span>
+<span class="lineNum">      44 </span><span class="lineCov">        204 :     apr_status_t status = APR_SUCCESS;</span>
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span><span class="lineCov">        204 :     if (conn-&gt;skt) {</span>
+<span class="lineNum">      47 </span><span class="lineCov">        133 :         status = apr_socket_close(conn-&gt;skt);</span>
+<span class="lineNum">      48 </span><span class="lineCov">        133 :         conn-&gt;skt = NULL;</span>
+<span class="lineNum">      49 </span><span class="lineCov">        266 :         serf__log(LOGLVL_DEBUG, LOGCOMP_CONN, __FILE__, conn-&gt;config,</span>
+<span class="lineNum">      50 </span><span class="lineCov">        133 :                   &quot;closed socket, status %d\n&quot;, status);</span>
+<span class="lineNum">      51 </span><span class="lineCov">        133 :         serf_config_remove_value(conn-&gt;config, SERF_CONFIG_CONN_LOCALIP);</span>
+<span class="lineNum">      52 </span><span class="lineCov">        133 :         serf_config_remove_value(conn-&gt;config, SERF_CONFIG_CONN_REMOTEIP);</span>
+<span class="lineNum">      53 </span><span class="lineCov">        133 :     }</span>
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span><span class="lineCov">        204 :     return status;</span>
+<span class="lineNum">      56 </span>            : }
+<a name="57"><span class="lineNum">      57 </span>            : </a>
+<span class="lineNum">      58 </span>            : /* cleanup for conns */
+<span class="lineNum">      59 </span>            : static apr_status_t clean_conn(void *data)
+<span class="lineNum">      60 </span>            : {
+<span class="lineNum">      61 </span><span class="lineCov">         70 :     serf_connection_t *conn = data;</span>
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span><span class="lineCov">        140 :     serf__log(LOGLVL_DEBUG, LOGCOMP_CONN, __FILE__, conn-&gt;config,</span>
+<span class="lineNum">      64 </span><span class="lineCov">         70 :               &quot;cleaning up connection 0x%p\n&quot;, conn);</span>
+<span class="lineNum">      65 </span><span class="lineCov">         70 :     serf_connection_close(conn);</span>
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span><span class="lineCov">         70 :     return APR_SUCCESS;</span>
+<span class="lineNum">      68 </span>            : }
+<a name="69"><span class="lineNum">      69 </span>            : </a>
+<span class="lineNum">      70 </span>            : static int
+<span class="lineNum">      71 </span>            : request_pending(serf_request_t **next_req, serf_connection_t *conn)
+<span class="lineNum">      72 </span>            : {
+<span class="lineNum">      73 </span>            :     /* Prepare the next request */
+<span class="lineNum">      74 </span><span class="lineCov">       2282 :     if (conn-&gt;framing_type != SERF_CONNECTION_FRAMING_TYPE_NONE</span>
+<span class="lineNum">      75 </span><span class="lineCov">       4562 :         &amp;&amp; (conn-&gt;pipelining || (!conn-&gt;pipelining &amp;&amp; REQS_IN_PROGRESS(conn) == 0)))</span>
+<span class="lineNum">      76 </span>            :     {
+<span class="lineNum">      77 </span>            :         /* Skip all requests that have been written completely but we're still
+<span class="lineNum">      78 </span>            :          waiting for a response. */
+<span class="lineNum">      79 </span><span class="lineCov">       2249 :         serf_request_t *request = conn-&gt;unwritten_reqs;</span>
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span><span class="lineCov">       2249 :         if (next_req)</span>
+<span class="lineNum">      82 </span><span class="lineCov">       2095 :             *next_req = request;</span>
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span><span class="lineCov">       2249 :         if (request != NULL) {</span>
+<span class="lineNum">      85 </span><span class="lineCov">       1798 :             return TRUE;</span>
+<span class="lineNum">      86 </span>            :         }
+<span class="lineNum">      87 </span><span class="lineCov">        451 :     }</span>
+<span class="lineNum">      88 </span><span class="lineCov">          9 :     else if (next_req)</span>
+<span class="lineNum">      89 </span><span class="lineCov">          5 :         *next_req = NULL;</span>
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span><span class="lineCov">        460 :     return FALSE;</span>
+<span class="lineNum">      92 </span><span class="lineCov">       2258 : }</span>
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span>            : /* Check if there is data waiting to be sent over the socket. This can happen
+<span class="lineNum">      95 </span>            :    in two situations:
+<span class="lineNum">      96 </span>            :    - The connection queue has atleast one request with unwritten data.
+<span class="lineNum">      97 </span>            :    - All requests are written and the ssl layer wrote some data while reading
+<span class="lineNum">      98 </span>            :      the response. This can happen when the server triggers a renegotiation,
+<span class="lineNum">      99 </span>            :      e.g. after the first and only request on that connection was received.
+<span class="lineNum">     100 </span>            :    Returns 1 if data is pending on CONN, NULL if not.
+<span class="lineNum">     101 </span>            :    If NEXT_REQ is not NULL, it will be filled in with the next available request
+<a name="102"><span class="lineNum">     102 </span>            :    with unwritten data. */</a>
+<span class="lineNum">     103 </span>            : static int
+<span class="lineNum">     104 </span>            : request_or_data_pending(serf_request_t **next_req, serf_connection_t *conn)
+<span class="lineNum">     105 </span>            : {
+<span class="lineNum">     106 </span><span class="lineCov">       2100 :     if (request_pending(next_req, conn))</span>
+<span class="lineNum">     107 </span><span class="lineCov">       1728 :         return TRUE;</span>
+<span class="lineNum">     108 </span>            : 
+<span class="lineNum">     109 </span><span class="lineCov">        372 :     return serf_pump__data_pending(&amp;conn-&gt;pump);</span>
+<span class="lineNum">     110 </span><span class="lineCov">       2100 : }</span>
+<span class="lineNum">     111 </span>            : 
+<span class="lineNum">     112 </span>            : /* Update the pollset for this connection. We tweak the pollset based on
+<span class="lineNum">     113 </span>            :  * whether we want to read and/or write, given conditions within the
+<span class="lineNum">     114 </span>            :  * connection. If the connection is not (yet) in the pollset, then it
+<a name="115"><span class="lineNum">     115 </span>            :  * will be added.</a>
+<span class="lineNum">     116 </span>            :  */
+<span class="lineNum">     117 </span>            : apr_status_t serf__conn_update_pollset(serf_connection_t *conn)
+<span class="lineNum">     118 </span>            : {
+<span class="lineNum">     119 </span><span class="lineCov">        423 :     serf_context_t *ctx = conn-&gt;ctx;</span>
+<span class="lineNum">     120 </span>            :     apr_status_t status;
+<span class="lineNum">     121 </span><span class="lineCov">        423 :     apr_pollfd_t desc = { 0 };</span>
+<span class="lineNum">     122 </span>            :     bool data_waiting;
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span><span class="lineCov">        423 :     if (!conn-&gt;skt) {</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :         return APR_SUCCESS;</span>
+<span class="lineNum">     126 </span>            :     }
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span>            :     /* Remove the socket from the poll set. */
+<span class="lineNum">     129 </span><span class="lineCov">        423 :     desc.desc_type = APR_POLL_SOCKET;</span>
+<span class="lineNum">     130 </span><span class="lineCov">        423 :     desc.desc.s = conn-&gt;skt;</span>
+<span class="lineNum">     131 </span><span class="lineCov">        423 :     desc.reqevents = conn-&gt;io.reqevents;</span>
+<span class="lineNum">     132 </span>            : 
+<span class="lineNum">     133 </span><span class="lineCov">        846 :     status = ctx-&gt;pollset_rm(ctx-&gt;pollset_baton,</span>
+<span class="lineNum">     134 </span><span class="lineCov">        423 :                              &amp;desc, &amp;conn-&gt;io);</span>
+<span class="lineNum">     135 </span><span class="lineCov">        556 :     if (status &amp;&amp; !APR_STATUS_IS_NOTFOUND(status))</span>
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :         return status;</span>
+<span class="lineNum">     137 </span>            : 
+<span class="lineNum">     138 </span>            :     /* Now put it back in with the correct read/write values. */
+<span class="lineNum">     139 </span><span class="lineCov">        423 :     desc.reqevents = APR_POLLHUP | APR_POLLERR;</span>
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span>            :     /* If we are not connected yet, we just want to know when we are */
+<span class="lineNum">     142 </span><span class="lineCov">        423 :     if (conn-&gt;wait_for_connect) {</span>
+<span class="lineNum">     143 </span><span class="lineCov">        133 :         data_waiting = true;</span>
+<span class="lineNum">     144 </span><span class="lineCov">        133 :         desc.reqevents |= APR_POLLOUT;</span>
+<span class="lineNum">     145 </span><span class="lineCov">        133 :     }</span>
+<span class="lineNum">     146 </span>            :     else {
+<span class="lineNum">     147 </span>            :         /* Directly look at the connection data. While this may look
+<span class="lineNum">     148 </span>            :            more expensive than the cheap checks later this peek is
+<span class="lineNum">     149 </span>            :            just checking a bit of ram.
+<span class="lineNum">     150 </span>            : 
+<span class="lineNum">     151 </span>            :            But it also has the nice side effect of removing references
+<span class="lineNum">     152 </span>            :            from the aggregate to requests that are done.
+<span class="lineNum">     153 </span>            :          */
+<span class="lineNum">     154 </span><span class="lineCov">        580 :         data_waiting = serf_pump__data_pending(&amp;conn-&gt;pump)</span>
+<span class="lineNum">     155 </span><span class="lineCov">        328 :                        &amp;&amp; !conn-&gt;pump.done_writing;</span>
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span><span class="lineCov">        290 :         if (data_waiting) {</span>
+<span class="lineNum">     158 </span><span class="lineCov">         38 :             desc.reqevents |= APR_POLLOUT;</span>
+<span class="lineNum">     159 </span><span class="lineCov">         38 :         }</span>
+<span class="lineNum">     160 </span>            :     }
+<span class="lineNum">     161 </span>            : 
+<span class="lineNum">     162 </span><span class="lineCov">       1076 :     if ((conn-&gt;written_reqs || conn-&gt;unwritten_reqs) &amp;&amp;</span>
+<span class="lineNum">     163 </span><span class="lineCov">        423 :         conn-&gt;state != SERF_CONN_INIT) {</span>
+<span class="lineNum">     164 </span>            :         /* If there are any outstanding events, then we want to read. */
+<span class="lineNum">     165 </span>            :         /* ### not true. we only want to read IF we have sent some data */
+<span class="lineNum">     166 </span><span class="lineCov">        290 :         desc.reqevents |= APR_POLLIN;</span>
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span>            :         /* Don't write if OpenSSL told us that it needs to read data first. */
+<span class="lineNum">     169 </span><span class="lineCov">        551 :         if (! conn-&gt;pump.stop_writing &amp;&amp; !data_waiting) {</span>
+<span class="lineNum">     170 </span>            : 
+<span class="lineNum">     171 </span>            :             /* This check is duplicated in write_to_connection() */
+<span class="lineNum">     172 </span><span class="lineCov">        241 :             if ((conn-&gt;probable_keepalive_limit &amp;&amp;</span>
+<span class="lineNum">     173 </span><span class="lineCov">         70 :                  conn-&gt;completed_requests &gt; conn-&gt;probable_keepalive_limit) ||</span>
+<span class="lineNum">     174 </span><span class="lineCov">        168 :                 (conn-&gt;max_outstanding_requests &amp;&amp;</span>
+<span class="lineNum">     175 </span><span class="lineCov">         18 :                  REQS_IN_PROGRESS(conn) &gt;= conn-&gt;max_outstanding_requests)) {</span>
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span>            :                 /* we wouldn't try to write any way right now. */
+<span class="lineNum">     178 </span><span class="lineCov">         65 :             }</span>
+<span class="lineNum">     179 </span><span class="lineCov">        158 :             else if (request_pending(NULL, conn)) {</span>
+<span class="lineNum">     180 </span><span class="lineCov">         70 :                 desc.reqevents |= APR_POLLOUT;</span>
+<span class="lineNum">     181 </span><span class="lineCov">         70 :             }</span>
+<span class="lineNum">     182 </span><span class="lineCov">        223 :         }</span>
+<span class="lineNum">     183 </span><span class="lineCov">        290 :     }</span>
+<span class="lineNum">     184 </span>            : 
+<span class="lineNum">     185 </span>            :     /* If we can have async responses, always look for something to read. */
+<span class="lineNum">     186 </span><span class="lineCov">        839 :     if (conn-&gt;framing_type != SERF_CONNECTION_FRAMING_TYPE_HTTP1</span>
+<span class="lineNum">     187 </span><span class="lineCov">        839 :         || conn-&gt;async_responses)</span>
+<span class="lineNum">     188 </span>            :     {
+<span class="lineNum">     189 </span><span class="lineCov">          7 :         desc.reqevents |= APR_POLLIN;</span>
+<span class="lineNum">     190 </span><span class="lineCov">          7 :     }</span>
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span>            :     /* save our reqevents, so we can pass it in to remove later. */
+<span class="lineNum">     193 </span><span class="lineCov">        423 :     conn-&gt;io.reqevents = desc.reqevents;</span>
+<span class="lineNum">     194 </span>            : 
+<span class="lineNum">     195 </span>            :     /* Note: even if we don't want to read/write this socket, we still
+<span class="lineNum">     196 </span>            :      * want to poll it for hangups and errors.
+<span class="lineNum">     197 </span>            :      */
+<span class="lineNum">     198 </span><span class="lineCov">        846 :     return ctx-&gt;pollset_add(ctx-&gt;pollset_baton,</span>
+<span class="lineNum">     199 </span><span class="lineCov">        423 :                             &amp;desc, &amp;conn-&gt;io);</span>
+<span class="lineNum">     200 </span><span class="lineCov">        423 : }</span>
+<span class="lineNum">     201 </span>            : 
+<span class="lineNum">     202 </span>            : #ifdef SERF_DEBUG_BUCKET_USE
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span>            : /* Make sure all response buckets were drained. */
+<span class="lineNum">     205 </span>            : static void check_buckets_drained(serf_connection_t *conn)
+<span class="lineNum">     206 </span>            : {
+<span class="lineNum">     207 </span>            :     serf_request_t *request = conn-&gt;written_reqs;
+<span class="lineNum">     208 </span>            : 
+<span class="lineNum">     209 </span>            :     for ( ; request ; request = request-&gt;next ) {
+<span class="lineNum">     210 </span>            :         if (request-&gt;resp_bkt != NULL) {
+<span class="lineNum">     211 </span>            :             /* ### crap. can't do this. this allocator may have un-drained
+<span class="lineNum">     212 </span>            :              * ### REQUEST buckets.
+<span class="lineNum">     213 </span>            :              */
+<span class="lineNum">     214 </span>            :             /* serf_debug__entered_loop(request-&gt;resp_bkt-&gt;allocator); */
+<span class="lineNum">     215 </span>            :             /* ### for now, pretend we closed the conn (resets the tracking) */
+<span class="lineNum">     216 </span>            :             serf_debug__closed_conn(request-&gt;resp_bkt-&gt;allocator);
+<span class="lineNum">     217 </span>            :         }
+<span class="lineNum">     218 </span>            :     }
+<span class="lineNum">     219 </span>            : }
+<span class="lineNum">     220 </span>            : 
+<span class="lineNum">     221 </span>            : #endif
+<span class="lineNum">     222 </span>            : 
+<a name="223"><span class="lineNum">     223 </span>            : /* Destroys all outstanding write information, to allow cleanup of subpools</a>
+<span class="lineNum">     224 </span>            :    that may still have data in these buckets to continue */
+<span class="lineNum">     225 </span>            : void serf__connection_pre_cleanup(serf_connection_t *conn)
+<span class="lineNum">     226 </span>            : {
+<span class="lineNum">     227 </span>            :     serf_request_t *rq;
+<span class="lineNum">     228 </span><span class="lineCov">        146 :     conn-&gt;pump.vec_len = 0;</span>
+<span class="lineNum">     229 </span>            : 
+<span class="lineNum">     230 </span><span class="lineCov">        146 :     serf_pump__done(&amp;conn-&gt;pump);</span>
+<span class="lineNum">     231 </span>            : 
+<span class="lineNum">     232 </span>            :     /* Tell all written request that they are free to destroy themselves */
+<span class="lineNum">     233 </span><span class="lineCov">        146 :     rq = conn-&gt;written_reqs;</span>
+<span class="lineNum">     234 </span><span class="lineCov">        896 :     while (rq != NULL) {</span>
+<span class="lineNum">     235 </span><span class="lineCov">        604 :         if (rq-&gt;writing == SERF_WRITING_STARTED</span>
+<span class="lineNum">     236 </span><span class="lineCov">        604 :             || rq-&gt;writing == SERF_WRITING_DONE) {</span>
+<span class="lineNum">     237 </span>            : 
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 :             rq-&gt;writing = SERF_WRITING_FINISHED;</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     240 </span><span class="lineCov">        302 :         rq = rq-&gt;next;</span>
+<span class="lineNum">     241 </span>            :     }
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span>            :     /* Destroy the requests that were queued up to destroy later */
+<span class="lineNum">     244 </span><span class="lineCov">        292 :     while ((rq = conn-&gt;done_reqs)) {</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :         conn-&gt;done_reqs = rq-&gt;next;</span>
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :         rq-&gt;writing = SERF_WRITING_FINISHED;</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :         serf__destroy_request(rq);</span>
+<span class="lineNum">     249 </span>            :     }
+<span class="lineNum">     250 </span><span class="lineCov">        146 :     conn-&gt;done_reqs = conn-&gt;done_reqs_tail = NULL;</span>
+<a name="251"><span class="lineNum">     251 </span><span class="lineCov">        146 : }</span></a>
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span>            : apr_status_t serf_connection__perform_setup(serf_connection_t *conn)
+<span class="lineNum">     254 </span>            : {
+<span class="lineNum">     255 </span>            :     apr_status_t status;
+<span class="lineNum">     256 </span>            :     serf_bucket_t *ostream, *stream;
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span>            :     /* ### dunno what the hell this is about. this latency stuff got
+<span class="lineNum">     259 </span>            :        ### added, and who knows whether it should stay...  */
+<span class="lineNum">     260 </span><span class="lineCov">        129 :     conn-&gt;latency = apr_time_now() - conn-&gt;connect_time;</span>
+<span class="lineNum">     261 </span>            : 
+<span class="lineNum">     262 </span><span class="lineCov">        129 :     serf_pump__prepare_setup(&amp;conn-&gt;pump);</span>
+<span class="lineNum">     263 </span>            : 
+<span class="lineNum">     264 </span><span class="lineCov">        129 :     ostream = conn-&gt;pump.ostream_tail;</span>
+<span class="lineNum">     265 </span>            : 
+<span class="lineNum">     266 </span><span class="lineCov">        258 :     status = (*conn-&gt;setup)(conn-&gt;skt,</span>
+<span class="lineNum">     267 </span>            :                             &amp;stream,
+<span class="lineNum">     268 </span>            :                             &amp;ostream,
+<span class="lineNum">     269 </span><span class="lineCov">        129 :                             conn-&gt;setup_baton,</span>
+<span class="lineNum">     270 </span><span class="lineCov">        129 :                             conn-&gt;pool);</span>
+<span class="lineNum">     271 </span><span class="lineCov">        129 :     if (status) {</span>
+<span class="lineNum">     272 </span>            :         /* extra destroy here since it wasn't added to the head bucket yet. */
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :         serf_pump__complete_setup(&amp;conn-&gt;pump, NULL, NULL);</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :         serf__connection_pre_cleanup(conn);</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :         return status;</span>
+<span class="lineNum">     276 </span>            :     }
+<span class="lineNum">     277 </span>            : 
+<span class="lineNum">     278 </span><span class="lineCov">        129 :     serf_pump__complete_setup(&amp;conn-&gt;pump, stream, ostream);</span>
+<span class="lineNum">     279 </span>            : 
+<span class="lineNum">     280 </span>            :     /* We typically have one of two scenarios, based on whether the
+<span class="lineNum">     281 </span>            :        application decided to encrypt this connection:
+<span class="lineNum">     282 </span>            : 
+<span class="lineNum">     283 </span>            :        PLAIN:
+<span class="lineNum">     284 </span>            : 
+<span class="lineNum">     285 </span>            :          conn-&gt;stream = SOCKET(skt)
+<span class="lineNum">     286 </span>            :          conn-&gt;ostream_head = AGGREGATE(ostream_tail)
+<span class="lineNum">     287 </span>            :          conn-&gt;ostream_tail = STREAM(&lt;detect_eof&gt;, REQ1, REQ2, ...)
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span>            :        ENCRYPTED:
+<span class="lineNum">     290 </span>            : 
+<span class="lineNum">     291 </span>            :          conn-&gt;stream = DECRYPT(SOCKET(skt))
+<span class="lineNum">     292 </span>            :          conn-&gt;ostream_head = AGGREGATE(ENCRYPT(ostream_tail))
+<span class="lineNum">     293 </span>            :          conn-&gt;ostream_tail = STREAM(&lt;detect_eof&gt;, REQ1, REQ2, ...)
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span>            :        where STREAM is an internal variant of AGGREGATE.
+<span class="lineNum">     296 </span>            :     */
+<span class="lineNum">     297 </span>            : 
+<span class="lineNum">     298 </span><span class="lineCov">        129 :     return status;</span>
+<a name="299"><span class="lineNum">     299 </span><span class="lineCov">        129 : }</span></a>
+<span class="lineNum">     300 </span>            : 
+<span class="lineNum">     301 </span>            : static apr_status_t connect_connection(serf_connection_t *conn)
+<span class="lineNum">     302 </span>            : {
+<span class="lineNum">     303 </span><span class="lineCov">        133 :     serf_context_t *ctx = conn-&gt;ctx;</span>
+<span class="lineNum">     304 </span>            :     apr_status_t status;
+<span class="lineNum">     305 </span>            : 
+<span class="lineNum">     306 </span><span class="lineCov">        133 :     serf_pump__store_ipaddresses_in_config(&amp;conn-&gt;pump);</span>
+<span class="lineNum">     307 </span>            : 
+<span class="lineNum">     308 </span><span class="lineCov">        266 :     serf__log(LOGLVL_DEBUG, LOGCOMP_CONN, __FILE__, conn-&gt;config,</span>
+<span class="lineNum">     309 </span><span class="lineCov">        133 :               &quot;socket for conn 0x%p connected\n&quot;, conn);</span>
+<span class="lineNum">     310 </span>            : 
+<span class="lineNum">     311 </span>            :     /* If the authentication was already started on another connection,
+<span class="lineNum">     312 </span>            :        prepare this connection (it might be possible to skip some
+<span class="lineNum">     313 </span>            :        part of the handshaking). */
+<span class="lineNum">     314 </span><span class="lineCov">        133 :     if (ctx-&gt;proxy_address) {</span>
+<span class="lineNum">     315 </span><span class="lineCov">         13 :         status = serf__auth_setup_connection(PROXY, conn);</span>
+<span class="lineNum">     316 </span><span class="lineCov">         13 :         if (status) {</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :             return status;</span>
+<span class="lineNum">     318 </span>            :         }
+<span class="lineNum">     319 </span><span class="lineCov">         13 :     }</span>
+<span class="lineNum">     320 </span>            : 
+<span class="lineNum">     321 </span><span class="lineCov">        133 :     status = serf__auth_setup_connection(HOST, conn);</span>
+<span class="lineNum">     322 </span><span class="lineCov">        133 :     if (status)</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :         return status;</span>
+<span class="lineNum">     324 </span>            : 
+<span class="lineNum">     325 </span>            :     /* Does this connection require a SSL tunnel over the proxy? */
+<span class="lineNum">     326 </span><span class="lineCov">        146 :     if (ctx-&gt;proxy_address &amp;&amp; strcmp(conn-&gt;host_info.scheme, &quot;https&quot;) == 0)</span>
+<span class="lineNum">     327 </span><span class="lineCov">         12 :         serf__ssltunnel_connect(conn);</span>
+<span class="lineNum">     328 </span>            :     else {
+<span class="lineNum">     329 </span><span class="lineCov">        121 :         conn-&gt;state = SERF_CONN_CONNECTED;</span>
+<span class="lineNum">     330 </span>            : 
+<span class="lineNum">     331 </span><span class="lineCov">        121 :         status = serf_connection__perform_setup(conn);</span>
+<span class="lineNum">     332 </span>            : 
+<span class="lineNum">     333 </span><span class="lineCov">        121 :         if (status)</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :             return status;</span>
+<span class="lineNum">     335 </span>            :     }
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span><span class="lineCov">        133 :     return APR_SUCCESS;</span>
+<span class="lineNum">     338 </span><span class="lineCov">        133 : }</span>
+<span class="lineNum">     339 </span>            : 
+<span class="lineNum">     340 </span>            : /* Create and connect sockets for any connections which don't have them
+<a name="341"><span class="lineNum">     341 </span>            :  * yet. This is the core of our lazy-connect behavior.</a>
+<span class="lineNum">     342 </span>            :  */
+<span class="lineNum">     343 </span>            : apr_status_t serf__open_connections(serf_context_t *ctx)
+<span class="lineNum">     344 </span>            : {
+<span class="lineNum">     345 </span>            :     int i;
+<span class="lineNum">     346 </span>            : 
+<span class="lineNum">     347 </span><span class="lineCov">       9250 :     for (i = ctx-&gt;conns-&gt;nelts; i--; ) {</span>
+<span class="lineNum">     348 </span><span class="lineCov">       3039 :         serf_connection_t *conn = GET_CONN(ctx, i);</span>
+<span class="lineNum">     349 </span>            :         apr_status_t status;
+<span class="lineNum">     350 </span>            :         apr_socket_t *skt;
+<span class="lineNum">     351 </span>            : 
+<span class="lineNum">     352 </span><span class="lineCov">       3039 :         conn-&gt;seen_in_pollset = 0;</span>
+<span class="lineNum">     353 </span>            : 
+<span class="lineNum">     354 </span><span class="lineCov">       3039 :         if (conn-&gt;skt != NULL) {</span>
+<span class="lineNum">     355 </span>            : #ifdef SERF_DEBUG_BUCKET_USE
+<span class="lineNum">     356 </span>            :             check_buckets_drained(conn);
+<span class="lineNum">     357 </span>            : #endif
+<span class="lineNum">     358 </span><span class="lineCov">       2906 :             continue;</span>
+<span class="lineNum">     359 </span>            :         }
+<span class="lineNum">     360 </span>            : 
+<span class="lineNum">     361 </span>            :         /* Delay opening until we have something to deliver! */
+<span class="lineNum">     362 </span><span class="lineCov">        133 :         if (conn-&gt;unwritten_reqs == NULL) {</span>
+<span class="lineNum">     363 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     364 </span>            :         }
+<span class="lineNum">     365 </span>            : 
+<span class="lineNum">     366 </span><span class="lineCov">        133 :         apr_pool_clear(conn-&gt;skt_pool);</span>
+<span class="lineNum">     367 </span><span class="lineCov">        266 :         status = apr_socket_create(&amp;skt, conn-&gt;address-&gt;family,</span>
+<span class="lineNum">     368 </span>            :                                    SOCK_STREAM,
+<span class="lineNum">     369 </span>            : #if APR_MAJOR_VERSION &gt; 0
+<span class="lineNum">     370 </span>            :                                    APR_PROTO_TCP,
+<span class="lineNum">     371 </span>            : #endif
+<span class="lineNum">     372 </span><span class="lineCov">        133 :                                    conn-&gt;skt_pool);</span>
+<span class="lineNum">     373 </span><span class="lineCov">        266 :         serf__log(LOGLVL_DEBUG, LOGCOMP_CONN, __FILE__, conn-&gt;config,</span>
+<span class="lineNum">     374 </span><span class="lineCov">        133 :                   &quot;created socket for conn 0x%p, status %d\n&quot;, conn, status);</span>
+<span class="lineNum">     375 </span><span class="lineCov">        133 :         if (status != APR_SUCCESS)</span>
+<span class="lineNum">     376 </span><span class="lineNoCov">          0 :             return status;</span>
+<span class="lineNum">     377 </span>            : 
+<span class="lineNum">     378 </span><span class="lineCov">        133 :         apr_pool_cleanup_register(conn-&gt;skt_pool, conn, clean_skt,</span>
+<span class="lineNum">     379 </span>            :                                   apr_pool_cleanup_null);
+<span class="lineNum">     380 </span>            : 
+<span class="lineNum">     381 </span>            :         /* Set the socket to be non-blocking */
+<span class="lineNum">     382 </span><span class="lineCov">        133 :         if ((status = apr_socket_timeout_set(skt, 0)) != APR_SUCCESS)</span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :             return status;</span>
+<span class="lineNum">     384 </span>            : 
+<span class="lineNum">     385 </span>            :         /* Disable Nagle's algorithm */
+<span class="lineNum">     386 </span><span class="lineCov">        266 :         if ((status = apr_socket_opt_set(skt,</span>
+<span class="lineNum">     387 </span><span class="lineCov">        133 :                                          APR_TCP_NODELAY, 1)) != APR_SUCCESS)</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :             return status;</span>
+<span class="lineNum">     389 </span>            : 
+<span class="lineNum">     390 </span>            :         /* Configured. Store it into the connection now. */
+<span class="lineNum">     391 </span><span class="lineCov">        133 :         conn-&gt;skt = skt;</span>
+<span class="lineNum">     392 </span>            : 
+<span class="lineNum">     393 </span>            :         /* Remember time when we started connecting to server to calculate
+<span class="lineNum">     394 </span>            :            network latency. */
+<span class="lineNum">     395 </span><span class="lineCov">        133 :         conn-&gt;connect_time = apr_time_now();</span>
+<span class="lineNum">     396 </span>            : 
+<span class="lineNum">     397 </span>            :         /* Now that the socket is set up, let's connect it. This should
+<span class="lineNum">     398 </span>            :          * return immediately.
+<span class="lineNum">     399 </span>            :          */
+<span class="lineNum">     400 </span><span class="lineCov">        133 :         status = apr_socket_connect(skt, conn-&gt;address);</span>
+<span class="lineNum">     401 </span><span class="lineCov">        133 :         if (status != APR_SUCCESS) {</span>
+<span class="lineNum">     402 </span><span class="lineCov">        133 :             if (!APR_STATUS_IS_EINPROGRESS(status))</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :                 return status;</span>
+<span class="lineNum">     404 </span>            : 
+<span class="lineNum">     405 </span>            :             /* Keep track of when we really connect */
+<span class="lineNum">     406 </span><span class="lineCov">        133 :             conn-&gt;wait_for_connect = true;</span>
+<span class="lineNum">     407 </span><span class="lineCov">        133 :         }</span>
+<span class="lineNum">     408 </span>            : 
+<span class="lineNum">     409 </span><span class="lineCov">        266 :         serf_pump__init(&amp;conn-&gt;pump, &amp;conn-&gt;io, skt, conn-&gt;config,</span>
+<span class="lineNum">     410 </span><span class="lineCov">        133 :                         conn-&gt;allocator, conn-&gt;pool);</span>
+<span class="lineNum">     411 </span>            : 
+<span class="lineNum">     412 </span><span class="lineCov">        266 :         status = serf_config_set_string(conn-&gt;config,</span>
+<span class="lineNum">     413 </span>            :                      SERF_CONFIG_CONN_PIPELINING,
+<span class="lineNum">     414 </span><span class="lineCov">        266 :                      (conn-&gt;max_outstanding_requests != 1 &amp;&amp;</span>
+<span class="lineNum">     415 </span><span class="lineCov">        131 :                       conn-&gt;pipelining == 1) ? &quot;Y&quot; : &quot;N&quot;);</span>
+<span class="lineNum">     416 </span><span class="lineCov">        133 :         if (status)</span>
+<span class="lineNum">     417 </span><span class="lineNoCov">          0 :             return status;</span>
+<span class="lineNum">     418 </span>            : 
+<span class="lineNum">     419 </span>            :         /* Flag our pollset as dirty now that we have a new socket. */
+<span class="lineNum">     420 </span><span class="lineCov">        266 :         serf_io__set_pollset_dirty(&amp;conn-&gt;io);</span>
+<span class="lineNum">     421 </span>            : 
+<span class="lineNum">     422 </span><span class="lineCov">        133 :         if (! conn-&gt;wait_for_connect) {</span>
+<span class="lineNum">     423 </span><span class="lineNoCov">          0 :             status = connect_connection(conn);</span>
+<span class="lineNum">     424 </span>            : 
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :             if (status)</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :               return status;</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     428 </span>            :     }
+<span class="lineNum">     429 </span>            : 
+<span class="lineNum">     430 </span><span class="lineCov">       3039 :     return APR_SUCCESS;</span>
+<span class="lineNum">     431 </span><span class="lineCov">       3039 : }</span>
+<span class="lineNum">     432 </span>            : 
+<span class="lineNum">     433 </span>            : /* Read the 'Connection' header from the response. Return SERF_ERROR_CLOSING if
+<span class="lineNum">     434 </span>            :  * the header contains value 'close' indicating the server is closing the
+<span class="lineNum">     435 </span>            :  * connection right after this response.
+<a name="436"><span class="lineNum">     436 </span>            :  * Otherwise returns APR_SUCCESS.</a>
+<span class="lineNum">     437 </span>            :  */
+<span class="lineNum">     438 </span>            : static apr_status_t is_conn_closing(serf_bucket_t *response)
+<span class="lineNum">     439 </span>            : {
+<span class="lineNum">     440 </span>            :     serf_bucket_t *hdrs;
+<span class="lineNum">     441 </span>            :     const char *val;
+<span class="lineNum">     442 </span>            : 
+<span class="lineNum">     443 </span><span class="lineCov">        390 :     hdrs = serf_bucket_response_get_headers(response);</span>
+<span class="lineNum">     444 </span><span class="lineCov">        390 :     val = serf_bucket_headers_get(hdrs, &quot;Connection&quot;);</span>
+<span class="lineNum">     445 </span><span class="lineCov">        447 :     if (val &amp;&amp; strcasecmp(&quot;close&quot;, val) == 0)</span>
+<span class="lineNum">     446 </span>            :         {
+<span class="lineNum">     447 </span><span class="lineCov">         57 :             return SERF_ERROR_CLOSING;</span>
+<span class="lineNum">     448 </span>            :         }
+<span class="lineNum">     449 </span>            : 
+<span class="lineNum">     450 </span><span class="lineCov">        333 :     return APR_SUCCESS;</span>
+<a name="451"><span class="lineNum">     451 </span><span class="lineCov">        390 : }</span></a>
+<span class="lineNum">     452 </span>            : 
+<span class="lineNum">     453 </span>            : static apr_status_t remove_connection(serf_context_t *ctx,
+<span class="lineNum">     454 </span>            :                                       serf_connection_t *conn)
+<span class="lineNum">     455 </span>            : {
+<span class="lineNum">     456 </span><span class="lineCov">         71 :     apr_pollfd_t desc = { 0 };</span>
+<span class="lineNum">     457 </span>            : 
+<span class="lineNum">     458 </span><span class="lineCov">         71 :     desc.desc_type = APR_POLL_SOCKET;</span>
+<span class="lineNum">     459 </span><span class="lineCov">         71 :     desc.desc.s = conn-&gt;skt;</span>
+<span class="lineNum">     460 </span><span class="lineCov">         71 :     desc.reqevents = conn-&gt;io.reqevents;</span>
+<span class="lineNum">     461 </span>            : 
+<span class="lineNum">     462 </span><span class="lineCov">        142 :     return ctx-&gt;pollset_rm(ctx-&gt;pollset_baton,</span>
+<span class="lineNum">     463 </span><span class="lineCov">         71 :                            &amp;desc, &amp;conn-&gt;io);</span>
+<span class="lineNum">     464 </span>            : }
+<a name="465"><span class="lineNum">     465 </span>            : </a>
+<span class="lineNum">     466 </span>            : /* A socket was closed, inform the application. */
+<span class="lineNum">     467 </span>            : static void handle_conn_closed(serf_connection_t *conn, apr_status_t status)
+<span class="lineNum">     468 </span>            : {
+<span class="lineNum">     469 </span><span class="lineCov">        142 :     (*conn-&gt;closed)(conn, conn-&gt;closed_baton, status,</span>
+<span class="lineNum">     470 </span><span class="lineCov">         71 :                     conn-&gt;pool);</span>
+<a name="471"><span class="lineNum">     471 </span><span class="lineCov">         71 : }</span></a>
+<span class="lineNum">     472 </span>            : 
+<span class="lineNum">     473 </span>            : static apr_status_t reset_connection(serf_connection_t *conn,
+<span class="lineNum">     474 </span>            :                                      int requeue_requests)
+<span class="lineNum">     475 </span>            : {
+<span class="lineNum">     476 </span><span class="lineCov">         71 :     serf_context_t *ctx = conn-&gt;ctx;</span>
+<span class="lineNum">     477 </span>            :     apr_status_t status;
+<span class="lineNum">     478 </span>            :     serf_request_t *old_reqs;
+<span class="lineNum">     479 </span>            : 
+<span class="lineNum">     480 </span><span class="lineCov">        142 :     serf__log(LOGLVL_DEBUG, LOGCOMP_CONN, __FILE__, conn-&gt;config,</span>
+<span class="lineNum">     481 </span><span class="lineCov">         71 :               &quot;reset connection 0x%p\n&quot;, conn);</span>
+<span class="lineNum">     482 </span>            : 
+<span class="lineNum">     483 </span><span class="lineCov">         71 :     conn-&gt;probable_keepalive_limit = conn-&gt;completed_responses;</span>
+<span class="lineNum">     484 </span><span class="lineCov">         71 :     conn-&gt;completed_requests = 0;</span>
+<span class="lineNum">     485 </span><span class="lineCov">         71 :     conn-&gt;completed_responses = 0;</span>
+<span class="lineNum">     486 </span>            : 
+<span class="lineNum">     487 </span>            :     /* Clear the unwritten_reqs queue, so the application can requeue cancelled
+<span class="lineNum">     488 </span>            :        requests on it for the new socket. */
+<span class="lineNum">     489 </span><span class="lineCov">         71 :     old_reqs = conn-&gt;unwritten_reqs;</span>
+<span class="lineNum">     490 </span><span class="lineCov">         71 :     conn-&gt;unwritten_reqs = NULL;</span>
+<span class="lineNum">     491 </span><span class="lineCov">         71 :     conn-&gt;unwritten_reqs_tail = NULL;</span>
+<span class="lineNum">     492 </span>            : 
+<span class="lineNum">     493 </span><span class="lineCov">         71 :     serf__connection_pre_cleanup(conn);</span>
+<span class="lineNum">     494 </span>            : 
+<span class="lineNum">     495 </span><span class="lineCov">         71 :     if (conn-&gt;protocol_baton &amp;&amp; conn-&gt;perform_pre_teardown)</span>
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :         conn-&gt;perform_pre_teardown(conn);</span>
+<span class="lineNum">     497 </span>            : 
+<span class="lineNum">     498 </span>            :     /* First, cancel all written requests for which we haven't received a
+<span class="lineNum">     499 </span>            :        response yet. Inform the application that the request is cancelled,
+<span class="lineNum">     500 </span>            :        so it can requeue them if needed. */
+<span class="lineNum">     501 </span><span class="lineCov">        732 :     while (conn-&gt;written_reqs) {</span>
+<span class="lineNum">     502 </span><span class="lineCov">        590 :         serf__cancel_request(conn-&gt;written_reqs, &amp;conn-&gt;written_reqs,</span>
+<span class="lineNum">     503 </span><span class="lineCov">        295 :                              requeue_requests);</span>
+<span class="lineNum">     504 </span>            :     }
+<span class="lineNum">     505 </span><span class="lineCov">         71 :     conn-&gt;written_reqs_tail = NULL;</span>
+<span class="lineNum">     506 </span>            : 
+<span class="lineNum">     507 </span>            :     /* Handle all outstanding unwritten requests.
+<span class="lineNum">     508 </span>            :        TODO: what about a partially written request? */
+<span class="lineNum">     509 </span><span class="lineCov">       9484 :     while (old_reqs) {</span>
+<span class="lineNum">     510 </span>            :         /* If we haven't started to write the connection, bring it over
+<span class="lineNum">     511 </span>            :          * unchanged to our new socket.
+<span class="lineNum">     512 </span>            :          * Do not copy a CONNECT request to the new connection, the ssl tunnel
+<span class="lineNum">     513 </span>            :          * setup code will create a new CONNECT request already.
+<span class="lineNum">     514 </span>            :          */
+<span class="lineNum">     515 </span><span class="lineCov">      14013 :         if (requeue_requests &amp;&amp; (old_reqs-&gt;writing == SERF_WRITING_NONE) &amp;&amp;</span>
+<span class="lineNum">     516 </span><span class="lineCov">       4671 :             !old_reqs-&gt;ssltunnel) {</span>
+<span class="lineNum">     517 </span>            : 
+<span class="lineNum">     518 </span><span class="lineCov">       4669 :             serf_request_t *req = old_reqs;</span>
+<span class="lineNum">     519 </span><span class="lineCov">       4669 :             old_reqs = old_reqs-&gt;next;</span>
+<span class="lineNum">     520 </span><span class="lineCov">       4669 :             req-&gt;next = NULL;</span>
+<span class="lineNum">     521 </span><span class="lineCov">       9338 :             serf__link_requests(&amp;conn-&gt;unwritten_reqs,</span>
+<span class="lineNum">     522 </span><span class="lineCov">       4669 :                                 &amp;conn-&gt;unwritten_reqs_tail,</span>
+<span class="lineNum">     523 </span><span class="lineCov">       4669 :                                 req);</span>
+<span class="lineNum">     524 </span><span class="lineCov">       4669 :         }</span>
+<span class="lineNum">     525 </span>            :         else {
+<span class="lineNum">     526 </span>            :             /* We don't want to requeue the request or this request was partially
+<span class="lineNum">     527 </span>            :                written. Inform the application that the request is cancelled. */
+<span class="lineNum">     528 </span><span class="lineCov">          2 :             serf__cancel_request(old_reqs, &amp;old_reqs, requeue_requests);</span>
+<span class="lineNum">     529 </span>            :         }
+<span class="lineNum">     530 </span>            :     }
+<span class="lineNum">     531 </span>            : 
+<span class="lineNum">     532 </span>            :     /* Requests queue has been prepared for a new socket, close the old one. */
+<span class="lineNum">     533 </span><span class="lineCov">         71 :     if (conn-&gt;skt != NULL) {</span>
+<span class="lineNum">     534 </span><span class="lineCov">         71 :         remove_connection(ctx, conn);</span>
+<span class="lineNum">     535 </span><span class="lineCov">         71 :         status = clean_skt(conn);</span>
+<span class="lineNum">     536 </span><span class="lineCov">         71 :         if (conn-&gt;closed != NULL) {</span>
+<span class="lineNum">     537 </span><span class="lineCov">         71 :             handle_conn_closed(conn, status);</span>
+<span class="lineNum">     538 </span><span class="lineCov">         71 :         }</span>
+<span class="lineNum">     539 </span><span class="lineCov">         71 :     }</span>
+<span class="lineNum">     540 </span>            : 
+<span class="lineNum">     541 </span><span class="lineCov">         71 :     if (conn-&gt;pump.stream != NULL) {</span>
+<span class="lineNum">     542 </span><span class="lineCov">         71 :         serf_bucket_destroy(conn-&gt;pump.stream);</span>
+<span class="lineNum">     543 </span><span class="lineCov">         71 :         conn-&gt;pump.stream = NULL;</span>
+<span class="lineNum">     544 </span><span class="lineCov">         71 :     }</span>
+<span class="lineNum">     545 </span>            : 
+<span class="lineNum">     546 </span>            :     /* Don't try to resume any writes */
+<span class="lineNum">     547 </span><span class="lineCov">         71 :     conn-&gt;pump.vec_len = 0;</span>
+<span class="lineNum">     548 </span>            : 
+<span class="lineNum">     549 </span><span class="lineCov">        142 :     serf_io__set_pollset_dirty(&amp;conn-&gt;io);</span>
+<span class="lineNum">     550 </span><span class="lineCov">         71 :     conn-&gt;state = SERF_CONN_INIT;</span>
+<span class="lineNum">     551 </span>            : 
+<span class="lineNum">     552 </span><span class="lineCov">         71 :     conn-&gt;pump.hit_eof = 0;</span>
+<span class="lineNum">     553 </span><span class="lineCov">         71 :     conn-&gt;connect_time = 0;</span>
+<span class="lineNum">     554 </span><span class="lineCov">         71 :     conn-&gt;latency = -1;</span>
+<span class="lineNum">     555 </span><span class="lineCov">         71 :     conn-&gt;pump.stop_writing = false;</span>
+<span class="lineNum">     556 </span><span class="lineCov">         71 :     conn-&gt;write_now = false;</span>
+<span class="lineNum">     557 </span>            :     /* conn-&gt;pipelining */
+<span class="lineNum">     558 </span>            : 
+<span class="lineNum">     559 </span><span class="lineCov">         71 :     conn-&gt;framing_type = SERF_CONNECTION_FRAMING_TYPE_HTTP1;</span>
+<span class="lineNum">     560 </span>            : 
+<span class="lineNum">     561 </span><span class="lineCov">         71 :     if (conn-&gt;protocol_baton) {</span>
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :         conn-&gt;perform_teardown(conn);</span>
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :         conn-&gt;protocol_baton = NULL;</span>
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     565 </span>            : 
+<span class="lineNum">     566 </span><span class="lineCov">         71 :     conn-&gt;perform_read = read_from_connection;</span>
+<span class="lineNum">     567 </span><span class="lineCov">         71 :     conn-&gt;perform_write = write_to_connection;</span>
+<span class="lineNum">     568 </span><span class="lineCov">         71 :     conn-&gt;perform_hangup = hangup_connection;</span>
+<span class="lineNum">     569 </span><span class="lineCov">         71 :     conn-&gt;perform_teardown = NULL;</span>
+<span class="lineNum">     570 </span><span class="lineCov">         71 :     conn-&gt;perform_pre_teardown = NULL;</span>
+<span class="lineNum">     571 </span><span class="lineCov">         71 :     conn-&gt;perform_cancel_request = NULL;</span>
+<span class="lineNum">     572 </span><span class="lineCov">         71 :     conn-&gt;perform_prioritize_request = NULL;</span>
+<span class="lineNum">     573 </span>            : 
+<span class="lineNum">     574 </span><span class="lineCov">         71 :     conn-&gt;status = APR_SUCCESS;</span>
+<span class="lineNum">     575 </span>            : 
+<span class="lineNum">     576 </span>            :     /* Let our context know that we've 'reset' the socket already. */
+<span class="lineNum">     577 </span><span class="lineCov">         71 :     conn-&gt;seen_in_pollset |= APR_POLLHUP;</span>
+<span class="lineNum">     578 </span>            : 
+<span class="lineNum">     579 </span>            :     /* Recalculate the current list length */
+<span class="lineNum">     580 </span><span class="lineCov">         71 :     conn-&gt;nr_of_written_reqs = 0;</span>
+<span class="lineNum">     581 </span><span class="lineCov">         71 :     conn-&gt;nr_of_unwritten_reqs = serf__req_list_length(conn-&gt;unwritten_reqs);</span>
+<span class="lineNum">     582 </span>            : 
+<span class="lineNum">     583 </span>            :     /* Found the connection. Closed it. All done. */
+<span class="lineNum">     584 </span><span class="lineCov">         71 :     return APR_SUCCESS;</span>
+<span class="lineNum">     585 </span>            : }
+<a name="586"><span class="lineNum">     586 </span>            : </a>
+<span class="lineNum">     587 </span>            : 
+<span class="lineNum">     588 </span>            : apr_status_t serf__connection_flush(serf_connection_t *conn,
+<span class="lineNum">     589 </span>            :                                     bool fetch_new)
+<span class="lineNum">     590 </span>            : {
+<span class="lineNum">     591 </span><span class="lineCov">       3481 :     return serf_pump__write(&amp;conn-&gt;pump, fetch_new);</span>
+<span class="lineNum">     592 </span>            : }
+<span class="lineNum">     593 </span>            : 
+<span class="lineNum">     594 </span>            : /* Implements serf_bucket_event_callback_t and is called (potentially
+<span class="lineNum">     595 </span>            :    more than once) after the request buckets are completely read.
+<span class="lineNum">     596 </span>            : 
+<span class="lineNum">     597 </span>            :    At this time we know the request is written, but we can't destroy
+<a name="598"><span class="lineNum">     598 </span>            :    the buckets yet as they might still be referenced by the connection</a>
+<span class="lineNum">     599 </span>            :    vecs. */
+<span class="lineNum">     600 </span>            : static apr_status_t request_writing_done(void *baton,
+<span class="lineNum">     601 </span>            :                                          apr_uint64_t bytes_read)
+<span class="lineNum">     602 </span>            : {
+<span class="lineNum">     603 </span><span class="lineCov">        673 :   serf_request_t *request = baton;</span>
+<span class="lineNum">     604 </span>            : 
+<span class="lineNum">     605 </span><span class="lineCov">        673 :   if (request-&gt;writing == SERF_WRITING_STARTED) {</span>
+<span class="lineNum">     606 </span><span class="lineCov">        673 :       request-&gt;writing = SERF_WRITING_DONE;</span>
+<span class="lineNum">     607 </span>            : 
+<span class="lineNum">     608 </span>            :       /* TODO: Handle request done */
+<span class="lineNum">     609 </span><span class="lineCov">        673 :   }</span>
+<span class="lineNum">     610 </span><span class="lineCov">        673 :   return APR_EOF; /* Done with the event bucket */</span>
+<span class="lineNum">     611 </span>            : }
+<span class="lineNum">     612 </span>            : 
+<span class="lineNum">     613 </span>            : 
+<span class="lineNum">     614 </span>            : /* Implements serf_bucket_event_callback_t and is called after the
+<a name="615"><span class="lineNum">     615 </span>            :    request buckets are no longer needed. More precisely the outgoing</a>
+<span class="lineNum">     616 </span>            :    buckets are already destroyed. */
+<span class="lineNum">     617 </span>            : static apr_status_t request_writing_finished(void *baton,
+<span class="lineNum">     618 </span>            :                                              apr_uint64_t bytes_read)
+<span class="lineNum">     619 </span>            : {
+<span class="lineNum">     620 </span><span class="lineCov">        677 :     serf_request_t *request = baton;</span>
+<span class="lineNum">     621 </span><span class="lineCov">        677 :     serf_connection_t *conn = request-&gt;conn;</span>
+<span class="lineNum">     622 </span>            : 
+<span class="lineNum">     623 </span><span class="lineCov">        677 :     request-&gt;req_bkt = NULL; /* Bucket is destroyed by now */</span>
+<span class="lineNum">     624 </span>            : 
+<span class="lineNum">     625 </span><span class="lineCov">        677 :     if (request-&gt;writing == SERF_WRITING_DONE) {</span>
+<span class="lineNum">     626 </span><span class="lineCov">        673 :         request-&gt;writing = SERF_WRITING_FINISHED;</span>
+<span class="lineNum">     627 </span>            : 
+<span class="lineNum">     628 </span>            :         /* Move the request to the written queue */
+<span class="lineNum">     629 </span><span class="lineCov">       1346 :         serf__link_requests(&amp;conn-&gt;written_reqs, &amp;conn-&gt;written_reqs_tail,</span>
+<span class="lineNum">     630 </span><span class="lineCov">        673 :                             request);</span>
+<span class="lineNum">     631 </span><span class="lineCov">        673 :         conn-&gt;nr_of_written_reqs++;</span>
+<span class="lineNum">     632 </span><span class="lineCov">        673 :         conn-&gt;unwritten_reqs = conn-&gt;unwritten_reqs-&gt;next;</span>
+<span class="lineNum">     633 </span><span class="lineCov">        673 :         conn-&gt;nr_of_unwritten_reqs--;</span>
+<span class="lineNum">     634 </span><span class="lineCov">        673 :         request-&gt;next = NULL;</span>
+<span class="lineNum">     635 </span>            : 
+<span class="lineNum">     636 </span>            :         /* If our connection has async responses enabled, we're not
+<span class="lineNum">     637 </span>            :         * going to get a reply back, so kill the request.
+<span class="lineNum">     638 </span>            :         */
+<span class="lineNum">     639 </span><span class="lineCov">        673 :         if (conn-&gt;async_responses) {</span>
+<span class="lineNum">     640 </span><span class="lineNoCov">          0 :           conn-&gt;unwritten_reqs = request-&gt;next;</span>
+<span class="lineNum">     641 </span><span class="lineNoCov">          0 :           conn-&gt;nr_of_unwritten_reqs--;</span>
+<span class="lineNum">     642 </span><span class="lineNoCov">          0 :           serf__destroy_request(request);</span>
+<span class="lineNum">     643 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     644 </span>            : 
+<span class="lineNum">     645 </span><span class="lineCov">        673 :         conn-&gt;completed_requests++;</span>
+<span class="lineNum">     646 </span><span class="lineCov">        673 :     }</span>
+<span class="lineNum">     647 </span>            :     /* Destroy (all) requests that are now safe to destroy,
+<span class="lineNum">     648 </span>            :        Typically non or just the finished one */
+<span class="lineNum">     649 </span>            :     {
+<span class="lineNum">     650 </span><span class="lineCov">        677 :         serf_request_t *last = NULL;</span>
+<span class="lineNum">     651 </span><span class="lineCov">        677 :         serf_request_t **rq = &amp;conn-&gt;done_reqs;</span>
+<span class="lineNum">     652 </span><span class="lineCov">       1354 :         while (*rq) {</span>
+<span class="lineNum">     653 </span><span class="lineNoCov">          0 :             request = *rq;</span>
+<span class="lineNum">     654 </span><span class="lineNoCov">          0 :             if ((*rq)-&gt;writing == SERF_WRITING_FINISHED) {</span>
+<span class="lineNum">     655 </span><span class="lineNoCov">          0 :                 request = *rq;</span>
+<span class="lineNum">     656 </span><span class="lineNoCov">          0 :                 *rq = request-&gt;next;</span>
+<span class="lineNum">     657 </span><span class="lineNoCov">          0 :                 serf__destroy_request(request);</span>
+<span class="lineNum">     658 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">     659 </span>            :             else {
+<span class="lineNum">     660 </span><span class="lineNoCov">          0 :                 last = *rq;</span>
+<span class="lineNum">     661 </span><span class="lineNoCov">          0 :                 rq = &amp;last-&gt;next;</span>
+<span class="lineNum">     662 </span>            :             }
+<span class="lineNum">     663 </span>            :         }
+<span class="lineNum">     664 </span>            : 
+<span class="lineNum">     665 </span><span class="lineCov">        677 :         conn-&gt;done_reqs_tail = last;</span>
+<span class="lineNum">     666 </span>            :     }
+<span class="lineNum">     667 </span>            : 
+<span class="lineNum">     668 </span><span class="lineCov">        677 :     return APR_EOF; /* Done with event bucket. Status is ignored */</span>
+<span class="lineNum">     669 </span>            : }
+<a name="670"><span class="lineNum">     670 </span>            : </a>
+<span class="lineNum">     671 </span>            : /* write data out to the connection */
+<span class="lineNum">     672 </span>            : static apr_status_t write_to_connection(serf_connection_t *conn)
+<span class="lineNum">     673 </span>            : {
+<span class="lineNum">     674 </span>            :     /* Keep reading and sending until we run out of stuff to read, or
+<span class="lineNum">     675 </span>            :      * writing would block.
+<span class="lineNum">     676 </span>            :      */
+<span class="lineNum">     677 </span><span class="lineCov">       1817 :     while (1) {</span>
+<span class="lineNum">     678 </span>            :         serf_request_t *request;
+<span class="lineNum">     679 </span>            :         apr_status_t status;
+<span class="lineNum">     680 </span>            :         apr_status_t read_status;
+<span class="lineNum">     681 </span>            : 
+<span class="lineNum">     682 </span>            :         /* If we have unwritten data in iovecs, then write what we can
+<span class="lineNum">     683 </span>            :            directly. */
+<span class="lineNum">     684 </span><span class="lineCov">       1817 :         status = serf__connection_flush(conn, FALSE);</span>
+<span class="lineNum">     685 </span><span class="lineCov">       1817 :         if (APR_STATUS_IS_EAGAIN(status))</span>
+<span class="lineNum">     686 </span><span class="lineCov">          4 :           return APR_SUCCESS;</span>
+<span class="lineNum">     687 </span><span class="lineCov">       1813 :         else if (status)</span>
+<span class="lineNum">     688 </span><span class="lineNoCov">          0 :           return status;</span>
+<span class="lineNum">     689 </span>            : 
+<span class="lineNum">     690 </span>            :         /* If we're setting up an ssl tunnel, we can't send real requests
+<span class="lineNum">     691 </span>            :            as yet, as they need to be encrypted and our encrypt buckets
+<span class="lineNum">     692 </span>            :            aren't created yet as we still need to read the unencrypted
+<span class="lineNum">     693 </span>            :            response of the CONNECT request. */
+<span class="lineNum">     694 </span><span class="lineCov">       1916 :         if (conn-&gt;state == SERF_CONN_SETUP_SSLTUNNEL</span>
+<span class="lineNum">     695 </span><span class="lineCov">       1916 :             &amp;&amp; REQS_IN_PROGRESS(conn) &gt; 0)</span>
+<span class="lineNum">     696 </span>            :         {
+<span class="lineNum">     697 </span>            :             /* But flush out SSL data when necessary! */
+<span class="lineNum">     698 </span><span class="lineCov">         69 :             status = serf__connection_flush(conn, TRUE);</span>
+<span class="lineNum">     699 </span><span class="lineCov">         69 :             if (APR_STATUS_IS_EAGAIN(status))</span>
+<span class="lineNum">     700 </span><span class="lineNoCov">          0 :                 return APR_SUCCESS;</span>
+<span class="lineNum">     701 </span>            : 
+<span class="lineNum">     702 </span><span class="lineCov">         69 :             return status;</span>
+<span class="lineNum">     703 </span>            :         }
+<span class="lineNum">     704 </span>            : 
+<span class="lineNum">     705 </span>            :         /* We try to limit the number of in-flight requests so that we
+<span class="lineNum">     706 </span>            :            don't have to repeat too many if the connection drops.
+<span class="lineNum">     707 </span>            : 
+<span class="lineNum">     708 </span>            :            This check matches that in serf__conn_update_pollset()
+<span class="lineNum">     709 </span>            :            */
+<span class="lineNum">     710 </span><span class="lineCov">       1774 :         if ((conn-&gt;probable_keepalive_limit &amp;&amp;</span>
+<span class="lineNum">     711 </span><span class="lineCov">        685 :              conn-&gt;completed_requests &gt; conn-&gt;probable_keepalive_limit) ||</span>
+<span class="lineNum">     712 </span><span class="lineCov">       1689 :             (conn-&gt;max_outstanding_requests &amp;&amp;</span>
+<span class="lineNum">     713 </span><span class="lineCov">         30 :              REQS_IN_PROGRESS(conn) &gt;= conn-&gt;max_outstanding_requests)) {</span>
+<span class="lineNum">     714 </span>            : 
+<span class="lineNum">     715 </span><span class="lineCov">        130 :             serf_io__set_pollset_dirty(&amp;conn-&gt;io);</span>
+<span class="lineNum">     716 </span>            : 
+<span class="lineNum">     717 </span>            :             /* backoff for now. */
+<span class="lineNum">     718 </span><span class="lineCov">         65 :             return APR_SUCCESS;</span>
+<span class="lineNum">     719 </span>            :         }
+<span class="lineNum">     720 </span>            : 
+<span class="lineNum">     721 </span>            :         /* We may need to move forward to a request which has something
+<span class="lineNum">     722 </span>            :          * to write.
+<span class="lineNum">     723 </span>            :          */
+<span class="lineNum">     724 </span><span class="lineCov">       1679 :         if (!request_or_data_pending(&amp;request, conn)) {</span>
+<span class="lineNum">     725 </span>            :             /* No more requests (with data) are registered with the
+<span class="lineNum">     726 </span>            :              * connection, and no data is pending on the outgoing stream.
+<span class="lineNum">     727 </span>            :              * Let's update the pollset so that we don't try to write to this
+<span class="lineNum">     728 </span>            :              * socket again.
+<span class="lineNum">     729 </span>            :              */
+<span class="lineNum">     730 </span><span class="lineCov">        168 :             serf_io__set_pollset_dirty(&amp;conn-&gt;io);</span>
+<span class="lineNum">     731 </span><span class="lineCov">         84 :             return APR_SUCCESS;</span>
+<span class="lineNum">     732 </span>            :         }
+<span class="lineNum">     733 </span>            : 
+<span class="lineNum">     734 </span><span class="lineCov">       3164 :         if (request &amp;&amp; request-&gt;writing == SERF_WRITING_NONE) {</span>
+<span class="lineNum">     735 </span>            :             serf_bucket_t *event_bucket;
+<span class="lineNum">     736 </span>            : 
+<span class="lineNum">     737 </span><span class="lineCov">        677 :             if (request-&gt;req_bkt == NULL) {</span>
+<span class="lineNum">     738 </span><span class="lineCov">        671 :                 read_status = serf__setup_request(request);</span>
+<span class="lineNum">     739 </span><span class="lineCov">        671 :                 if (read_status) {</span>
+<span class="lineNum">     740 </span>            :                     /* Something bad happened. Propagate any errors. */
+<span class="lineNum">     741 </span><span class="lineNoCov">          0 :                     return read_status;</span>
+<span class="lineNum">     742 </span>            :                 }
+<span class="lineNum">     743 </span><span class="lineCov">        671 :             }</span>
+<span class="lineNum">     744 </span>            : 
+<span class="lineNum">     745 </span><span class="lineCov">        677 :             request-&gt;writing = SERF_WRITING_STARTED;</span>
+<span class="lineNum">     746 </span>            : 
+<span class="lineNum">     747 </span>            :             /* And now add an event bucket to keep track of when the request
+<span class="lineNum">     748 </span>            :                has been completely written */
+<span class="lineNum">     749 </span><span class="lineCov">       1354 :             event_bucket = serf__bucket_event_create(request-&gt;req_bkt,</span>
+<span class="lineNum">     750 </span><span class="lineCov">        677 :                                                      request,</span>
+<span class="lineNum">     751 </span>            :                                                      NULL,
+<span class="lineNum">     752 </span>            :                                                      request_writing_done,
+<span class="lineNum">     753 </span>            :                                                      request_writing_finished,
+<span class="lineNum">     754 </span><span class="lineCov">        677 :                                                      conn-&gt;allocator);</span>
+<span class="lineNum">     755 </span><span class="lineCov">        677 :             serf_pump__add_output(&amp;conn-&gt;pump, event_bucket, false);</span>
+<span class="lineNum">     756 </span><span class="lineCov">        677 :         }</span>
+<span class="lineNum">     757 </span>            : 
+<span class="lineNum">     758 </span>            :         /* If we got some data, then deliver it. */
+<span class="lineNum">     759 </span>            :         /* ### what to do if we got no data?? is that a problem? */
+<span class="lineNum">     760 </span><span class="lineCov">       1595 :         status = serf__connection_flush(conn, TRUE);</span>
+<span class="lineNum">     761 </span><span class="lineCov">       1595 :         if (APR_STATUS_IS_EAGAIN(status))</span>
+<span class="lineNum">     762 </span><span class="lineCov">        305 :             return APR_SUCCESS;</span>
+<span class="lineNum">     763 </span><span class="lineCov">       1290 :         else if (status)</span>
+<span class="lineNum">     764 </span><span class="lineNoCov">          0 :             return status;</span>
+<span class="lineNum">     765 </span>            : 
+<span class="lineNum">     766 </span>            :     }
+<span class="lineNum">     767 </span>            :     /* NOTREACHED */
+<span class="lineNum">     768 </span><span class="lineCov">        527 : }</span>
+<span class="lineNum">     769 </span>            : 
+<span class="lineNum">     770 </span>            : 
+<a name="771"><span class="lineNum">     771 </span>            : </a>
+<span class="lineNum">     772 </span>            : /* An async response message was received from the server. */
+<span class="lineNum">     773 </span>            : static apr_status_t handle_async_response(serf_connection_t *conn,
+<span class="lineNum">     774 </span>            :                                           apr_pool_t *pool)
+<span class="lineNum">     775 </span>            : {
+<span class="lineNum">     776 </span>            :     apr_status_t status;
+<span class="lineNum">     777 </span>            : 
+<span class="lineNum">     778 </span><span class="lineNoCov">          0 :     if (conn-&gt;current_async_response == NULL) {</span>
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :         conn-&gt;current_async_response =</span>
+<span class="lineNum">     780 </span><span class="lineNoCov">          0 :             (*conn-&gt;async_acceptor)(NULL, conn-&gt;pump.stream,</span>
+<span class="lineNum">     781 </span><span class="lineNoCov">          0 :                                     conn-&gt;async_acceptor_baton, pool);</span>
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     783 </span>            : 
+<span class="lineNum">     784 </span><span class="lineNoCov">          0 :     status = (*conn-&gt;async_handler)(NULL, conn-&gt;current_async_response,</span>
+<span class="lineNum">     785 </span><span class="lineNoCov">          0 :                                     conn-&gt;async_handler_baton, pool);</span>
+<span class="lineNum">     786 </span>            : 
+<span class="lineNum">     787 </span><span class="lineNoCov">          0 :     if (APR_STATUS_IS_EOF(status)) {</span>
+<span class="lineNum">     788 </span><span class="lineNoCov">          0 :         serf_bucket_destroy(conn-&gt;current_async_response);</span>
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 :         conn-&gt;current_async_response = NULL;</span>
+<span class="lineNum">     790 </span><span class="lineNoCov">          0 :         status = APR_SUCCESS;</span>
+<span class="lineNum">     791 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     792 </span>            : 
+<span class="lineNum">     793 </span><span class="lineNoCov">          0 :     return status;</span>
+<span class="lineNum">     794 </span>            : }
+<a name="795"><span class="lineNum">     795 </span>            : </a>
+<span class="lineNum">     796 </span>            : /* read data from the connection */
+<span class="lineNum">     797 </span>            : static apr_status_t read_from_connection(serf_connection_t *conn)
+<span class="lineNum">     798 </span>            : {
+<span class="lineNum">     799 </span>            :     apr_status_t status;
+<span class="lineNum">     800 </span>            :     apr_pool_t *tmppool;
+<span class="lineNum">     801 </span><span class="lineCov">        591 :     apr_status_t close_connection = APR_SUCCESS;</span>
+<span class="lineNum">     802 </span>            : 
+<span class="lineNum">     803 </span>            :     /* assert: request != NULL */
+<span class="lineNum">     804 </span>            : 
+<span class="lineNum">     805 </span><span class="lineCov">        591 :     if ((status = apr_pool_create(&amp;tmppool, conn-&gt;pool)) != APR_SUCCESS)</span>
+<span class="lineNum">     806 </span><span class="lineNoCov">          0 :         return status;</span>
+<span class="lineNum">     807 </span>            : 
+<span class="lineNum">     808 </span>            :     /* Invoke response handlers until we have no more work. */
+<span class="lineNum">     809 </span><span class="lineCov">        815 :     while (1) {</span>
+<span class="lineNum">     810 </span>            :         serf_request_t *request;
+<span class="lineNum">     811 </span><span class="lineCov">        855 :         apr_pool_clear(tmppool);</span>
+<span class="lineNum">     812 </span>            : 
+<span class="lineNum">     813 </span>            :         /* Whatever is coming in on the socket corresponds to the first request
+<span class="lineNum">     814 </span>            :          * on our chain.
+<span class="lineNum">     815 </span>            :          */
+<span class="lineNum">     816 </span><span class="lineCov">        855 :         request = conn-&gt;written_reqs;</span>
+<span class="lineNum">     817 </span><span class="lineCov">        855 :         if (!request) {</span>
+<span class="lineNum">     818 </span>            :             /* Request wasn't completely written yet! */
+<span class="lineNum">     819 </span><span class="lineCov">         60 :             request = conn-&gt;unwritten_reqs;</span>
+<span class="lineNum">     820 </span><span class="lineCov">         60 :         }</span>
+<span class="lineNum">     821 </span>            : 
+<span class="lineNum">     822 </span>            :         /* We have a different codepath when we can have async responses. */
+<span class="lineNum">     823 </span><span class="lineCov">        855 :         if (conn-&gt;async_responses) {</span>
+<span class="lineNum">     824 </span>            :             /* TODO What about socket errors? */
+<span class="lineNum">     825 </span><span class="lineNoCov">          0 :             status = handle_async_response(conn, tmppool);</span>
+<span class="lineNum">     826 </span><span class="lineNoCov">          0 :             if (APR_STATUS_IS_EAGAIN(status)) {</span>
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 :                 status = APR_SUCCESS;</span>
+<span class="lineNum">     828 </span><span class="lineNoCov">          0 :                 goto error;</span>
+<span class="lineNum">     829 </span>            :             }
+<span class="lineNum">     830 </span><span class="lineNoCov">          0 :             if (status) {</span>
+<span class="lineNum">     831 </span><span class="lineNoCov">          0 :                 goto error;</span>
+<span class="lineNum">     832 </span>            :             }
+<span class="lineNum">     833 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">     834 </span>            :         }
+<span class="lineNum">     835 </span>            : 
+<span class="lineNum">     836 </span>            :         /* We are reading a response for a request we haven't
+<span class="lineNum">     837 </span>            :          * written yet!
+<span class="lineNum">     838 </span>            :          *
+<span class="lineNum">     839 </span>            :          * This shouldn't normally happen EXCEPT:
+<span class="lineNum">     840 </span>            :          *
+<span class="lineNum">     841 </span>            :          * 1) when the other end has closed the socket and we're
+<span class="lineNum">     842 </span>            :          *    pending an EOF return.
+<span class="lineNum">     843 </span>            :          * 2) Doing the initial SSL handshake - we'll get EAGAIN
+<span class="lineNum">     844 </span>            :          *    as the SSL buckets will hide the handshake from us
+<span class="lineNum">     845 </span>            :          *    but not return any data.
+<span class="lineNum">     846 </span>            :          * 3) When the server sends us an SSL alert.
+<span class="lineNum">     847 </span>            :          *
+<span class="lineNum">     848 </span>            :          * In these cases, we should not receive any actual user data.
+<span class="lineNum">     849 </span>            :          *
+<span class="lineNum">     850 </span>            :          * 4) When the server sends a error response, like 408 Request timeout.
+<span class="lineNum">     851 </span>            :          *    This response should be passed to the application.
+<span class="lineNum">     852 </span>            :          *
+<span class="lineNum">     853 </span>            :          * If we see an EOF (due to either an expired timeout or the server
+<span class="lineNum">     854 </span>            :          * sending the SSL 'close notify' shutdown alert), we'll reset the
+<span class="lineNum">     855 </span>            :          * connection and open a new one.
+<span class="lineNum">     856 </span>            :          */
+<span class="lineNum">     857 </span><span class="lineCov">       1652 :         if (request-&gt;req_bkt || request-&gt;writing == SERF_WRITING_NONE) {</span>
+<span class="lineNum">     858 </span>            :             const char *data;
+<span class="lineNum">     859 </span>            :             apr_size_t len;
+<span class="lineNum">     860 </span>            : 
+<span class="lineNum">     861 </span><span class="lineCov">         60 :             status = serf_bucket_peek(conn-&gt;pump.stream, &amp;data, &amp;len);</span>
+<span class="lineNum">     862 </span>            : 
+<span class="lineNum">     863 </span><span class="lineCov">         60 :             if (APR_STATUS_IS_EOF(status)) {</span>
+<span class="lineNum">     864 </span><span class="lineCov">          1 :                 reset_connection(conn, 1);</span>
+<span class="lineNum">     865 </span><span class="lineCov">          1 :                 status = APR_SUCCESS;</span>
+<span class="lineNum">     866 </span><span class="lineCov">          1 :                 goto error;</span>
+<span class="lineNum">     867 </span>            :             }
+<span class="lineNum">     868 </span><span class="lineCov">         59 :             else if (APR_STATUS_IS_EAGAIN(status) &amp;&amp; !len) {</span>
+<span class="lineNum">     869 </span><span class="lineNoCov">          0 :                 status = APR_SUCCESS;</span>
+<span class="lineNum">     870 </span><span class="lineNoCov">          0 :                 goto error;</span>
+<span class="lineNum">     871 </span><span class="lineCov">         62 :             } else if (status &amp;&amp; !APR_STATUS_IS_EAGAIN(status)) {</span>
+<span class="lineNum">     872 </span>            :                 /* Read error */
+<span class="lineNum">     873 </span><span class="lineCov">          3 :                 goto error;</span>
+<span class="lineNum">     874 </span>            :             }
+<span class="lineNum">     875 </span>            : 
+<span class="lineNum">     876 </span>            :             /* Unexpected response from the server */
+<span class="lineNum">     877 </span><span class="lineCov">         56 :             if (conn-&gt;write_now) {</span>
+<span class="lineNum">     878 </span><span class="lineCov">          1 :                 conn-&gt;write_now = false;</span>
+<span class="lineNum">     879 </span><span class="lineCov">          1 :                 status = conn-&gt;perform_write(conn);</span>
+<span class="lineNum">     880 </span>            : 
+<span class="lineNum">     881 </span><span class="lineCov">          1 :                 if (!SERF_BUCKET_READ_ERROR(status))</span>
+<span class="lineNum">     882 </span><span class="lineCov">          1 :                     status = APR_SUCCESS;</span>
+<span class="lineNum">     883 </span><span class="lineCov">          1 :             }</span>
+<span class="lineNum">     884 </span><span class="lineCov">         56 :         }</span>
+<span class="lineNum">     885 </span>            : 
+<span class="lineNum">     886 </span><span class="lineCov">        851 :         if (conn-&gt;framing_type != SERF_CONNECTION_FRAMING_TYPE_HTTP1)</span>
+<span class="lineNum">     887 </span><span class="lineNoCov">          0 :             break;</span>
+<span class="lineNum">     888 </span>            : 
+<span class="lineNum">     889 </span>            :         /* If the request doesn't have a response bucket, then call the
+<span class="lineNum">     890 </span>            :          * acceptor to get one created.
+<span class="lineNum">     891 </span>            :          */
+<span class="lineNum">     892 </span><span class="lineCov">        851 :         if (request-&gt;resp_bkt == NULL) {</span>
+<span class="lineNum">     893 </span><span class="lineCov">        392 :             if (! request-&gt;acceptor) {</span>
+<span class="lineNum">     894 </span>            :                 /* Request wasn't even setup.
+<span class="lineNum">     895 </span>            :                    Server replying before it received anything? */
+<span class="lineNum">     896 </span><span class="lineNoCov">          0 :               return SERF_ERROR_BAD_HTTP_RESPONSE;</span>
+<span class="lineNum">     897 </span>            :             }
+<span class="lineNum">     898 </span>            : 
+<span class="lineNum">     899 </span><span class="lineCov">        784 :             request-&gt;resp_bkt = (*request-&gt;acceptor)(request, conn-&gt;pump.stream,</span>
+<span class="lineNum">     900 </span><span class="lineCov">        392 :                                                      request-&gt;acceptor_baton,</span>
+<span class="lineNum">     901 </span><span class="lineCov">        392 :                                                      tmppool);</span>
+<span class="lineNum">     902 </span><span class="lineCov">        392 :             apr_pool_clear(tmppool);</span>
+<span class="lineNum">     903 </span>            : 
+<span class="lineNum">     904 </span>            :             /* Share the configuration with the response bucket(s) */
+<span class="lineNum">     905 </span><span class="lineCov">        392 :             serf_bucket_set_config(request-&gt;resp_bkt, conn-&gt;config);</span>
+<span class="lineNum">     906 </span><span class="lineCov">        392 :         }</span>
+<span class="lineNum">     907 </span>            : 
+<span class="lineNum">     908 </span><span class="lineCov">        851 :         status = serf__handle_response(request, tmppool);</span>
+<span class="lineNum">     909 </span>            : 
+<span class="lineNum">     910 </span>            :         /* If we received APR_SUCCESS, run this loop again. */
+<span class="lineNum">     911 </span><span class="lineCov">        851 :         if (!status) {</span>
+<span class="lineNum">     912 </span><span class="lineCov">         40 :             continue;</span>
+<span class="lineNum">     913 </span>            :         }
+<span class="lineNum">     914 </span>            : 
+<span class="lineNum">     915 </span>            :         /* If our response handler says it can't do anything more, we now
+<span class="lineNum">     916 </span>            :          * treat that as a success.
+<span class="lineNum">     917 </span>            :          */
+<span class="lineNum">     918 </span><span class="lineCov">        811 :         if (APR_STATUS_IS_EAGAIN(status)) {</span>
+<span class="lineNum">     919 </span>            :             /* It is possible that while reading the response, the ssl layer
+<span class="lineNum">     920 </span>            :                has prepared some data to send. If this was the last request,
+<span class="lineNum">     921 </span>            :                serf will not check for socket writability, so force this here.
+<span class="lineNum">     922 </span>            :              */
+<span class="lineNum">     923 </span><span class="lineCov">        581 :             if (request_or_data_pending(&amp;request, conn) &amp;&amp; !request) {</span>
+<span class="lineNum">     924 </span><span class="lineCov">          2 :                 serf_io__set_pollset_dirty(&amp;conn-&gt;io);</span>
+<span class="lineNum">     925 </span><span class="lineCov">          1 :             }</span>
+<span class="lineNum">     926 </span><span class="lineCov">        421 :             status = APR_SUCCESS;</span>
+<span class="lineNum">     927 </span><span class="lineCov">        421 :             goto error;</span>
+<span class="lineNum">     928 </span>            :         }
+<span class="lineNum">     929 </span>            : 
+<span class="lineNum">     930 </span><span class="lineCov">        390 :         close_connection = is_conn_closing(request-&gt;resp_bkt);</span>
+<span class="lineNum">     931 </span>            : 
+<span class="lineNum">     932 </span><span class="lineCov">        409 :         if (!APR_STATUS_IS_EOF(status) &amp;&amp;</span>
+<span class="lineNum">     933 </span><span class="lineCov">         19 :             close_connection != SERF_ERROR_CLOSING) {</span>
+<span class="lineNum">     934 </span>            :             /* Whether success, or an error, there is no more to do unless
+<span class="lineNum">     935 </span>            :              * this request has been completed.
+<span class="lineNum">     936 </span>            :              */
+<span class="lineNum">     937 </span><span class="lineCov">         18 :             goto error;</span>
+<span class="lineNum">     938 </span>            :         }
+<span class="lineNum">     939 </span>            : 
+<span class="lineNum">     940 </span>            :         /* The response has been fully-read, so that means the request has
+<span class="lineNum">     941 </span>            :          * either been fully-delivered (most likely), or that we don't need to
+<span class="lineNum">     942 </span>            :          * write the rest of it anymore, e.g. when a 408 Request timeout was
+<span class="lineNum">     943 </span>            :          $ received.
+<span class="lineNum">     944 </span>            :          * Remove it from our queue and loop to read another response.
+<span class="lineNum">     945 </span>            :          */
+<span class="lineNum">     946 </span><span class="lineCov">        372 :         if (request == conn-&gt;written_reqs) {</span>
+<span class="lineNum">     947 </span><span class="lineCov">        372 :             conn-&gt;written_reqs = request-&gt;next;</span>
+<span class="lineNum">     948 </span><span class="lineCov">        372 :             conn-&gt;nr_of_written_reqs--;</span>
+<span class="lineNum">     949 </span><span class="lineCov">        372 :         } else {</span>
+<span class="lineNum">     950 </span><span class="lineNoCov">          0 :             conn-&gt;unwritten_reqs = request-&gt;next;</span>
+<span class="lineNum">     951 </span><span class="lineNoCov">          0 :             conn-&gt;nr_of_unwritten_reqs--;</span>
+<span class="lineNum">     952 </span>            :         }
+<span class="lineNum">     953 </span>            : 
+<span class="lineNum">     954 </span><span class="lineCov">        372 :         serf__destroy_request(request);</span>
+<span class="lineNum">     955 </span>            : 
+<span class="lineNum">     956 </span><span class="lineCov">        372 :         request = conn-&gt;written_reqs;</span>
+<span class="lineNum">     957 </span><span class="lineCov">        372 :         if (!request) {</span>
+<span class="lineNum">     958 </span>            :             /* Received responses for all written requests */
+<span class="lineNum">     959 </span><span class="lineCov">         97 :             conn-&gt;written_reqs_tail = NULL;</span>
+<span class="lineNum">     960 </span>            :             /* Request wasn't completely written yet! */
+<span class="lineNum">     961 </span><span class="lineCov">         97 :             request = conn-&gt;unwritten_reqs;</span>
+<span class="lineNum">     962 </span><span class="lineCov">         97 :             if (!request)</span>
+<span class="lineNum">     963 </span><span class="lineCov">         57 :                 conn-&gt;unwritten_reqs_tail = NULL;</span>
+<span class="lineNum">     964 </span><span class="lineCov">         97 :         }</span>
+<span class="lineNum">     965 </span>            : 
+<span class="lineNum">     966 </span><span class="lineCov">        372 :         conn-&gt;completed_responses++;</span>
+<span class="lineNum">     967 </span>            : 
+<span class="lineNum">     968 </span>            :         /* We have received a response. If there are no more outstanding
+<span class="lineNum">     969 </span>            :            requests on this connection, we should stop polling for READ events
+<span class="lineNum">     970 </span>            :            for now. */
+<span class="lineNum">     971 </span><span class="lineCov">        469 :         if (!conn-&gt;written_reqs &amp;&amp; !conn-&gt;unwritten_reqs) {</span>
+<span class="lineNum">     972 </span><span class="lineCov">        114 :             serf_io__set_pollset_dirty(&amp;conn-&gt;io);</span>
+<span class="lineNum">     973 </span><span class="lineCov">         57 :         }</span>
+<span class="lineNum">     974 </span>            : 
+<span class="lineNum">     975 </span>            :         /* This means that we're being advised that the connection is done. */
+<span class="lineNum">     976 </span><span class="lineCov">        372 :         if (close_connection == SERF_ERROR_CLOSING) {</span>
+<span class="lineNum">     977 </span><span class="lineCov">         57 :             reset_connection(conn, 1);</span>
+<span class="lineNum">     978 </span><span class="lineCov">         57 :             if (APR_STATUS_IS_EOF(status))</span>
+<span class="lineNum">     979 </span><span class="lineCov">         56 :                 status = APR_SUCCESS;</span>
+<span class="lineNum">     980 </span><span class="lineCov">         57 :             goto error;</span>
+<span class="lineNum">     981 </span>            :         }
+<span class="lineNum">     982 </span>            : 
+<span class="lineNum">     983 </span>            :         /* The server is suddenly deciding to serve more responses than we've
+<span class="lineNum">     984 </span>            :          * seen before.
+<span class="lineNum">     985 </span>            :          *
+<span class="lineNum">     986 </span>            :          * Let our requests go.
+<span class="lineNum">     987 </span>            :          */
+<span class="lineNum">     988 </span><span class="lineCov">        510 :         if (conn-&gt;probable_keepalive_limit &amp;&amp;</span>
+<span class="lineNum">     989 </span><span class="lineCov">        195 :             conn-&gt;completed_responses &gt;= conn-&gt;probable_keepalive_limit) {</span>
+<span class="lineNum">     990 </span><span class="lineCov">         10 :             conn-&gt;probable_keepalive_limit = 0;</span>
+<span class="lineNum">     991 </span><span class="lineCov">         10 :         }</span>
+<span class="lineNum">     992 </span>            : 
+<span class="lineNum">     993 </span>            :         /* If we just ran out of requests or have unwritten requests, then
+<span class="lineNum">     994 </span>            :          * update the pollset. We don't want to read from this socket any
+<span class="lineNum">     995 </span>            :          * more. We are definitely done with this loop, too.
+<span class="lineNum">     996 </span>            :          */
+<span class="lineNum">     997 </span><span class="lineCov">        574 :         if (request == NULL || request-&gt;writing == SERF_WRITING_NONE) {</span>
+<span class="lineNum">     998 </span><span class="lineCov">        182 :             serf_io__set_pollset_dirty(&amp;conn-&gt;io);</span>
+<span class="lineNum">     999 </span><span class="lineCov">         91 :             status = APR_SUCCESS;</span>
+<span class="lineNum">    1000 </span><span class="lineCov">         91 :             goto error;</span>
+<span class="lineNum">    1001 </span>            :         }
+<span class="lineNum">    1002 </span>            :     }
+<span class="lineNum">    1003 </span>            : 
+<span class="lineNum">    1004 </span>            : error:
+<span class="lineNum">    1005 </span>            :     /* ### This code handles some specific errors as a retry.
+<span class="lineNum">    1006 </span>            :            Eventually we should move to a handling where the application
+<span class="lineNum">    1007 </span>            :            can tell us if this is really a good idea for specific requests */
+<span class="lineNum">    1008 </span>            : 
+<span class="lineNum">    1009 </span><span class="lineCov">        591 :     if (status == SERF_ERROR_SSL_NEGOTIATE_IN_PROGRESS) {</span>
+<span class="lineNum">    1010 </span>            :         /* This connection uses HTTP pipelining and the server asked for a
+<span class="lineNum">    1011 </span>            :            renegotiation (e.g. to access the requested resource a specific
+<span class="lineNum">    1012 </span>            :            client certificate is required).
+<span class="lineNum">    1013 </span>            : 
+<span class="lineNum">    1014 </span>            :            Because of a known problem in OpenSSL this won't work most of the
+<span class="lineNum">    1015 </span>            :            time, so as a workaround, when the server asks for a renegotiation
+<span class="lineNum">    1016 </span>            :            on a connection using HTTP pipelining, we reset the connection,
+<span class="lineNum">    1017 </span>            :            disable pipelining and reconnect to the server. */
+<span class="lineNum">    1018 </span><span class="lineCov">          2 :         serf__log(LOGLVL_WARNING, LOGCOMP_CONN, __FILE__, conn-&gt;config,</span>
+<span class="lineNum">    1019 </span>            :                   &quot;The server requested renegotiation. Disable HTTP &quot;
+<span class="lineNum">    1020 </span><span class="lineCov">          1 :                   &quot;pipelining and reset the connection 0x%p.\n&quot;, conn);</span>
+<span class="lineNum">    1021 </span>            : 
+<span class="lineNum">    1022 </span><span class="lineCov">          1 :         serf__connection_set_pipelining(conn, 0);</span>
+<span class="lineNum">    1023 </span><span class="lineCov">          1 :         reset_connection(conn, 1);</span>
+<span class="lineNum">    1024 </span><span class="lineCov">          1 :         status = APR_SUCCESS;</span>
+<span class="lineNum">    1025 </span><span class="lineCov">          1 :     }</span>
+<span class="lineNum">    1026 </span><span class="lineCov">       1168 :     else if (status == SERF_ERROR_REQUEST_LOST</span>
+<span class="lineNum">    1027 </span><span class="lineCov">       1176 :              || APR_STATUS_IS_ECONNRESET(status)</span>
+<span class="lineNum">    1028 </span><span class="lineCov">       1746 :              || APR_STATUS_IS_ECONNABORTED(status)) {</span>
+<span class="lineNum">    1029 </span>            : 
+<span class="lineNum">    1030 </span>            :         /* Some systems will not generate a HUP poll event for these errors
+<span class="lineNum">    1031 </span>            :            so we handle the ECONNRESET issue and ECONNABORT here. */
+<span class="lineNum">    1032 </span>            : 
+<span class="lineNum">    1033 </span>            :         /* If the connection was ever good, be optimistic &amp; try again.
+<span class="lineNum">    1034 </span>            :            If it has never tried again (incl. a retry), fail. */
+<span class="lineNum">    1035 </span><span class="lineCov">         12 :         if (conn-&gt;completed_responses) {</span>
+<span class="lineNum">    1036 </span><span class="lineCov">         12 :             reset_connection(conn, 1);</span>
+<span class="lineNum">    1037 </span><span class="lineCov">         12 :             status = APR_SUCCESS;</span>
+<span class="lineNum">    1038 </span><span class="lineCov">         12 :         }</span>
+<span class="lineNum">    1039 </span><span class="lineNoCov">          0 :         else if (status == SERF_ERROR_REQUEST_LOST) {</span>
+<span class="lineNum">    1040 </span><span class="lineNoCov">          0 :             status = SERF_ERROR_ABORTED_CONNECTION;</span>
+<span class="lineNum">    1041 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">    1042 </span><span class="lineCov">         12 :     }</span>
+<span class="lineNum">    1043 </span>            : 
+<span class="lineNum">    1044 </span><span class="lineCov">        591 :     apr_pool_destroy(tmppool);</span>
+<span class="lineNum">    1045 </span><span class="lineCov">        591 :     return status;</span>
+<span class="lineNum">    1046 </span><span class="lineCov">        591 : }</span>
+<span class="lineNum">    1047 </span>            : 
+<span class="lineNum">    1048 </span>            : /* The connection got reset by the server. On Windows this can happen
+<span class="lineNum">    1049 </span>            :    when all data is read, so just cleanup the connection and open a new one.
+<span class="lineNum">    1050 </span>            : 
+<a name="1051"><span class="lineNum">    1051 </span>            :    If we haven't had any successful responses on this connection,</a>
+<span class="lineNum">    1052 </span>            :    then error out as it is likely a server issue. */
+<span class="lineNum">    1053 </span>            : static apr_status_t hangup_connection(serf_connection_t *conn)
+<span class="lineNum">    1054 </span>            : {
+<span class="lineNum">    1055 </span><span class="lineNoCov">          0 :     if (conn-&gt;completed_responses) {</span>
+<span class="lineNum">    1056 </span><span class="lineNoCov">          0 :         return reset_connection(conn, 1);</span>
+<span class="lineNum">    1057 </span>            :     }
+<span class="lineNum">    1058 </span>            : 
+<span class="lineNum">    1059 </span><span class="lineNoCov">          0 :     return SERF_ERROR_ABORTED_CONNECTION;</span>
+<span class="lineNum">    1060 </span><span class="lineNoCov">          0 : }</span>
+<a name="1061"><span class="lineNum">    1061 </span>            : </a>
+<span class="lineNum">    1062 </span>            : /* process all events on the connection */
+<span class="lineNum">    1063 </span>            : static apr_status_t process_connection(serf_connection_t *conn,
+<span class="lineNum">    1064 </span>            :                                        apr_int16_t events)
+<span class="lineNum">    1065 </span>            : {
+<span class="lineNum">    1066 </span>            :     apr_status_t status;
+<span class="lineNum">    1067 </span>            : #ifdef SERF_DEBUG_BUCKET_USE
+<span class="lineNum">    1068 </span>            :       serf_request_t *rq;
+<span class="lineNum">    1069 </span>            : #endif
+<span class="lineNum">    1070 </span>            : 
+<span class="lineNum">    1071 </span>            : #ifdef SERF_DEBUG_BUCKET_USE
+<span class="lineNum">    1072 </span>            :     serf_debug__entered_loop(conn-&gt;allocator);
+<span class="lineNum">    1073 </span>            : 
+<span class="lineNum">    1074 </span>            :     for (rq = conn-&gt;written_reqs; rq; rq = rq-&gt;next) {
+<span class="lineNum">    1075 </span>            :           if (rq-&gt;allocator)
+<span class="lineNum">    1076 </span>            :               serf_debug__entered_loop(rq-&gt;allocator);
+<span class="lineNum">    1077 </span>            :     }
+<span class="lineNum">    1078 </span>            : 
+<span class="lineNum">    1079 </span>            :     for (rq = conn-&gt;done_reqs; rq; rq = rq-&gt;next) {
+<span class="lineNum">    1080 </span>            :           if (rq-&gt;allocator)
+<span class="lineNum">    1081 </span>            :               serf_debug__entered_loop(rq-&gt;allocator);
+<span class="lineNum">    1082 </span>            :     }
+<span class="lineNum">    1083 </span>            : #endif
+<span class="lineNum">    1084 </span>            : 
+<span class="lineNum">    1085 </span>            :     /* POLLHUP/ERR should come after POLLIN so if there's an error message or
+<span class="lineNum">    1086 </span>            :      * the like sitting on the connection, we give the app a chance to read
+<span class="lineNum">    1087 </span>            :      * it before we trigger a reset condition.
+<span class="lineNum">    1088 </span>            :      */
+<span class="lineNum">    1089 </span><span class="lineCov">       1719 :     if ((events &amp; APR_POLLIN) != 0</span>
+<span class="lineNum">    1090 </span><span class="lineCov">       1719 :         &amp;&amp; !conn-&gt;wait_for_connect) {</span>
+<span class="lineNum">    1091 </span>            : 
+<span class="lineNum">    1092 </span>            :         /* If the stop_writing flag was set on the connection, reset it now
+<span class="lineNum">    1093 </span>            :            because there is some data to read. */
+<span class="lineNum">    1094 </span><span class="lineCov">        594 :         if (conn-&gt;pump.stop_writing) {</span>
+<span class="lineNum">    1095 </span><span class="lineCov">         29 :             conn-&gt;pump.stop_writing = false;</span>
+<span class="lineNum">    1096 </span><span class="lineCov">         58 :             serf_io__set_pollset_dirty(&amp;conn-&gt;io);</span>
+<span class="lineNum">    1097 </span><span class="lineCov">         29 :         }</span>
+<span class="lineNum">    1098 </span>            : 
+<span class="lineNum">    1099 </span><span class="lineCov">        594 :         if ((status = conn-&gt;perform_read(conn)) != APR_SUCCESS)</span>
+<span class="lineNum">    1100 </span><span class="lineCov">          9 :             return status;</span>
+<span class="lineNum">    1101 </span>            : 
+<span class="lineNum">    1102 </span>            :         /* If we decided to reset our connection, return now as we don't
+<span class="lineNum">    1103 </span>            :          * want to write.
+<span class="lineNum">    1104 </span>            :          */
+<span class="lineNum">    1105 </span><span class="lineCov">        585 :         if ((conn-&gt;seen_in_pollset &amp; APR_POLLHUP) != 0) {</span>
+<span class="lineNum">    1106 </span><span class="lineCov">         71 :             return APR_SUCCESS;</span>
+<span class="lineNum">    1107 </span>            :         }
+<span class="lineNum">    1108 </span><span class="lineCov">        514 :     }</span>
+<span class="lineNum">    1109 </span><span class="lineCov">       1045 :     if ((events &amp; APR_POLLHUP) != 0) {</span>
+<span class="lineNum">    1110 </span>            :         /* The connection got reset by the server. */
+<span class="lineNum">    1111 </span><span class="lineNoCov">          0 :         return conn-&gt;perform_hangup(conn);</span>
+<span class="lineNum">    1112 </span>            :     }
+<span class="lineNum">    1113 </span><span class="lineCov">       1045 :     if ((events &amp; APR_POLLERR) != 0) {</span>
+<span class="lineNum">    1114 </span>            :         /* We might be talking to a buggy HTTP server that doesn't
+<span class="lineNum">    1115 </span>            :          * do lingering-close.  (httpd &lt; 2.1.8 does this.)
+<span class="lineNum">    1116 </span>            :          *
+<span class="lineNum">    1117 </span>            :          * See:
+<span class="lineNum">    1118 </span>            :          *
+<span class="lineNum">    1119 </span>            :          * http://issues.apache.org/bugzilla/show_bug.cgi?id=35292
+<span class="lineNum">    1120 </span>            :          */
+<span class="lineNum">    1121 </span><span class="lineNoCov">          0 :         if (conn-&gt;completed_requests &amp;&amp; !conn-&gt;probable_keepalive_limit) {</span>
+<span class="lineNum">    1122 </span><span class="lineNoCov">          0 :             return reset_connection(conn, 1);</span>
+<span class="lineNum">    1123 </span>            :         }
+<span class="lineNum">    1124 </span>            : #ifdef SO_ERROR
+<span class="lineNum">    1125 </span>            :         /* If possible, get the error from the platform's socket layer and
+<span class="lineNum">    1126 </span>            :            convert it to an APR status code. */
+<span class="lineNum">    1127 </span>            :         {
+<span class="lineNum">    1128 </span>            :             apr_os_sock_t osskt;
+<span class="lineNum">    1129 </span><span class="lineNoCov">          0 :             if (!apr_os_sock_get(&amp;osskt, conn-&gt;skt)) {</span>
+<span class="lineNum">    1130 </span>            :                 int error;
+<span class="lineNum">    1131 </span><span class="lineNoCov">          0 :                 apr_socklen_t l = sizeof(error);</span>
+<span class="lineNum">    1132 </span>            : 
+<span class="lineNum">    1133 </span><span class="lineNoCov">          0 :                 if (!getsockopt(osskt, SOL_SOCKET, SO_ERROR, (char*)&amp;error,</span>
+<span class="lineNum">    1134 </span>            :                                 &amp;l)) {
+<span class="lineNum">    1135 </span><span class="lineNoCov">          0 :                     status = APR_FROM_OS_ERROR(error);</span>
+<span class="lineNum">    1136 </span>            : 
+<span class="lineNum">    1137 </span>            :                     /* Handle fallback for multi-homed servers.
+<span class="lineNum">    1138 </span>            : 
+<span class="lineNum">    1139 </span>            :                        ### Improve algorithm to find better than just 'next'?
+<span class="lineNum">    1140 </span>            : 
+<span class="lineNum">    1141 </span>            :                        Current Windows versions already handle re-ordering for
+<span class="lineNum">    1142 </span>            :                        api users by using statistics on the recently failed
+<span class="lineNum">    1143 </span>            :                        connections to order the list of addresses. */
+<span class="lineNum">    1144 </span><span class="lineNoCov">          0 :                     if (conn-&gt;completed_requests == 0</span>
+<span class="lineNum">    1145 </span><span class="lineNoCov">          0 :                         &amp;&amp; conn-&gt;address-&gt;next != NULL</span>
+<span class="lineNum">    1146 </span><span class="lineNoCov">          0 :                         &amp;&amp; (APR_STATUS_IS_ECONNREFUSED(status)</span>
+<span class="lineNum">    1147 </span><span class="lineNoCov">          0 :                             || APR_STATUS_IS_TIMEUP(status)</span>
+<span class="lineNum">    1148 </span><span class="lineNoCov">          0 :                             || APR_STATUS_IS_ENETUNREACH(status))) {</span>
+<span class="lineNum">    1149 </span>            : 
+<span class="lineNum">    1150 </span><span class="lineNoCov">          0 :                         conn-&gt;address = conn-&gt;address-&gt;next;</span>
+<span class="lineNum">    1151 </span><span class="lineNoCov">          0 :                         return reset_connection(conn, 1);</span>
+<span class="lineNum">    1152 </span>            :                     }
+<span class="lineNum">    1153 </span>            : 
+<span class="lineNum">    1154 </span><span class="lineNoCov">          0 :                     return status;</span>
+<span class="lineNum">    1155 </span>            :                   }
+<span class="lineNum">    1156 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">    1157 </span>            :         }
+<span class="lineNum">    1158 </span>            : #endif
+<span class="lineNum">    1159 </span><span class="lineNoCov">          0 :         return APR_EGENERAL;</span>
+<span class="lineNum">    1160 </span>            :     }
+<span class="lineNum">    1161 </span><span class="lineCov">       1045 :     if ((events &amp; APR_POLLOUT) != 0) {</span>
+<span class="lineNum">    1162 </span><span class="lineCov">        531 :         if (conn-&gt;wait_for_connect) {</span>
+<span class="lineNum">    1163 </span><span class="lineCov">        133 :             conn-&gt;wait_for_connect = false;</span>
+<span class="lineNum">    1164 </span>            : 
+<span class="lineNum">    1165 </span>            :             /* We are now connected. Socket is now usable */
+<span class="lineNum">    1166 </span><span class="lineCov">        266 :             serf_io__set_pollset_dirty(&amp;conn-&gt;io);</span>
+<span class="lineNum">    1167 </span>            : 
+<span class="lineNum">    1168 </span><span class="lineCov">        133 :             if ((status = connect_connection(conn)) != APR_SUCCESS)</span>
+<span class="lineNum">    1169 </span><span class="lineNoCov">          0 :                 return status;</span>
+<span class="lineNum">    1170 </span><span class="lineCov">        133 :         }</span>
+<span class="lineNum">    1171 </span>            : 
+<span class="lineNum">    1172 </span><span class="lineCov">        531 :         if ((status = conn-&gt;perform_write(conn)) != APR_SUCCESS)</span>
+<span class="lineNum">    1173 </span><span class="lineNoCov">          0 :             return status;</span>
+<span class="lineNum">    1174 </span><span class="lineCov">        531 :     }</span>
+<span class="lineNum">    1175 </span><span class="lineCov">       1045 :     return APR_SUCCESS;</span>
+<a name="1176"><span class="lineNum">    1176 </span><span class="lineCov">       1125 : }</span></a>
+<span class="lineNum">    1177 </span>            : 
+<span class="lineNum">    1178 </span>            : apr_status_t serf__process_connection(serf_connection_t *conn,
+<span class="lineNum">    1179 </span>            :                                       apr_int16_t events)
+<span class="lineNum">    1180 </span>            : {
+<span class="lineNum">    1181 </span><span class="lineCov">       1126 :     serf_context_t *ctx = conn-&gt;ctx;</span>
+<span class="lineNum">    1182 </span><span class="lineCov">       1126 :     apr_pollfd_t tdesc = { 0 };</span>
+<span class="lineNum">    1183 </span>            : 
+<span class="lineNum">    1184 </span>            :     /* If this connection has already failed, return the error again, and try
+<span class="lineNum">    1185 </span>            :     * to remove it from the pollset again
+<span class="lineNum">    1186 </span>            :     */
+<span class="lineNum">    1187 </span><span class="lineCov">       1126 :     if (conn-&gt;status) {</span>
+<span class="lineNum">    1188 </span><span class="lineNoCov">          0 :         tdesc.desc_type = APR_POLL_SOCKET;</span>
+<span class="lineNum">    1189 </span><span class="lineNoCov">          0 :         tdesc.desc.s = conn-&gt;skt;</span>
+<span class="lineNum">    1190 </span><span class="lineNoCov">          0 :         tdesc.reqevents = conn-&gt;io.reqevents;</span>
+<span class="lineNum">    1191 </span><span class="lineNoCov">          0 :         ctx-&gt;pollset_rm(ctx-&gt;pollset_baton,</span>
+<span class="lineNum">    1192 </span><span class="lineNoCov">          0 :                         &amp;tdesc, &amp;conn-&gt;io);</span>
+<span class="lineNum">    1193 </span><span class="lineNoCov">          0 :         return conn-&gt;status;</span>
+<span class="lineNum">    1194 </span>            :     }
+<span class="lineNum">    1195 </span>            :     /* apr_pollset_poll() can return a conn multiple times... */
+<span class="lineNum">    1196 </span><span class="lineCov">       2252 :     if ((conn-&gt;seen_in_pollset &amp; events) != 0 ||</span>
+<span class="lineNum">    1197 </span><span class="lineCov">       1126 :         (conn-&gt;seen_in_pollset &amp; APR_POLLHUP) != 0) {</span>
+<span class="lineNum">    1198 </span><span class="lineCov">          1 :         return APR_SUCCESS;</span>
+<span class="lineNum">    1199 </span>            :     }
+<span class="lineNum">    1200 </span>            : 
+<span class="lineNum">    1201 </span><span class="lineCov">       1125 :     conn-&gt;seen_in_pollset |= events;</span>
+<span class="lineNum">    1202 </span>            : 
+<span class="lineNum">    1203 </span><span class="lineCov">       1125 :     if ((conn-&gt;status = process_connection(conn, events)) != APR_SUCCESS)</span>
+<span class="lineNum">    1204 </span>            :     {
+<span class="lineNum">    1205 </span>            :         /* it's possible that the connection was already reset and thus the
+<span class="lineNum">    1206 </span>            :         socket cleaned up. */
+<span class="lineNum">    1207 </span><span class="lineCov">          9 :         if (conn-&gt;skt) {</span>
+<span class="lineNum">    1208 </span><span class="lineCov">          8 :             tdesc.desc_type = APR_POLL_SOCKET;</span>
+<span class="lineNum">    1209 </span><span class="lineCov">          8 :             tdesc.desc.s = conn-&gt;skt;</span>
+<span class="lineNum">    1210 </span><span class="lineCov">          8 :             tdesc.reqevents = conn-&gt;io.reqevents;</span>
+<span class="lineNum">    1211 </span><span class="lineCov">         16 :             ctx-&gt;pollset_rm(ctx-&gt;pollset_baton,</span>
+<span class="lineNum">    1212 </span><span class="lineCov">          8 :                             &amp;tdesc, &amp;conn-&gt;io);</span>
+<span class="lineNum">    1213 </span><span class="lineCov">          8 :         }</span>
+<span class="lineNum">    1214 </span><span class="lineCov">          9 :         return conn-&gt;status;</span>
+<span class="lineNum">    1215 </span>            :     }
+<span class="lineNum">    1216 </span><span class="lineCov">       1116 :     return APR_SUCCESS;</span>
+<a name="1217"><span class="lineNum">    1217 </span><span class="lineCov">       1126 : }</span></a>
+<span class="lineNum">    1218 </span>            : 
+<span class="lineNum">    1219 </span>            : serf_connection_t *serf_connection_create(
+<span class="lineNum">    1220 </span>            :     serf_context_t *ctx,
+<span class="lineNum">    1221 </span>            :     apr_sockaddr_t *address,
+<span class="lineNum">    1222 </span>            :     serf_connection_setup_t setup,
+<span class="lineNum">    1223 </span>            :     void *setup_baton,
+<span class="lineNum">    1224 </span>            :     serf_connection_closed_t closed,
+<span class="lineNum">    1225 </span>            :     void *closed_baton,
+<span class="lineNum">    1226 </span>            :     apr_pool_t *pool)
+<span class="lineNum">    1227 </span>            : {
+<span class="lineNum">    1228 </span><span class="lineCov">         70 :     serf_connection_t *conn = apr_pcalloc(pool, sizeof(*conn));</span>
+<span class="lineNum">    1229 </span>            : 
+<span class="lineNum">    1230 </span><span class="lineCov">         70 :     conn-&gt;ctx = ctx;</span>
+<span class="lineNum">    1231 </span><span class="lineCov">         70 :     conn-&gt;status = APR_SUCCESS;</span>
+<span class="lineNum">    1232 </span>            :     /* Ignore server address if proxy was specified. */
+<span class="lineNum">    1233 </span><span class="lineCov">        210 :     conn-&gt;address = ctx-&gt;proxy_address ? ctx-&gt;proxy_address : address;</span>
+<span class="lineNum">    1234 </span><span class="lineCov">         70 :     conn-&gt;setup = setup;</span>
+<span class="lineNum">    1235 </span><span class="lineCov">         70 :     conn-&gt;setup_baton = setup_baton;</span>
+<span class="lineNum">    1236 </span><span class="lineCov">         70 :     conn-&gt;closed = closed;</span>
+<span class="lineNum">    1237 </span><span class="lineCov">         70 :     conn-&gt;closed_baton = closed_baton;</span>
+<span class="lineNum">    1238 </span><span class="lineCov">         70 :     conn-&gt;pool = pool;</span>
+<span class="lineNum">    1239 </span><span class="lineCov">         70 :     conn-&gt;allocator = serf_bucket_allocator_create(pool, NULL, NULL);</span>
+<span class="lineNum">    1240 </span><span class="lineCov">         70 :     conn-&gt;io.type = SERF_IO_CONN;</span>
+<span class="lineNum">    1241 </span><span class="lineCov">         70 :     conn-&gt;io.u.conn = conn;</span>
+<span class="lineNum">    1242 </span><span class="lineCov">         70 :     conn-&gt;io.ctx = ctx;</span>
+<span class="lineNum">    1243 </span><span class="lineCov">         70 :     conn-&gt;io.dirty_conn = false;</span>
+<span class="lineNum">    1244 </span><span class="lineCov">         70 :     conn-&gt;io.reqevents = 0;</span>
+<span class="lineNum">    1245 </span><span class="lineCov">         70 :     conn-&gt;state = SERF_CONN_INIT;</span>
+<span class="lineNum">    1246 </span><span class="lineCov">         70 :     conn-&gt;latency = -1; /* unknown */</span>
+<span class="lineNum">    1247 </span><span class="lineCov">         70 :     conn-&gt;write_now = false;</span>
+<span class="lineNum">    1248 </span><span class="lineCov">         70 :     conn-&gt;wait_for_connect = false;</span>
+<span class="lineNum">    1249 </span><span class="lineCov">         70 :     conn-&gt;pipelining = 1;</span>
+<span class="lineNum">    1250 </span><span class="lineCov">         70 :     conn-&gt;framing_type = SERF_CONNECTION_FRAMING_TYPE_HTTP1;</span>
+<span class="lineNum">    1251 </span><span class="lineCov">         70 :     conn-&gt;perform_read = read_from_connection;</span>
+<span class="lineNum">    1252 </span><span class="lineCov">         70 :     conn-&gt;perform_write = write_to_connection;</span>
+<span class="lineNum">    1253 </span><span class="lineCov">         70 :     conn-&gt;perform_hangup = hangup_connection;</span>
+<span class="lineNum">    1254 </span><span class="lineCov">         70 :     conn-&gt;perform_teardown = NULL;</span>
+<span class="lineNum">    1255 </span><span class="lineCov">         70 :     conn-&gt;perform_pre_teardown = NULL;</span>
+<span class="lineNum">    1256 </span><span class="lineCov">         70 :     conn-&gt;perform_cancel_request = NULL;</span>
+<span class="lineNum">    1257 </span><span class="lineCov">         70 :     conn-&gt;perform_prioritize_request = NULL;</span>
+<span class="lineNum">    1258 </span><span class="lineCov">         70 :     conn-&gt;protocol_baton = NULL;</span>
+<span class="lineNum">    1259 </span>            : 
+<span class="lineNum">    1260 </span><span class="lineCov">         70 :     conn-&gt;written_reqs = conn-&gt;written_reqs_tail = NULL;</span>
+<span class="lineNum">    1261 </span><span class="lineCov">         70 :     conn-&gt;nr_of_written_reqs = 0;</span>
+<span class="lineNum">    1262 </span>            : 
+<span class="lineNum">    1263 </span><span class="lineCov">         70 :     conn-&gt;unwritten_reqs = conn-&gt;unwritten_reqs_tail = NULL;</span>
+<span class="lineNum">    1264 </span><span class="lineCov">         70 :     conn-&gt;nr_of_unwritten_reqs = 0;</span>
+<span class="lineNum">    1265 </span>            : 
+<span class="lineNum">    1266 </span><span class="lineCov">         70 :     conn-&gt;done_reqs = conn-&gt;done_reqs_tail = 0;</span>
+<span class="lineNum">    1267 </span>            : 
+<span class="lineNum">    1268 </span>            :     /* Create a subpool for our connection. */
+<span class="lineNum">    1269 </span><span class="lineCov">         70 :     apr_pool_create(&amp;conn-&gt;skt_pool, conn-&gt;pool);</span>
+<span class="lineNum">    1270 </span>            : 
+<span class="lineNum">    1271 </span>            :     /* register a cleanup */
+<span class="lineNum">    1272 </span><span class="lineCov">         70 :     apr_pool_cleanup_register(conn-&gt;pool, conn, clean_conn,</span>
+<span class="lineNum">    1273 </span>            :                               apr_pool_cleanup_null);
+<span class="lineNum">    1274 </span>            : 
+<span class="lineNum">    1275 </span>            :     /* Add the connection to the context. */
+<span class="lineNum">    1276 </span><span class="lineCov">         70 :     *(serf_connection_t **)apr_array_push(ctx-&gt;conns) = conn;</span>
+<span class="lineNum">    1277 </span>            : 
+<span class="lineNum">    1278 </span><span class="lineCov">         70 :     return conn;</span>
+<a name="1279"><span class="lineNum">    1279 </span>            : }</a>
+<span class="lineNum">    1280 </span>            : 
+<span class="lineNum">    1281 </span>            : apr_status_t serf_connection_create2(
+<span class="lineNum">    1282 </span>            :     serf_connection_t **conn,
+<span class="lineNum">    1283 </span>            :     serf_context_t *ctx,
+<span class="lineNum">    1284 </span>            :     apr_uri_t host_info,
+<span class="lineNum">    1285 </span>            :     serf_connection_setup_t setup,
+<span class="lineNum">    1286 </span>            :     void *setup_baton,
+<span class="lineNum">    1287 </span>            :     serf_connection_closed_t closed,
+<span class="lineNum">    1288 </span>            :     void *closed_baton,
+<span class="lineNum">    1289 </span>            :     apr_pool_t *pool)
+<span class="lineNum">    1290 </span>            : {
+<span class="lineNum">    1291 </span><span class="lineCov">         70 :     apr_status_t status = APR_SUCCESS;</span>
+<span class="lineNum">    1292 </span>            :     serf_config_t *config;
+<span class="lineNum">    1293 </span>            :     serf_connection_t *c;
+<span class="lineNum">    1294 </span><span class="lineCov">         70 :     apr_sockaddr_t *host_address = NULL;</span>
+<span class="lineNum">    1295 </span>            : 
+<span class="lineNum">    1296 </span>            :     /* Set the port number explicitly, needed to create the socket later. */
+<span class="lineNum">    1297 </span><span class="lineCov">         70 :     if (!host_info.port) {</span>
+<span class="lineNum">    1298 </span><span class="lineNoCov">          0 :         host_info.port = apr_uri_port_of_scheme(host_info.scheme);</span>
+<span class="lineNum">    1299 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1300 </span>            : 
+<span class="lineNum">    1301 </span>            :     /* Only lookup the address of the server if no proxy server was
+<span class="lineNum">    1302 </span>            :        configured. */
+<span class="lineNum">    1303 </span><span class="lineCov">         70 :     if (!ctx-&gt;proxy_address) {</span>
+<span class="lineNum">    1304 </span><span class="lineCov">         60 :         status = apr_sockaddr_info_get(&amp;host_address,</span>
+<span class="lineNum">    1305 </span><span class="lineCov">         60 :                                        host_info.hostname,</span>
+<span class="lineNum">    1306 </span><span class="lineCov">         60 :                                        APR_UNSPEC, host_info.port, 0, pool);</span>
+<span class="lineNum">    1307 </span><span class="lineCov">         60 :         if (status)</span>
+<span class="lineNum">    1308 </span><span class="lineNoCov">          0 :             return status;</span>
+<span class="lineNum">    1309 </span><span class="lineCov">         60 :     }</span>
+<span class="lineNum">    1310 </span>            : 
+<span class="lineNum">    1311 </span><span class="lineCov">        140 :     c = serf_connection_create(ctx, host_address, setup, setup_baton,</span>
+<span class="lineNum">    1312 </span><span class="lineCov">         70 :                                closed, closed_baton, pool);</span>
+<span class="lineNum">    1313 </span>            : 
+<span class="lineNum">    1314 </span>            :     /* We're not interested in the path following the hostname. */
+<span class="lineNum">    1315 </span><span class="lineCov">         70 :     c-&gt;host_url = apr_uri_unparse(c-&gt;pool,</span>
+<span class="lineNum">    1316 </span>            :                                   &amp;host_info,
+<span class="lineNum">    1317 </span>            :                                   APR_URI_UNP_OMITPATHINFO |
+<span class="lineNum">    1318 </span>            :                                   APR_URI_UNP_OMITUSERINFO);
+<span class="lineNum">    1319 </span>            : 
+<span class="lineNum">    1320 </span>            :     /* Store the host info without the path on the connection. */
+<span class="lineNum">    1321 </span><span class="lineCov">         70 :     (void)apr_uri_parse(c-&gt;pool, c-&gt;host_url, &amp;(c-&gt;host_info));</span>
+<span class="lineNum">    1322 </span><span class="lineCov">         70 :     if (!c-&gt;host_info.port) {</span>
+<span class="lineNum">    1323 </span><span class="lineNoCov">          0 :         c-&gt;host_info.port = apr_uri_port_of_scheme(c-&gt;host_info.scheme);</span>
+<span class="lineNum">    1324 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">    1325 </span>            : 
+<span class="lineNum">    1326 </span>            :     /* Store the connection specific info in the configuration store */
+<span class="lineNum">    1327 </span><span class="lineCov">         70 :     status = serf__config_store_create_conn_config(c, &amp;config);</span>
+<span class="lineNum">    1328 </span><span class="lineCov">         70 :     if (status)</span>
+<span class="lineNum">    1329 </span><span class="lineNoCov">          0 :         return status;</span>
+<span class="lineNum">    1330 </span><span class="lineCov">         70 :     c-&gt;config = config;</span>
+<span class="lineNum">    1331 </span><span class="lineCov">        140 :     serf_config_set_stringc(config, SERF_CONFIG_HOST_NAME,</span>
+<span class="lineNum">    1332 </span><span class="lineCov">         70 :                             c-&gt;host_info.hostname);</span>
+<span class="lineNum">    1333 </span><span class="lineCov">        140 :     serf_config_set_stringc(config, SERF_CONFIG_HOST_PORT,</span>
+<span class="lineNum">    1334 </span><span class="lineCov">         70 :                            apr_itoa(ctx-&gt;pool, c-&gt;host_info.port));</span>
+<span class="lineNum">    1335 </span>            : 
+<span class="lineNum">    1336 </span><span class="lineCov">         70 :     *conn = c;</span>
+<span class="lineNum">    1337 </span>            : 
+<span class="lineNum">    1338 </span><span class="lineCov">        140 :     serf__log(LOGLVL_DEBUG, LOGCOMP_CONN, __FILE__, c-&gt;config,</span>
+<span class="lineNum">    1339 </span><span class="lineCov">         70 :               &quot;created connection 0x%p\n&quot;, c);</span>
+<span class="lineNum">    1340 </span>            : 
+<span class="lineNum">    1341 </span><span class="lineCov">         70 :     return status;</span>
+<a name="1342"><span class="lineNum">    1342 </span><span class="lineCov">         70 : }</span></a>
+<span class="lineNum">    1343 </span>            : 
+<span class="lineNum">    1344 </span>            : apr_status_t serf_connection_reset(
+<span class="lineNum">    1345 </span>            :     serf_connection_t *conn)
+<span class="lineNum">    1346 </span>            : {
+<span class="lineNum">    1347 </span><span class="lineNoCov">          0 :     return reset_connection(conn, 0);</span>
+<span class="lineNum">    1348 </span>            : }
+<a name="1349"><span class="lineNum">    1349 </span>            : </a>
+<span class="lineNum">    1350 </span>            : 
+<span class="lineNum">    1351 </span>            : apr_status_t serf_connection_close(
+<span class="lineNum">    1352 </span>            :     serf_connection_t *conn)
+<span class="lineNum">    1353 </span>            : {
+<span class="lineNum">    1354 </span>            :     int i;
+<span class="lineNum">    1355 </span><span class="lineCov">        136 :     serf_context_t *ctx = conn-&gt;ctx;</span>
+<span class="lineNum">    1356 </span>            :     apr_status_t status;
+<span class="lineNum">    1357 </span>            : 
+<span class="lineNum">    1358 </span><span class="lineCov">        272 :     for (i = ctx-&gt;conns-&gt;nelts; i--; ) {</span>
+<span class="lineNum">    1359 </span><span class="lineCov">         70 :         serf_connection_t *conn_seq = GET_CONN(ctx, i);</span>
+<span class="lineNum">    1360 </span>            : 
+<span class="lineNum">    1361 </span><span class="lineCov">         70 :         if (conn_seq == conn) {</span>
+<span class="lineNum">    1362 </span>            : 
+<span class="lineNum">    1363 </span>            :             /* Clean up the write bucket first, as this marks all partially written
+<span class="lineNum">    1364 </span>            :                requests as fully written, allowing more efficient cleanup */
+<span class="lineNum">    1365 </span><span class="lineCov">         70 :             serf__connection_pre_cleanup(conn);</span>
+<span class="lineNum">    1366 </span>            : 
+<span class="lineNum">    1367 </span><span class="lineCov">         70 :             if (conn-&gt;protocol_baton &amp;&amp; conn-&gt;perform_pre_teardown)</span>
+<span class="lineNum">    1368 </span><span class="lineNoCov">          0 :                 conn-&gt;perform_pre_teardown(conn);</span>
+<span class="lineNum">    1369 </span>            : 
+<span class="lineNum">    1370 </span>            :             /* The application asked to close the connection, no need to notify
+<span class="lineNum">    1371 </span>            :                it for each cancelled request. */
+<span class="lineNum">    1372 </span><span class="lineCov">        152 :             while (conn-&gt;written_reqs) {</span>
+<span class="lineNum">    1373 </span><span class="lineCov">          6 :                 serf__cancel_request(conn-&gt;written_reqs, &amp;conn-&gt;written_reqs, 0);</span>
+<span class="lineNum">    1374 </span>            :             }
+<span class="lineNum">    1375 </span><span class="lineCov">        152 :             while (conn-&gt;unwritten_reqs) {</span>
+<span class="lineNum">    1376 </span><span class="lineCov">          6 :                 serf__cancel_request(conn-&gt;unwritten_reqs, &amp;conn-&gt;unwritten_reqs, 0);</span>
+<span class="lineNum">    1377 </span>            :             }
+<span class="lineNum">    1378 </span><span class="lineCov">         70 :             if (conn-&gt;skt != NULL) {</span>
+<span class="lineNum">    1379 </span><span class="lineNoCov">          0 :                 remove_connection(ctx, conn);</span>
+<span class="lineNum">    1380 </span><span class="lineNoCov">          0 :                 status = clean_skt(conn);</span>
+<span class="lineNum">    1381 </span><span class="lineNoCov">          0 :                 if (conn-&gt;closed != NULL) {</span>
+<span class="lineNum">    1382 </span><span class="lineNoCov">          0 :                     handle_conn_closed(conn, status);</span>
+<span class="lineNum">    1383 </span><span class="lineNoCov">          0 :                 }</span>
+<span class="lineNum">    1384 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">    1385 </span><span class="lineCov">         70 :             if (conn-&gt;pump.stream != NULL) {</span>
+<span class="lineNum">    1386 </span><span class="lineCov">         62 :                 serf_bucket_destroy(conn-&gt;pump.stream);</span>
+<span class="lineNum">    1387 </span><span class="lineCov">         62 :                 conn-&gt;pump.stream = NULL;</span>
+<span class="lineNum">    1388 </span><span class="lineCov">         62 :             }</span>
+<span class="lineNum">    1389 </span>            : 
+<span class="lineNum">    1390 </span><span class="lineCov">         70 :             if (conn-&gt;protocol_baton) {</span>
+<span class="lineNum">    1391 </span><span class="lineNoCov">          0 :                 conn-&gt;perform_teardown(conn);</span>
+<span class="lineNum">    1392 </span><span class="lineNoCov">          0 :                 conn-&gt;protocol_baton = NULL;</span>
+<span class="lineNum">    1393 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">    1394 </span>            : 
+<span class="lineNum">    1395 </span>            :             /* Remove the connection from the context. We don't want to
+<span class="lineNum">    1396 </span>            :              * deal with it any more.
+<span class="lineNum">    1397 </span>            :              */
+<span class="lineNum">    1398 </span><span class="lineCov">         70 :             if (i &lt; ctx-&gt;conns-&gt;nelts - 1) {</span>
+<span class="lineNum">    1399 </span>            :                 /* move later connections over this one. */
+<span class="lineNum">    1400 </span><span class="lineNoCov">          0 :                 memmove(</span>
+<span class="lineNum">    1401 </span>            :                     &amp;GET_CONN(ctx, i),
+<span class="lineNum">    1402 </span>            :                     &amp;GET_CONN(ctx, i + 1),
+<span class="lineNum">    1403 </span>            :                     (ctx-&gt;conns-&gt;nelts - i - 1) * sizeof(serf_connection_t *));
+<span class="lineNum">    1404 </span><span class="lineNoCov">          0 :             }</span>
+<span class="lineNum">    1405 </span><span class="lineCov">         70 :             --ctx-&gt;conns-&gt;nelts;</span>
+<span class="lineNum">    1406 </span>            : 
+<span class="lineNum">    1407 </span><span class="lineCov">        140 :             serf__log(LOGLVL_DEBUG, LOGCOMP_CONN, __FILE__, conn-&gt;config,</span>
+<span class="lineNum">    1408 </span><span class="lineCov">         70 :                       &quot;closed connection 0x%p\n&quot;, conn);</span>
+<span class="lineNum">    1409 </span>            : 
+<span class="lineNum">    1410 </span>            :             /* Found the connection. Closed it. All done. */
+<span class="lineNum">    1411 </span><span class="lineCov">         70 :             return APR_SUCCESS;</span>
+<span class="lineNum">    1412 </span>            :         }
+<span class="lineNum">    1413 </span>            :     }
+<span class="lineNum">    1414 </span>            : 
+<span class="lineNum">    1415 </span>            :     /* We didn't find the specified connection. */
+<span class="lineNum">    1416 </span>            :     /* ### doc talks about this w.r.t poll structures. use something else? */
+<span class="lineNum">    1417 </span><span class="lineCov">         66 :     return APR_NOTFOUND;</span>
+<span class="lineNum">    1418 </span><span class="lineCov">        136 : }</span>
+<a name="1419"><span class="lineNum">    1419 </span>            : </a>
+<span class="lineNum">    1420 </span>            : 
+<span class="lineNum">    1421 </span>            : void serf_connection_set_max_outstanding_requests(
+<span class="lineNum">    1422 </span>            :     serf_connection_t *conn,
+<span class="lineNum">    1423 </span>            :     unsigned int max_requests)
+<span class="lineNum">    1424 </span>            : {
+<span class="lineNum">    1425 </span><span class="lineCov">          7 :     if (max_requests == 0)</span>
+<span class="lineNum">    1426 </span><span class="lineCov">          5 :         serf__log(LOGLVL_DEBUG, LOGCOMP_CONN, __FILE__, conn-&gt;config,</span>
+<span class="lineNum">    1427 </span>            :                   &quot;Set max. nr. of outstanding requests for this &quot;
+<span class="lineNum">    1428 </span>            :                   &quot;connection to unlimited.\n&quot;);
+<span class="lineNum">    1429 </span>            :     else
+<span class="lineNum">    1430 </span><span class="lineCov">          4 :         serf__log(LOGLVL_DEBUG, LOGCOMP_CONN, __FILE__, conn-&gt;config,</span>
+<span class="lineNum">    1431 </span>            :                   &quot;Limit max. nr. of outstanding requests for this &quot;
+<span class="lineNum">    1432 </span><span class="lineCov">          2 :                   &quot;connection to %u.\n&quot;, max_requests);</span>
+<span class="lineNum">    1433 </span>            : 
+<span class="lineNum">    1434 </span><span class="lineCov">          7 :     conn-&gt;max_outstanding_requests = max_requests;</span>
+<span class="lineNum">    1435 </span><span class="lineCov">          7 : }</span>
+<span class="lineNum">    1436 </span>            : 
+<span class="lineNum">    1437 </span>            : /* Disable HTTP pipelining, ensure that only one request is outstanding at a
+<span class="lineNum">    1438 </span>            :    time. This is an internal method, an application that wants to disable
+<span class="lineNum">    1439 </span>            :    HTTP pipelining can achieve this by calling:
+<a name="1440"><span class="lineNum">    1440 </span>            :      serf_connection_set_max_outstanding_requests(conn, 1) .</a>
+<span class="lineNum">    1441 </span>            :  */
+<span class="lineNum">    1442 </span>            : void serf__connection_set_pipelining(serf_connection_t *conn, int enabled)
+<span class="lineNum">    1443 </span>            : {
+<span class="lineNum">    1444 </span><span class="lineCov">         13 :     conn-&gt;pipelining = enabled;</span>
+<a name="1445"><span class="lineNum">    1445 </span><span class="lineCov">         13 : }</span></a>
+<span class="lineNum">    1446 </span>            : 
+<span class="lineNum">    1447 </span>            : void serf_connection_set_async_responses(
+<span class="lineNum">    1448 </span>            :     serf_connection_t *conn,
+<span class="lineNum">    1449 </span>            :     serf_response_acceptor_t acceptor,
+<span class="lineNum">    1450 </span>            :     void *acceptor_baton,
+<span class="lineNum">    1451 </span>            :     serf_response_handler_t handler,
+<span class="lineNum">    1452 </span>            :     void *handler_baton)
+<span class="lineNum">    1453 </span>            : {
+<span class="lineNum">    1454 </span><span class="lineNoCov">          0 :     conn-&gt;async_responses = 1;</span>
+<span class="lineNum">    1455 </span><span class="lineNoCov">          0 :     conn-&gt;async_acceptor = acceptor;</span>
+<span class="lineNum">    1456 </span><span class="lineNoCov">          0 :     conn-&gt;async_acceptor_baton = acceptor_baton;</span>
+<span class="lineNum">    1457 </span><span class="lineNoCov">          0 :     conn-&gt;async_handler = handler;</span>
+<span class="lineNum">    1458 </span><span class="lineNoCov">          0 :     conn-&gt;async_handler_baton = handler_baton;</span>
+<a name="1459"><span class="lineNum">    1459 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1460 </span>            : 
+<span class="lineNum">    1461 </span>            : void serf_connection_set_framing_type(
+<span class="lineNum">    1462 </span>            :     serf_connection_t *conn,
+<span class="lineNum">    1463 </span>            :     serf_connection_framing_type_t framing_type)
+<span class="lineNum">    1464 </span>            : {
+<span class="lineNum">    1465 </span><span class="lineCov">          4 :     conn-&gt;framing_type = framing_type;</span>
+<span class="lineNum">    1466 </span>            : 
+<span class="lineNum">    1467 </span><span class="lineCov">          4 :     if (conn-&gt;skt) {</span>
+<span class="lineNum">    1468 </span><span class="lineCov">          8 :         serf_io__set_pollset_dirty(&amp;conn-&gt;io);</span>
+<span class="lineNum">    1469 </span><span class="lineCov">          4 :         conn-&gt;pump.stop_writing = false;</span>
+<span class="lineNum">    1470 </span><span class="lineCov">          4 :         conn-&gt;write_now = true;</span>
+<span class="lineNum">    1471 </span>            : 
+<span class="lineNum">    1472 </span>            :         /* Close down existing protocol */
+<span class="lineNum">    1473 </span><span class="lineCov">          4 :         if (conn-&gt;protocol_baton) {</span>
+<span class="lineNum">    1474 </span><span class="lineNoCov">          0 :             if (conn-&gt;perform_pre_teardown)</span>
+<span class="lineNum">    1475 </span><span class="lineNoCov">          0 :                 conn-&gt;perform_pre_teardown(conn);</span>
+<span class="lineNum">    1476 </span><span class="lineNoCov">          0 :             conn-&gt;perform_teardown(conn);</span>
+<span class="lineNum">    1477 </span><span class="lineNoCov">          0 :             conn-&gt;protocol_baton = NULL;</span>
+<span class="lineNum">    1478 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">    1479 </span><span class="lineCov">          4 :     }</span>
+<span class="lineNum">    1480 </span>            : 
+<span class="lineNum">    1481 </span>            :     /* Reset to default */
+<span class="lineNum">    1482 </span><span class="lineCov">          4 :     conn-&gt;perform_read = read_from_connection;</span>
+<span class="lineNum">    1483 </span><span class="lineCov">          4 :     conn-&gt;perform_write = write_to_connection;</span>
+<span class="lineNum">    1484 </span><span class="lineCov">          4 :     conn-&gt;perform_hangup = hangup_connection;</span>
+<span class="lineNum">    1485 </span><span class="lineCov">          4 :     conn-&gt;perform_cancel_request = NULL;</span>
+<span class="lineNum">    1486 </span><span class="lineCov">          4 :     conn-&gt;perform_prioritize_request = NULL;</span>
+<span class="lineNum">    1487 </span><span class="lineCov">          4 :     conn-&gt;perform_teardown = NULL;</span>
+<span class="lineNum">    1488 </span><span class="lineCov">          4 :     conn-&gt;perform_pre_teardown = NULL;</span>
+<span class="lineNum">    1489 </span>            : 
+<span class="lineNum">    1490 </span><span class="lineCov">          4 :     switch (framing_type) {</span>
+<span class="lineNum">    1491 </span>            :         case SERF_CONNECTION_FRAMING_TYPE_HTTP2:
+<span class="lineNum">    1492 </span><span class="lineCov">          2 :             serf__http2_protocol_init(conn);</span>
+<span class="lineNum">    1493 </span><span class="lineCov">          2 :             break;</span>
+<span class="lineNum">    1494 </span>            :         default:
+<span class="lineNum">    1495 </span><span class="lineCov">          2 :             break;</span>
+<span class="lineNum">    1496 </span>            :     }
+<a name="1497"><span class="lineNum">    1497 </span><span class="lineCov">          4 : }</span></a>
+<span class="lineNum">    1498 </span>            : 
+<span class="lineNum">    1499 </span>            : apr_interval_time_t serf_connection_get_latency(serf_connection_t *conn)
+<span class="lineNum">    1500 </span>            : {
+<span class="lineNum">    1501 </span><span class="lineNoCov">          0 :     if (conn-&gt;ctx-&gt;proxy_address) {</span>
+<span class="lineNum">    1502 </span>            :         /* Detecting network latency for proxied connection is not implemented
+<span class="lineNum">    1503 </span>            :            yet. */
+<span class="lineNum">    1504 </span><span class="lineNoCov">          0 :         return -1;</span>
+<span class="lineNum">    1505 </span>            :     }
+<span class="lineNum">    1506 </span>            : 
+<span class="lineNum">    1507 </span><span class="lineNoCov">          0 :     return conn-&gt;latency;</span>
+<a name="1508"><span class="lineNum">    1508 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">    1509 </span>            : 
+<span class="lineNum">    1510 </span>            : unsigned int serf_connection_queued_requests(serf_connection_t *conn)
+<span class="lineNum">    1511 </span>            : {
+<span class="lineNum">    1512 </span><span class="lineNoCov">          0 :     return conn-&gt;nr_of_unwritten_reqs;</span>
+<a name="1513"><span class="lineNum">    1513 </span>            : }</a>
+<span class="lineNum">    1514 </span>            : 
+<span class="lineNum">    1515 </span>            : unsigned int serf_connection_pending_requests(serf_connection_t *conn)
+<span class="lineNum">    1516 </span>            : {
+<span class="lineNum">    1517 </span><span class="lineNoCov">          0 :     return conn-&gt;nr_of_unwritten_reqs + conn-&gt;nr_of_written_reqs;</span>
+<span class="lineNum">    1518 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

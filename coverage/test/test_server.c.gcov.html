@@ -1,0 +1,428 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - test/test_server.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">test</a> - test_server.c<span style="font-size: 80%;"> (source / <a href="test_server.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">135</td>
+            <td class="headerCovTableEntry">139</td>
+            <td class="headerCovTableEntryHi">97.1 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-12-25 11:14:27</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">14</td>
+            <td class="headerCovTableEntry">15</td>
+            <td class="headerCovTableEntryHi">93.3 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* ====================================================================</a>
+<span class="lineNum">       2 </span>            :  *    Licensed to the Apache Software Foundation (ASF) under one
+<span class="lineNum">       3 </span>            :  *    or more contributor license agreements.  See the NOTICE file
+<span class="lineNum">       4 </span>            :  *    distributed with this work for additional information
+<span class="lineNum">       5 </span>            :  *    regarding copyright ownership.  The ASF licenses this file
+<span class="lineNum">       6 </span>            :  *    to you under the Apache License, Version 2.0 (the
+<span class="lineNum">       7 </span>            :  *    &quot;License&quot;); you may not use this file except in compliance
+<span class="lineNum">       8 </span>            :  *    with the License.  You may obtain a copy of the License at
+<span class="lineNum">       9 </span>            :  *
+<span class="lineNum">      10 </span>            :  *      http://www.apache.org/licenses/LICENSE-2.0
+<span class="lineNum">      11 </span>            :  *
+<span class="lineNum">      12 </span>            :  *    Unless required by applicable law or agreed to in writing,
+<span class="lineNum">      13 </span>            :  *    software distributed under the License is distributed on an
+<span class="lineNum">      14 </span>            :  *    &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+<span class="lineNum">      15 </span>            :  *    KIND, either express or implied.  See the License for the
+<span class="lineNum">      16 </span>            :  *    specific language governing permissions and limitations
+<span class="lineNum">      17 </span>            :  *    under the License.
+<span class="lineNum">      18 </span>            :  * ====================================================================
+<span class="lineNum">      19 </span>            :  */
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            : #include &lt;apr.h&gt;
+<span class="lineNum">      24 </span>            : #include &lt;apr_pools.h&gt;
+<span class="lineNum">      25 </span>            : #include &lt;apr_strings.h&gt;
+<span class="lineNum">      26 </span>            : #include &lt;apr_version.h&gt;
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #include &quot;serf.h&quot;
+<span class="lineNum">      29 </span>            : 
+<a name="30"><span class="lineNum">      30 </span>            : #include &quot;test_serf.h&quot;</a>
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : static apr_status_t client_setup(apr_socket_t *skt,
+<span class="lineNum">      33 </span>            :                                  serf_bucket_t **read_bkt,
+<span class="lineNum">      34 </span>            :                                  serf_bucket_t **write_bkt,
+<span class="lineNum">      35 </span>            :                                  void *setup_baton,
+<span class="lineNum">      36 </span>            :                                  apr_pool_t *pool)
+<span class="lineNum">      37 </span>            : {
+<span class="lineNum">      38 </span><span class="lineCov">          4 :     test_baton_t *tb = setup_baton;</span>
+<span class="lineNum">      39 </span>            : 
+<span class="lineNum">      40 </span><span class="lineCov">          4 :     *read_bkt = serf_bucket_socket_create(skt, tb-&gt;bkt_alloc);</span>
+<span class="lineNum">      41 </span><span class="lineCov">          4 :     return APR_SUCCESS;</span>
+<a name="42"><span class="lineNum">      42 </span>            : }</a>
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span>            : static apr_status_t client_closed(serf_incoming_t *client,
+<span class="lineNum">      45 </span>            :                                   void *closed_baton,
+<span class="lineNum">      46 </span>            :                                   apr_status_t why,
+<span class="lineNum">      47 </span>            :                                   apr_pool_t *pool)
+<span class="lineNum">      48 </span>            : {
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 :     return APR_ENOTIMPL;</span>
+<a name="50"><span class="lineNum">      50 </span>            : }</a>
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span>            : static apr_status_t client_request_handler(serf_incoming_request_t *req,
+<span class="lineNum">      53 </span>            :                                            serf_bucket_t *request,
+<span class="lineNum">      54 </span>            :                                            void *handler_baton,
+<span class="lineNum">      55 </span>            :                                            apr_pool_t *pool)
+<span class="lineNum">      56 </span>            : {
+<span class="lineNum">      57 </span>            :     const char *data;
+<span class="lineNum">      58 </span>            :     apr_size_t len;
+<span class="lineNum">      59 </span>            :     apr_status_t status;
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span><span class="lineCov">         18 :     do</span>
+<span class="lineNum">      62 </span>            :     {
+<span class="lineNum">      63 </span><span class="lineCov">         28 :         status = serf_bucket_read(request, SERF_READ_ALL_AVAIL, &amp;data, &amp;len);</span>
+<span class="lineNum">      64 </span><span class="lineCov">         56 :     } while (status == APR_SUCCESS);</span>
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span><span class="lineCov">         18 :     return status;</span>
+<a name="67"><span class="lineNum">      67 </span>            : }</a>
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span>            : static apr_status_t client_generate_response(serf_bucket_t **resp_bkt,
+<span class="lineNum">      70 </span>            :                                              serf_incoming_request_t *req,
+<span class="lineNum">      71 </span>            :                                              void *setup_baton,
+<span class="lineNum">      72 </span>            :                                              serf_bucket_alloc_t *allocator,
+<span class="lineNum">      73 </span>            :                                              apr_pool_t *pool)
+<span class="lineNum">      74 </span>            : {
+<span class="lineNum">      75 </span><span class="lineCov">         10 :     test_baton_t *tb = setup_baton;</span>
+<span class="lineNum">      76 </span>            :     serf_bucket_t *resp;
+<span class="lineNum">      77 </span>            :     serf_bucket_t *body;
+<span class="lineNum">      78 </span>            :     serf_bucket_t *headers;
+<span class="lineNum">      79 </span>            : #define CRLF &quot;\r\n&quot;
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span><span class="lineCov">         10 :     if (tb-&gt;user_baton_l == 401) {</span>
+<span class="lineNum">      82 </span><span class="lineCov">          2 :         tb-&gt;user_baton_l = 0;</span>
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span><span class="lineCov">          2 :         body = SERF_BUCKET_SIMPLE_STRING(&quot;NOT HERE&quot; CRLF, allocator);</span>
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span><span class="lineCov">          4 :         resp = serf_bucket_outgoing_response_create(body, 401, &quot;Unauth&quot;,</span>
+<span class="lineNum">      87 </span><span class="lineCov">          2 :                                                     SERF_HTTP_11, allocator);</span>
+<span class="lineNum">      88 </span>            : 
+<span class="lineNum">      89 </span><span class="lineCov">          2 :         headers = serf_bucket_outgoing_response_get_headers(resp);</span>
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span><span class="lineCov">          2 :         serf_bucket_headers_set(headers, &quot;WWW-Authenticate&quot;,</span>
+<span class="lineNum">      92 </span>            :                                 &quot;Basic realm=\&quot;Test Suite\&quot;&quot;);
+<span class="lineNum">      93 </span><span class="lineCov">          2 :     }</span>
+<span class="lineNum">      94 </span>            :     else {
+<span class="lineNum">      95 </span><span class="lineCov">          8 :         body = SERF_BUCKET_SIMPLE_STRING(&quot;OK&quot; CRLF, allocator);</span>
+<span class="lineNum">      96 </span>            : 
+<span class="lineNum">      97 </span><span class="lineCov">         16 :         resp = serf_bucket_outgoing_response_create(body, 200, &quot;OK&quot;,</span>
+<span class="lineNum">      98 </span><span class="lineCov">          8 :                                                     SERF_HTTP_11, allocator);</span>
+<span class="lineNum">      99 </span>            : 
+<span class="lineNum">     100 </span><span class="lineCov">          8 :         headers = serf_bucket_outgoing_response_get_headers(resp);</span>
+<span class="lineNum">     101 </span>            :     }
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span><span class="lineCov">         10 :     *resp_bkt = resp;</span>
+<span class="lineNum">     104 </span><span class="lineCov">         10 :     return APR_SUCCESS;</span>
+<a name="105"><span class="lineNum">     105 </span>            : }</a>
+<span class="lineNum">     106 </span>            : 
+<span class="lineNum">     107 </span>            : static apr_status_t client_request_acceptor(serf_bucket_t **req_bkt,
+<span class="lineNum">     108 </span>            :                                             serf_bucket_t *stream,
+<span class="lineNum">     109 </span>            :                                             serf_incoming_request_t *req,
+<span class="lineNum">     110 </span>            :                                             void *request_baton,
+<span class="lineNum">     111 </span>            :                                             serf_incoming_request_handler_t *handler,
+<span class="lineNum">     112 </span>            :                                             void **handler_baton,
+<span class="lineNum">     113 </span>            :                                             serf_incoming_response_setup_t *response,
+<span class="lineNum">     114 </span>            :                                             void **response_baton,
+<span class="lineNum">     115 </span>            :                                             apr_pool_t *pool)
+<span class="lineNum">     116 </span>            : {
+<span class="lineNum">     117 </span><span class="lineCov">         13 :     test_baton_t *tb = request_baton;</span>
+<span class="lineNum">     118 </span><span class="lineCov">         13 :     *req_bkt = serf_bucket_incoming_request_create(stream, stream-&gt;allocator);</span>
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span><span class="lineCov">         13 :     *handler = client_request_handler;</span>
+<span class="lineNum">     121 </span><span class="lineCov">         13 :     *handler_baton = tb;</span>
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span><span class="lineCov">         13 :     *response = client_generate_response;</span>
+<span class="lineNum">     124 </span><span class="lineCov">         13 :     *response_baton = tb;</span>
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span><span class="lineCov">         13 :     return APR_SUCCESS;</span>
+<a name="127"><span class="lineNum">     127 </span>            : }</a>
+<span class="lineNum">     128 </span>            : 
+<span class="lineNum">     129 </span>            : static apr_status_t client_acceptor(serf_context_t *ctx,
+<span class="lineNum">     130 </span>            :                                     serf_listener_t *l,
+<span class="lineNum">     131 </span>            :                                     void *accept_baton,
+<span class="lineNum">     132 </span>            :                                     apr_socket_t *insock,
+<span class="lineNum">     133 </span>            :                                     apr_pool_t *pool)
+<span class="lineNum">     134 </span>            : {
+<span class="lineNum">     135 </span>            :     serf_incoming_t *incoming;
+<span class="lineNum">     136 </span><span class="lineCov">          4 :     test_baton_t *tb = accept_baton;</span>
+<span class="lineNum">     137 </span>            : 
+<span class="lineNum">     138 </span><span class="lineCov">          8 :     return serf_incoming_create2(&amp;incoming, ctx, insock,</span>
+<span class="lineNum">     139 </span><span class="lineCov">          4 :                                  client_setup, tb,</span>
+<span class="lineNum">     140 </span><span class="lineCov">          4 :                                  client_closed, tb,</span>
+<span class="lineNum">     141 </span><span class="lineCov">          4 :                                  client_request_acceptor, tb,</span>
+<span class="lineNum">     142 </span><span class="lineCov">          4 :                                  pool);</span>
+<a name="143"><span class="lineNum">     143 </span>            : }</a>
+<span class="lineNum">     144 </span>            : 
+<span class="lineNum">     145 </span>            : static void setup_test_server(test_baton_t *tb)
+<span class="lineNum">     146 </span>            : {
+<span class="lineNum">     147 </span>            :     serf_listener_t *listener;
+<span class="lineNum">     148 </span>            :     apr_status_t status;
+<span class="lineNum">     149 </span><span class="lineCov">          4 :     apr_port_t listen_port = 47080;</span>
+<span class="lineNum">     150 </span>            : 
+<span class="lineNum">     151 </span><span class="lineCov">          4 :     if (!tb-&gt;mh)    /* TODO: move this to test_setup */</span>
+<span class="lineNum">     152 </span><span class="lineCov">          4 :         tb-&gt;mh = mhInit();</span>
+<span class="lineNum">     153 </span>            : 
+<span class="lineNum">     154 </span><span class="lineCov">          4 :     tb-&gt;context = serf_context_create(tb-&gt;pool);</span>
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span><span class="lineCov">         16 :     while ((status = serf_listener_create(&amp;listener, tb-&gt;context,</span>
+<span class="lineNum">     157 </span><span class="lineCov">          4 :                                           &quot;localhost&quot;, listen_port,</span>
+<span class="lineNum">     158 </span><span class="lineCov">          4 :                                           tb, client_acceptor,</span>
+<span class="lineNum">     159 </span><span class="lineCov">          8 :                                           tb-&gt;pool)) != APR_SUCCESS)</span>
+<span class="lineNum">     160 </span>            :     {
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :         listen_port++;</span>
+<span class="lineNum">     162 </span>            :     }
+<span class="lineNum">     163 </span>            : 
+<span class="lineNum">     164 </span><span class="lineCov">          4 :     tb-&gt;serv_port = listen_port;</span>
+<span class="lineNum">     165 </span><span class="lineCov">          8 :     tb-&gt;serv_host = apr_psprintf(tb-&gt;pool, &quot;%s:%d&quot;, &quot;localhost&quot;,</span>
+<span class="lineNum">     166 </span><span class="lineCov">          4 :                                  tb-&gt;serv_port);</span>
+<span class="lineNum">     167 </span><span class="lineCov">          4 :     tb-&gt;serv_url = apr_psprintf(tb-&gt;pool, &quot;http://%s&quot;, tb-&gt;serv_host);</span>
+<span class="lineNum">     168 </span><span class="lineCov">          4 : }</span>
+<a name="169"><span class="lineNum">     169 </span>            : </a>
+<span class="lineNum">     170 </span>            : static apr_status_t
+<span class="lineNum">     171 </span>            : run_client_server_loop(test_baton_t *tb,
+<span class="lineNum">     172 </span>            :                        int num_requests,
+<span class="lineNum">     173 </span>            :                        handler_baton_t handler_ctx[],
+<span class="lineNum">     174 </span>            :                        apr_pool_t *pool)
+<span class="lineNum">     175 </span>            : {
+<span class="lineNum">     176 </span>            :     apr_pool_t *iter_pool;
+<span class="lineNum">     177 </span><span class="lineCov">          4 :     int i, done = 0;</span>
+<span class="lineNum">     178 </span>            :     apr_status_t status;
+<span class="lineNum">     179 </span><span class="lineCov">          4 :     apr_time_t finish_time = apr_time_now() + apr_time_from_sec(15);</span>
+<span class="lineNum">     180 </span>            : 
+<span class="lineNum">     181 </span><span class="lineCov">          4 :     apr_pool_create(&amp;iter_pool, pool);</span>
+<span class="lineNum">     182 </span>            : 
+<span class="lineNum">     183 </span><span class="lineCov">       1438 :     while (!done)</span>
+<span class="lineNum">     184 </span>            :     {
+<span class="lineNum">     185 </span><span class="lineCov">        715 :         apr_pool_clear(iter_pool);</span>
+<span class="lineNum">     186 </span>            : 
+<span class="lineNum">     187 </span>            :         /* run client event loop */
+<span class="lineNum">     188 </span><span class="lineCov">        715 :         status = serf_context_run(tb-&gt;context, 0, iter_pool);</span>
+<span class="lineNum">     189 </span><span class="lineCov">        715 :         if (!APR_STATUS_IS_TIMEUP(status) &amp;&amp;</span>
+<span class="lineNum">     190 </span><span class="lineCov">         25 :             SERF_BUCKET_READ_ERROR(status))</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :             return status;</span>
+<span class="lineNum">     192 </span>            : 
+<span class="lineNum">     193 </span><span class="lineCov">        715 :         done = 1;</span>
+<span class="lineNum">     194 </span><span class="lineCov">       4290 :         for (i = 0; i &lt; num_requests; i++)</span>
+<span class="lineNum">     195 </span><span class="lineCov">       1430 :             done &amp;= handler_ctx[i].done;</span>
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span><span class="lineCov">       1426 :         if (!done &amp;&amp; (apr_time_now() &gt; finish_time))</span>
+<span class="lineNum">     198 </span><span class="lineNoCov">          0 :             return APR_ETIMEDOUT;</span>
+<span class="lineNum">     199 </span>            :     }
+<span class="lineNum">     200 </span><span class="lineCov">          4 :     apr_pool_destroy(iter_pool);</span>
+<span class="lineNum">     201 </span>            : 
+<span class="lineNum">     202 </span><span class="lineCov">          4 :     return APR_SUCCESS;</span>
+<a name="203"><span class="lineNum">     203 </span><span class="lineCov">          4 : }</span></a>
+<span class="lineNum">     204 </span>            : 
+<span class="lineNum">     205 </span>            : static apr_status_t connection_setup_http2(apr_socket_t *skt,
+<span class="lineNum">     206 </span>            :                                            serf_bucket_t **read_bkt,
+<span class="lineNum">     207 </span>            :                                            serf_bucket_t **write_bkt,
+<span class="lineNum">     208 </span>            :                                            void *setup_baton,
+<span class="lineNum">     209 </span>            :                                            apr_pool_t *pool)
+<span class="lineNum">     210 </span>            : {
+<span class="lineNum">     211 </span><span class="lineCov">          2 :     test_baton_t *tb = setup_baton;</span>
+<span class="lineNum">     212 </span>            : 
+<span class="lineNum">     213 </span>            :     /* Would be nice to be able to call default_http_conn_setup */
+<span class="lineNum">     214 </span><span class="lineCov">          2 :     *read_bkt = serf_bucket_socket_create(skt, tb-&gt;bkt_alloc);</span>
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span><span class="lineCov">          2 :     serf_connection_set_framing_type(tb-&gt;connection,</span>
+<span class="lineNum">     217 </span>            :                                      SERF_CONNECTION_FRAMING_TYPE_HTTP2);
+<span class="lineNum">     218 </span>            : 
+<a name="219"><span class="lineNum">     219 </span><span class="lineCov">          2 :     return APR_SUCCESS;</span></a>
+<span class="lineNum">     220 </span>            : }
+<span class="lineNum">     221 </span>            : static void test_listen_http(CuTest *tc)
+<span class="lineNum">     222 </span>            : {
+<span class="lineNum">     223 </span><span class="lineCov">          1 :     test_baton_t *tb = tc-&gt;testBaton;</span>
+<span class="lineNum">     224 </span>            :     apr_status_t status;
+<span class="lineNum">     225 </span>            :     handler_baton_t handler_ctx[2];
+<span class="lineNum">     226 </span><span class="lineCov">          1 :     const int num_requests = sizeof(handler_ctx) / sizeof(handler_ctx[0]);</span>
+<span class="lineNum">     227 </span>            : 
+<span class="lineNum">     228 </span><span class="lineCov">          1 :     setup_test_server(tb);</span>
+<span class="lineNum">     229 </span>            : 
+<span class="lineNum">     230 </span><span class="lineCov">          1 :     status = setup_test_client_context(tb, NULL, tb-&gt;pool);</span>
+<span class="lineNum">     231 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS, status);</span>
+<span class="lineNum">     232 </span>            : 
+<span class="lineNum">     233 </span><span class="lineCov">          1 :     create_new_request(tb, &amp;handler_ctx[0], &quot;GET&quot;, &quot;/&quot;, 1);</span>
+<span class="lineNum">     234 </span><span class="lineCov">          1 :     create_new_request(tb, &amp;handler_ctx[1], &quot;GET&quot;, &quot;/&quot;, 2);</span>
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span><span class="lineCov">          2 :     status = run_client_server_loop(tb, num_requests,</span>
+<span class="lineNum">     237 </span><span class="lineCov">          1 :                                     handler_ctx, tb-&gt;pool);</span>
+<span class="lineNum">     238 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS, status);</span>
+<a name="239"><span class="lineNum">     239 </span><span class="lineCov">          1 : }</span></a>
+<span class="lineNum">     240 </span>            : 
+<span class="lineNum">     241 </span>            : static void test_listen_http2(CuTest *tc)
+<span class="lineNum">     242 </span>            : {
+<span class="lineNum">     243 </span><span class="lineCov">          1 :     test_baton_t *tb = tc-&gt;testBaton;</span>
+<span class="lineNum">     244 </span>            :     apr_status_t status;
+<span class="lineNum">     245 </span>            :     handler_baton_t handler_ctx[2];
+<span class="lineNum">     246 </span><span class="lineCov">          1 :     const int num_requests = sizeof(handler_ctx) / sizeof(handler_ctx[0]);</span>
+<span class="lineNum">     247 </span>            : 
+<span class="lineNum">     248 </span><span class="lineCov">          1 :     setup_test_server(tb);</span>
+<span class="lineNum">     249 </span>            : 
+<span class="lineNum">     250 </span><span class="lineCov">          2 :     status = setup_test_client_context(tb, connection_setup_http2,</span>
+<span class="lineNum">     251 </span><span class="lineCov">          1 :                                        tb-&gt;pool);</span>
+<span class="lineNum">     252 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS, status);</span>
+<span class="lineNum">     253 </span>            : 
+<span class="lineNum">     254 </span><span class="lineCov">          1 :     create_new_request(tb, &amp;handler_ctx[0], &quot;GET&quot;, &quot;/&quot;, 1);</span>
+<span class="lineNum">     255 </span><span class="lineCov">          1 :     create_new_request(tb, &amp;handler_ctx[1], &quot;GET&quot;, &quot;/&quot;, 2);</span>
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span><span class="lineCov">          2 :     status = run_client_server_loop(tb, num_requests,</span>
+<span class="lineNum">     258 </span><span class="lineCov">          1 :                                     handler_ctx, tb-&gt;pool);</span>
+<span class="lineNum">     259 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS, status);</span>
+<a name="260"><span class="lineNum">     260 </span><span class="lineCov">          1 : }</span></a>
+<span class="lineNum">     261 </span>            : 
+<span class="lineNum">     262 </span>            : static apr_status_t authn_callback(char **username,
+<span class="lineNum">     263 </span>            :                                    char **password,
+<span class="lineNum">     264 </span>            :                                    serf_request_t *request, void *baton,
+<span class="lineNum">     265 </span>            :                                    int code, const char *authn_type,
+<span class="lineNum">     266 </span>            :                                    const char *realm,
+<span class="lineNum">     267 </span>            :                                    apr_pool_t *pool)
+<span class="lineNum">     268 </span>            : {
+<span class="lineNum">     269 </span><span class="lineCov">          2 :     handler_baton_t *handler_ctx = baton;</span>
+<span class="lineNum">     270 </span><span class="lineCov">          2 :     test_baton_t *tb = handler_ctx-&gt;tb;</span>
+<span class="lineNum">     271 </span>            : 
+<span class="lineNum">     272 </span>            :     /* Skip &quot;&lt;http://localhost....&quot; */
+<span class="lineNum">     273 </span><span class="lineCov">          2 :     realm = strchr(realm, '&gt;');</span>
+<span class="lineNum">     274 </span>            : 
+<span class="lineNum">     275 </span><span class="lineCov">          2 :     CuAssertStrEquals(tb-&gt;user_baton, &quot;&gt; Test Suite&quot;, realm);</span>
+<span class="lineNum">     276 </span><span class="lineCov">          2 :     *username = &quot;serf&quot;;</span>
+<span class="lineNum">     277 </span><span class="lineCov">          2 :     *password = &quot;fres&quot;;</span>
+<span class="lineNum">     278 </span>            : 
+<span class="lineNum">     279 </span><span class="lineCov">          2 :     return APR_SUCCESS;</span>
+<span class="lineNum">     280 </span>            : }
+<a name="281"><span class="lineNum">     281 </span>            : </a>
+<span class="lineNum">     282 </span>            : 
+<span class="lineNum">     283 </span>            : static void test_listen_auth_http(CuTest *tc)
+<span class="lineNum">     284 </span>            : {
+<span class="lineNum">     285 </span><span class="lineCov">          1 :     test_baton_t *tb = tc-&gt;testBaton;</span>
+<span class="lineNum">     286 </span>            :     apr_status_t status;
+<span class="lineNum">     287 </span>            :     handler_baton_t handler_ctx[2];
+<span class="lineNum">     288 </span><span class="lineCov">          1 :     const int num_requests = sizeof(handler_ctx) / sizeof(handler_ctx[0]);</span>
+<span class="lineNum">     289 </span>            : 
+<span class="lineNum">     290 </span><span class="lineCov">          1 :     setup_test_server(tb);</span>
+<span class="lineNum">     291 </span>            : 
+<span class="lineNum">     292 </span><span class="lineCov">          1 :     status = setup_test_client_context(tb, NULL, tb-&gt;pool);</span>
+<span class="lineNum">     293 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS, status);</span>
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span><span class="lineCov">          1 :     serf_config_authn_types(tb-&gt;context, SERF_AUTHN_ALL);</span>
+<span class="lineNum">     296 </span><span class="lineCov">          1 :     serf_config_credentials_callback(tb-&gt;context,</span>
+<span class="lineNum">     297 </span>            :                                      authn_callback);
+<span class="lineNum">     298 </span>            : 
+<span class="lineNum">     299 </span><span class="lineCov">          1 :     create_new_request(tb, &amp;handler_ctx[0], &quot;GET&quot;, &quot;/&quot;, 1);</span>
+<span class="lineNum">     300 </span><span class="lineCov">          1 :     create_new_request(tb, &amp;handler_ctx[1], &quot;GET&quot;, &quot;/&quot;, 2);</span>
+<span class="lineNum">     301 </span>            : 
+<span class="lineNum">     302 </span><span class="lineCov">          1 :     tb-&gt;user_baton_l = 401;</span>
+<span class="lineNum">     303 </span><span class="lineCov">          1 :     tb-&gt;user_baton = tc;</span>
+<span class="lineNum">     304 </span>            : 
+<span class="lineNum">     305 </span><span class="lineCov">          2 :     status = run_client_server_loop(tb, num_requests,</span>
+<span class="lineNum">     306 </span><span class="lineCov">          1 :                                     handler_ctx, tb-&gt;pool);</span>
+<span class="lineNum">     307 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS, status);</span>
+<a name="308"><span class="lineNum">     308 </span><span class="lineCov">          1 : }</span></a>
+<span class="lineNum">     309 </span>            : 
+<span class="lineNum">     310 </span>            : static void test_listen_auth_http2(CuTest *tc)
+<span class="lineNum">     311 </span>            : {
+<span class="lineNum">     312 </span><span class="lineCov">          1 :     test_baton_t *tb = tc-&gt;testBaton;</span>
+<span class="lineNum">     313 </span>            :     apr_status_t status;
+<span class="lineNum">     314 </span>            :     handler_baton_t handler_ctx[2];
+<span class="lineNum">     315 </span><span class="lineCov">          1 :     const int num_requests = sizeof(handler_ctx) / sizeof(handler_ctx[0]);</span>
+<span class="lineNum">     316 </span>            : 
+<span class="lineNum">     317 </span><span class="lineCov">          1 :     setup_test_server(tb);</span>
+<span class="lineNum">     318 </span>            : 
+<span class="lineNum">     319 </span><span class="lineCov">          2 :     status = setup_test_client_context(tb, connection_setup_http2,</span>
+<span class="lineNum">     320 </span><span class="lineCov">          1 :                                        tb-&gt;pool);</span>
+<span class="lineNum">     321 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS, status);</span>
+<span class="lineNum">     322 </span>            : 
+<span class="lineNum">     323 </span><span class="lineCov">          1 :     serf_config_authn_types(tb-&gt;context, SERF_AUTHN_ALL);</span>
+<span class="lineNum">     324 </span><span class="lineCov">          1 :     serf_config_credentials_callback(tb-&gt;context,</span>
+<span class="lineNum">     325 </span>            :                                      authn_callback);
+<span class="lineNum">     326 </span>            : 
+<span class="lineNum">     327 </span><span class="lineCov">          1 :     create_new_request(tb, &amp;handler_ctx[0], &quot;GET&quot;, &quot;/&quot;, 1);</span>
+<span class="lineNum">     328 </span><span class="lineCov">          1 :     create_new_request(tb, &amp;handler_ctx[1], &quot;GET&quot;, &quot;/&quot;, 2);</span>
+<span class="lineNum">     329 </span>            : 
+<span class="lineNum">     330 </span><span class="lineCov">          1 :     tb-&gt;user_baton_l = 401;</span>
+<span class="lineNum">     331 </span><span class="lineCov">          1 :     tb-&gt;user_baton = tc;</span>
+<span class="lineNum">     332 </span>            : 
+<span class="lineNum">     333 </span><span class="lineCov">          2 :     status = run_client_server_loop(tb, num_requests,</span>
+<span class="lineNum">     334 </span><span class="lineCov">          1 :                                     handler_ctx, tb-&gt;pool);</span>
+<span class="lineNum">     335 </span><span class="lineCov">          1 :     CuAssertIntEquals(tc, APR_SUCCESS, status);</span>
+<span class="lineNum">     336 </span><span class="lineCov">          1 : }</span>
+<a name="337"><span class="lineNum">     337 </span>            : </a>
+<span class="lineNum">     338 </span>            : /*****************************************************************************/
+<span class="lineNum">     339 </span>            : CuSuite *test_server(void)
+<span class="lineNum">     340 </span>            : {
+<span class="lineNum">     341 </span><span class="lineCov">          1 :     CuSuite *suite = CuSuiteNew();</span>
+<span class="lineNum">     342 </span>            : 
+<span class="lineNum">     343 </span><span class="lineCov">          1 :     CuSuiteSetSetupTeardownCallbacks(suite, test_setup, test_teardown);</span>
+<span class="lineNum">     344 </span>            : 
+<span class="lineNum">     345 </span><span class="lineCov">          1 :     SUITE_ADD_TEST(suite, test_listen_http);</span>
+<span class="lineNum">     346 </span><span class="lineCov">          1 :     SUITE_ADD_TEST(suite, test_listen_http2);</span>
+<span class="lineNum">     347 </span>            : 
+<span class="lineNum">     348 </span><span class="lineCov">          1 :     SUITE_ADD_TEST(suite, test_listen_auth_http);</span>
+<span class="lineNum">     349 </span><span class="lineCov">          1 :     SUITE_ADD_TEST(suite, test_listen_auth_http2);</span>
+<span class="lineNum">     350 </span>            : 
+<span class="lineNum">     351 </span><span class="lineCov">          1 :     return suite;</span>
+<span class="lineNum">     352 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

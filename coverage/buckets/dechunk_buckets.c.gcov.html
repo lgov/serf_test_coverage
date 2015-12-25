@@ -1,0 +1,365 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - buckets/dechunk_buckets.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">buckets</a> - dechunk_buckets.c<span style="font-size: 80%;"> (source / <a href="dechunk_buckets.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">79</td>
+            <td class="headerCovTableEntry">99</td>
+            <td class="headerCovTableEntryMed">79.8 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-12-25 11:14:27</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">6</td>
+            <td class="headerCovTableEntry">7</td>
+            <td class="headerCovTableEntryMed">85.7 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* ====================================================================</a>
+<span class="lineNum">       2 </span>            :  *    Licensed to the Apache Software Foundation (ASF) under one
+<span class="lineNum">       3 </span>            :  *    or more contributor license agreements.  See the NOTICE file
+<span class="lineNum">       4 </span>            :  *    distributed with this work for additional information
+<span class="lineNum">       5 </span>            :  *    regarding copyright ownership.  The ASF licenses this file
+<span class="lineNum">       6 </span>            :  *    to you under the Apache License, Version 2.0 (the
+<span class="lineNum">       7 </span>            :  *    &quot;License&quot;); you may not use this file except in compliance
+<span class="lineNum">       8 </span>            :  *    with the License.  You may obtain a copy of the License at
+<span class="lineNum">       9 </span>            :  *
+<span class="lineNum">      10 </span>            :  *      http://www.apache.org/licenses/LICENSE-2.0
+<span class="lineNum">      11 </span>            :  *
+<span class="lineNum">      12 </span>            :  *    Unless required by applicable law or agreed to in writing,
+<span class="lineNum">      13 </span>            :  *    software distributed under the License is distributed on an
+<span class="lineNum">      14 </span>            :  *    &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+<span class="lineNum">      15 </span>            :  *    KIND, either express or implied.  See the License for the
+<span class="lineNum">      16 </span>            :  *    specific language governing permissions and limitations
+<span class="lineNum">      17 </span>            :  *    under the License.
+<span class="lineNum">      18 </span>            :  * ====================================================================
+<span class="lineNum">      19 </span>            :  */
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #include &lt;apr_strings.h&gt;
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            : #include &quot;serf.h&quot;
+<span class="lineNum">      24 </span>            : #include &quot;serf_bucket_util.h&quot;
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : typedef struct dechunk_context_t {
+<span class="lineNum">      27 </span>            :     serf_bucket_t *stream;
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            :     enum {
+<span class="lineNum">      30 </span>            :         STATE_SIZE,     /* reading the chunk size */
+<span class="lineNum">      31 </span>            :         STATE_CHUNK,    /* reading the chunk */
+<span class="lineNum">      32 </span>            :         STATE_TERM,     /* reading the chunk terminator */
+<span class="lineNum">      33 </span>            :         STATE_DONE      /* body is done; we've returned EOF */
+<span class="lineNum">      34 </span>            :     } state;
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            :     /* How much of the chunk, or the terminator, do we have left to read? */
+<span class="lineNum">      37 </span>            :     apr_int64_t body_left;
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            :     /* Buffer for accumulating a chunk size. */
+<span class="lineNum">      40 </span>            :     serf_linebuf_t linebuf;
+<span class="lineNum">      41 </span>            : } dechunk_context_t;
+<a name="42"><span class="lineNum">      42 </span>            : </a>
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span>            : serf_bucket_t *serf_bucket_dechunk_create(
+<span class="lineNum">      45 </span>            :     serf_bucket_t *stream,
+<span class="lineNum">      46 </span>            :     serf_bucket_alloc_t *allocator)
+<span class="lineNum">      47 </span>            : {
+<span class="lineNum">      48 </span>            :     dechunk_context_t *ctx;
+<span class="lineNum">      49 </span>            : 
+<span class="lineNum">      50 </span><span class="lineCov">       1841 :     ctx = serf_bucket_mem_alloc(allocator, sizeof(*ctx));</span>
+<span class="lineNum">      51 </span><span class="lineCov">       1841 :     ctx-&gt;stream = stream;</span>
+<span class="lineNum">      52 </span><span class="lineCov">       1841 :     ctx-&gt;state = STATE_SIZE;</span>
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span><span class="lineCov">       1841 :     serf_linebuf_init(&amp;ctx-&gt;linebuf);</span>
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span><span class="lineCov">       1841 :     return serf_bucket_create(&amp;serf_bucket_type_dechunk, allocator, ctx);</span>
+<a name="57"><span class="lineNum">      57 </span>            : }</a>
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span>            : static void serf_dechunk_destroy_and_data(serf_bucket_t *bucket)
+<span class="lineNum">      60 </span>            : {
+<span class="lineNum">      61 </span><span class="lineCov">       1836 :     dechunk_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span><span class="lineCov">       1836 :     serf_bucket_destroy(ctx-&gt;stream);</span>
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span><span class="lineCov">       1836 :     serf_default_destroy_and_data(bucket);</span>
+<a name="66"><span class="lineNum">      66 </span><span class="lineCov">       1836 : }</span></a>
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span>            : static apr_status_t wait_for_chunk(serf_bucket_t *bucket)
+<span class="lineNum">      69 </span>            : {
+<span class="lineNum">      70 </span><span class="lineCov">      10279 :     dechunk_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">      71 </span>            :     apr_status_t status;
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span><span class="lineCov">      14528 :     while (1) {</span>
+<span class="lineNum">      74 </span><span class="lineCov">      18783 :         switch (ctx-&gt;state) {</span>
+<span class="lineNum">      75 </span>            :         case STATE_SIZE:
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span>            :             /* fetch a line terminated by CRLF */
+<span class="lineNum">      78 </span><span class="lineCov">       6096 :             status = serf_linebuf_fetch(&amp;ctx-&gt;linebuf, ctx-&gt;stream,</span>
+<span class="lineNum">      79 </span>            :                                         SERF_NEWLINE_CRLF);
+<span class="lineNum">      80 </span><span class="lineCov">       6124 :             if (SERF_BUCKET_READ_ERROR(status))</span>
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :                 return status;</span>
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span>            :             /* if a line was read, then parse it. */
+<span class="lineNum">      84 </span><span class="lineCov">       6096 :             if (ctx-&gt;linebuf.state == SERF_LINEBUF_READY) {</span>
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span>            :                 /* Convert from HEX digits. The linebuffer ensures a '\0' */
+<span class="lineNum">      87 </span><span class="lineCov">       6085 :                 ctx-&gt;body_left = apr_strtoi64(ctx-&gt;linebuf.line, NULL, 16);</span>
+<span class="lineNum">      88 </span><span class="lineCov">       6085 :                 if (errno == ERANGE) {</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :                     return APR_FROM_OS_ERROR(ERANGE);</span>
+<span class="lineNum">      90 </span>            :                 }
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span><span class="lineCov">       6085 :                 if (ctx-&gt;body_left == 0) {</span>
+<span class="lineNum">      93 </span>            :                     /* Just read the last-chunk marker. We're DONE. */
+<span class="lineNum">      94 </span><span class="lineCov">       1828 :                     ctx-&gt;state = STATE_DONE;</span>
+<span class="lineNum">      95 </span><span class="lineCov">       1828 :                     status = APR_EOF;</span>
+<span class="lineNum">      96 </span><span class="lineCov">       1828 :                 }</span>
+<span class="lineNum">      97 </span>            :                 else {
+<span class="lineNum">      98 </span>            :                     /* Got a size, so we'll start reading the chunk now. */
+<span class="lineNum">      99 </span><span class="lineCov">       4257 :                     ctx-&gt;state = STATE_CHUNK;</span>
+<span class="lineNum">     100 </span>            :                 }
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span>            :                 /* If we can read more, then go do so. */
+<span class="lineNum">     103 </span><span class="lineCov">       6085 :                 if (!status)</span>
+<span class="lineNum">     104 </span><span class="lineCov">       4255 :                     continue;</span>
+<span class="lineNum">     105 </span><span class="lineCov">       1830 :             }</span>
+<span class="lineNum">     106 </span>            :             /* assert: status != 0 */
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span><span class="lineCov">       1841 :             return status;</span>
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span>            :         case STATE_CHUNK:
+<span class="lineNum">     111 </span><span class="lineCov">       8429 :             return APR_SUCCESS;</span>
+<span class="lineNum">     112 </span>            : 
+<span class="lineNum">     113 </span>            :         case STATE_TERM:
+<span class="lineNum">     114 </span>            :           {
+<span class="lineNum">     115 </span>            :             /* Delegate to the stream bucket to do the read. */
+<span class="lineNum">     116 </span>            :             const char *data;
+<span class="lineNum">     117 </span>            :             apr_size_t len;
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span><span class="lineCov">       4258 :             status = serf_bucket_read(ctx-&gt;stream,</span>
+<span class="lineNum">     120 </span>            :                                       (apr_size_t)ctx-&gt;body_left /* 2 or 1 */,
+<span class="lineNum">     121 </span>            :                                       &amp;data, &amp;len);
+<span class="lineNum">     122 </span><span class="lineCov">       4275 :             if (SERF_BUCKET_READ_ERROR(status))</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :                 return status;</span>
+<span class="lineNum">     124 </span>            : 
+<span class="lineNum">     125 </span>            :             /* Some data was read, so decrement the amount left and see
+<span class="lineNum">     126 </span>            :              * if we're done reading the chunk terminator.
+<span class="lineNum">     127 </span>            :              */
+<span class="lineNum">     128 </span><span class="lineCov">       4258 :             ctx-&gt;body_left -= len;</span>
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span>            :             /* We need more data but there is no more available. */
+<span class="lineNum">     131 </span><span class="lineCov">       4263 :             if (ctx-&gt;body_left &amp;&amp; APR_STATUS_IS_EOF(status))</span>
+<span class="lineNum">     132 </span><span class="lineCov">          1 :                 return SERF_ERROR_TRUNCATED_HTTP_RESPONSE;</span>
+<span class="lineNum">     133 </span>            : 
+<span class="lineNum">     134 </span><span class="lineCov">       4257 :             if (!ctx-&gt;body_left) {</span>
+<span class="lineNum">     135 </span><span class="lineCov">       4253 :                 ctx-&gt;state = STATE_SIZE;</span>
+<span class="lineNum">     136 </span><span class="lineCov">       4253 :             }</span>
+<span class="lineNum">     137 </span>            : 
+<span class="lineNum">     138 </span>            :             /* Don't return the CR of CRLF to the caller! */
+<span class="lineNum">     139 </span><span class="lineCov">       4257 :             if (status)</span>
+<span class="lineNum">     140 </span><span class="lineCov">          8 :                 return status;</span>
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span><span class="lineCov">       4249 :             break;</span>
+<span class="lineNum">     143 </span>            :           }
+<span class="lineNum">     144 </span>            :         case STATE_DONE:
+<span class="lineNum">     145 </span>            :             /* Just keep returning EOF */
+<span class="lineNum">     146 </span><span class="lineNoCov">          0 :             return APR_EOF;</span>
+<span class="lineNum">     147 </span>            : 
+<span class="lineNum">     148 </span>            :         default:
+<span class="lineNum">     149 </span>            :             /* Not reachable */
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :             return APR_EGENERAL;</span>
+<span class="lineNum">     151 </span>            :         }
+<span class="lineNum">     152 </span>            :     }
+<span class="lineNum">     153 </span>            :     /* NOTREACHED */
+<a name="154"><span class="lineNum">     154 </span><span class="lineCov">      10279 : }</span></a>
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span>            : static apr_status_t serf_dechunk_read(serf_bucket_t *bucket,
+<span class="lineNum">     157 </span>            :                                       apr_size_t requested,
+<span class="lineNum">     158 </span>            :                                       const char **data, apr_size_t *len)
+<span class="lineNum">     159 </span>            : {
+<span class="lineNum">     160 </span><span class="lineCov">      10266 :     dechunk_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">     161 </span>            :     apr_status_t status;
+<span class="lineNum">     162 </span>            : 
+<span class="lineNum">     163 </span><span class="lineCov">      10266 :     status = wait_for_chunk(bucket);</span>
+<span class="lineNum">     164 </span><span class="lineCov">      18686 :     if (status || ctx-&gt;state != STATE_CHUNK) {</span>
+<span class="lineNum">     165 </span><span class="lineCov">       1846 :         *len = 0;</span>
+<span class="lineNum">     166 </span><span class="lineCov">       1846 :         return status;</span>
+<span class="lineNum">     167 </span>            :     }
+<span class="lineNum">     168 </span>            : 
+<span class="lineNum">     169 </span>            :     /* Don't overshoot */
+<span class="lineNum">     170 </span><span class="lineCov">       8420 :     if (requested &gt; ctx-&gt;body_left) {</span>
+<span class="lineNum">     171 </span><span class="lineCov">       4619 :         requested = (apr_size_t)ctx-&gt;body_left;</span>
+<span class="lineNum">     172 </span><span class="lineCov">       4619 :     }</span>
+<span class="lineNum">     173 </span>            : 
+<span class="lineNum">     174 </span>            :     /* ### If requested is now ctx-&gt;body_left we might want to try
+<span class="lineNum">     175 </span>            :            reading 2 extra bytes in an attempt to skip STATE_TERM
+<span class="lineNum">     176 </span>            :            directly */
+<span class="lineNum">     177 </span>            : 
+<span class="lineNum">     178 </span>            :     /* Delegate to the stream bucket to do the read. */
+<span class="lineNum">     179 </span><span class="lineCov">       8420 :     status = serf_bucket_read(ctx-&gt;stream, requested, data, len);</span>
+<span class="lineNum">     180 </span><span class="lineCov">       9287 :     if (SERF_BUCKET_READ_ERROR(status))</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :         return status;</span>
+<span class="lineNum">     182 </span>            : 
+<span class="lineNum">     183 </span>            :     /* Some data was read, so decrement the amount left and see
+<span class="lineNum">     184 </span>            :      * if we're done reading this chunk. */
+<span class="lineNum">     185 </span><span class="lineCov">       8420 :     ctx-&gt;body_left -= *len;</span>
+<span class="lineNum">     186 </span><span class="lineCov">       8420 :     if (!ctx-&gt;body_left) {</span>
+<span class="lineNum">     187 </span><span class="lineCov">       4246 :         ctx-&gt;state = STATE_TERM;</span>
+<span class="lineNum">     188 </span><span class="lineCov">       4246 :         ctx-&gt;body_left = 2;     /* CRLF */</span>
+<span class="lineNum">     189 </span><span class="lineCov">       4246 :     }</span>
+<span class="lineNum">     190 </span>            : 
+<span class="lineNum">     191 </span>            :     /* We need more data but there is no more available. */
+<span class="lineNum">     192 </span><span class="lineCov">      16840 :     if (ctx-&gt;body_left &amp;&amp; APR_STATUS_IS_EOF(status)) {</span>
+<span class="lineNum">     193 </span><span class="lineCov">          3 :         return SERF_ERROR_TRUNCATED_HTTP_RESPONSE;</span>
+<span class="lineNum">     194 </span>            :     }
+<span class="lineNum">     195 </span>            : 
+<span class="lineNum">     196 </span>            :     /* Return the data we just read. */
+<span class="lineNum">     197 </span><span class="lineCov">       8417 :     return status;</span>
+<a name="198"><span class="lineNum">     198 </span><span class="lineCov">      10266 : }</span></a>
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span>            : static apr_status_t serf_dechunk_readline(serf_bucket_t *bucket,
+<span class="lineNum">     201 </span>            :                                           int accepted,
+<span class="lineNum">     202 </span>            :                                           int *found,
+<span class="lineNum">     203 </span>            :                                           const char **data,
+<span class="lineNum">     204 </span>            :                                           apr_size_t *len)
+<span class="lineNum">     205 </span>            : {
+<span class="lineNum">     206 </span><span class="lineCov">         13 :     dechunk_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">     207 </span>            :     apr_status_t status;
+<span class="lineNum">     208 </span>            :     apr_size_t requested;
+<span class="lineNum">     209 </span>            : 
+<span class="lineNum">     210 </span><span class="lineCov">         13 :     status = wait_for_chunk(bucket);</span>
+<span class="lineNum">     211 </span><span class="lineCov">         22 :     if (status || ctx-&gt;state != STATE_CHUNK) {</span>
+<span class="lineNum">     212 </span><span class="lineCov">          4 :         *found = SERF_NEWLINE_NONE;</span>
+<span class="lineNum">     213 </span><span class="lineCov">          4 :         *len = 0;</span>
+<span class="lineNum">     214 </span><span class="lineCov">          4 :         return status;</span>
+<span class="lineNum">     215 </span>            :     }
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span>            :     /* Don't overshoot */
+<span class="lineNum">     218 </span><span class="lineCov">          9 :     if (ctx-&gt;body_left &gt;= APR_SIZE_MAX)</span>
+<span class="lineNum">     219 </span><span class="lineNoCov">          0 :         requested = APR_SIZE_MAX;</span>
+<span class="lineNum">     220 </span>            :     else
+<span class="lineNum">     221 </span><span class="lineCov">          9 :         requested = (apr_size_t)ctx-&gt;body_left;</span>
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span>            :     /* Delegate to the stream bucket to do the read. */
+<span class="lineNum">     224 </span><span class="lineCov">         18 :     status = serf_bucket_limited_readline(ctx-&gt;stream, accepted, requested,</span>
+<span class="lineNum">     225 </span><span class="lineCov">          9 :                                           found, data, len);</span>
+<span class="lineNum">     226 </span><span class="lineCov">          9 :     if (SERF_BUCKET_READ_ERROR(status))</span>
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 :         return status;</span>
+<span class="lineNum">     228 </span>            : 
+<span class="lineNum">     229 </span>            :     /* Some data was read, so decrement the amount left and see
+<span class="lineNum">     230 </span>            :      * if we're done reading this chunk. */
+<span class="lineNum">     231 </span><span class="lineCov">          9 :     ctx-&gt;body_left -= *len;</span>
+<span class="lineNum">     232 </span><span class="lineCov">          9 :     if (!ctx-&gt;body_left) {</span>
+<span class="lineNum">     233 </span><span class="lineCov">          9 :         ctx-&gt;state = STATE_TERM;</span>
+<span class="lineNum">     234 </span><span class="lineCov">          9 :         ctx-&gt;body_left = 2;     /* CRLF */</span>
+<span class="lineNum">     235 </span><span class="lineCov">          9 :     }</span>
+<span class="lineNum">     236 </span>            : 
+<span class="lineNum">     237 </span>            :     /* We need more data but there is no more available. */
+<span class="lineNum">     238 </span><span class="lineCov">         18 :     if (ctx-&gt;body_left &amp;&amp; APR_STATUS_IS_EOF(status)) {</span>
+<span class="lineNum">     239 </span><span class="lineNoCov">          0 :         return SERF_ERROR_TRUNCATED_HTTP_RESPONSE;</span>
+<span class="lineNum">     240 </span>            :     }
+<span class="lineNum">     241 </span>            : 
+<span class="lineNum">     242 </span>            :     /* Return the data we just read. */
+<span class="lineNum">     243 </span><span class="lineCov">          9 :     return status;</span>
+<a name="244"><span class="lineNum">     244 </span><span class="lineCov">         13 : }</span></a>
+<span class="lineNum">     245 </span>            : 
+<span class="lineNum">     246 </span>            : static apr_status_t serf_dechunk_peek(serf_bucket_t *bucket,
+<span class="lineNum">     247 </span>            :                                       const char **data,
+<span class="lineNum">     248 </span>            :                                       apr_size_t *len)
+<span class="lineNum">     249 </span>            : {
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :     dechunk_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">     251 </span>            :     apr_status_t status;
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :     status = wait_for_chunk(bucket);</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :     if (status) {</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :         *len = 0;</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :         return SERF_BUCKET_READ_ERROR(status) ? status : APR_SUCCESS;</span>
+<span class="lineNum">     257 </span>            :     }
+<span class="lineNum">     258 </span>            : 
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :     status = serf_bucket_peek(ctx-&gt;stream, data, len);</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :     if (!SERF_BUCKET_READ_ERROR(status) &amp;&amp; *len &gt; ctx-&gt;body_left)</span>
+<span class="lineNum">     261 </span>            :     {
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :         *len = (apr_size_t)ctx-&gt;body_left;</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :     return status;</span>
+<a name="265"><span class="lineNum">     265 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     266 </span>            : 
+<span class="lineNum">     267 </span>            : static apr_status_t serf_dechunk_set_config(serf_bucket_t *bucket,
+<span class="lineNum">     268 </span>            :                                             serf_config_t *config)
+<span class="lineNum">     269 </span>            : {
+<span class="lineNum">     270 </span>            :     /* This bucket doesn't need/update any shared config, but we need to pass
+<span class="lineNum">     271 </span>            :      it along to our wrapped bucket. */
+<span class="lineNum">     272 </span><span class="lineCov">       1835 :     dechunk_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">     273 </span>            : 
+<span class="lineNum">     274 </span><span class="lineCov">       1835 :     return serf_bucket_set_config(ctx-&gt;stream, config);</span>
+<span class="lineNum">     275 </span>            : }
+<span class="lineNum">     276 </span>            : 
+<span class="lineNum">     277 </span>            : const serf_bucket_type_t serf_bucket_type_dechunk = {
+<span class="lineNum">     278 </span>            :     &quot;DECHUNK&quot;,
+<span class="lineNum">     279 </span>            :     serf_dechunk_read,
+<span class="lineNum">     280 </span>            :     serf_dechunk_readline,
+<span class="lineNum">     281 </span>            :     serf_default_read_iovec,
+<span class="lineNum">     282 </span>            :     serf_default_read_for_sendfile,
+<span class="lineNum">     283 </span>            :     serf_buckets_are_v2,
+<span class="lineNum">     284 </span>            :     serf_dechunk_peek,
+<span class="lineNum">     285 </span>            :     serf_dechunk_destroy_and_data,
+<span class="lineNum">     286 </span>            :     serf_default_read_bucket,
+<span class="lineNum">     287 </span>            :     serf_default_get_remaining,
+<span class="lineNum">     288 </span>            :     serf_dechunk_set_config,
+<span class="lineNum">     289 </span>            : };
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

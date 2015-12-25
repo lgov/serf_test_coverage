@@ -1,0 +1,277 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - auth/auth_basic.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">auth</a> - auth_basic.c<span style="font-size: 80%;"> (source / <a href="auth_basic.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">61</td>
+            <td class="headerCovTableEntry">66</td>
+            <td class="headerCovTableEntryHi">92.4 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-12-25 11:14:27</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* ====================================================================</a>
+<span class="lineNum">       2 </span>            :  *    Licensed to the Apache Software Foundation (ASF) under one
+<span class="lineNum">       3 </span>            :  *    or more contributor license agreements.  See the NOTICE file
+<span class="lineNum">       4 </span>            :  *    distributed with this work for additional information
+<span class="lineNum">       5 </span>            :  *    regarding copyright ownership.  The ASF licenses this file
+<span class="lineNum">       6 </span>            :  *    to you under the Apache License, Version 2.0 (the
+<span class="lineNum">       7 </span>            :  *    &quot;License&quot;); you may not use this file except in compliance
+<span class="lineNum">       8 </span>            :  *    with the License.  You may obtain a copy of the License at
+<span class="lineNum">       9 </span>            :  *
+<span class="lineNum">      10 </span>            :  *      http://www.apache.org/licenses/LICENSE-2.0
+<span class="lineNum">      11 </span>            :  *
+<span class="lineNum">      12 </span>            :  *    Unless required by applicable law or agreed to in writing,
+<span class="lineNum">      13 </span>            :  *    software distributed under the License is distributed on an
+<span class="lineNum">      14 </span>            :  *    &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+<span class="lineNum">      15 </span>            :  *    KIND, either express or implied.  See the License for the
+<span class="lineNum">      16 </span>            :  *    specific language governing permissions and limitations
+<span class="lineNum">      17 </span>            :  *    under the License.
+<span class="lineNum">      18 </span>            :  * ====================================================================
+<span class="lineNum">      19 </span>            :  */
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : /*** Basic authentication ***/
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            : #include &lt;serf.h&gt;
+<span class="lineNum">      24 </span>            : #include &lt;serf_private.h&gt;
+<span class="lineNum">      25 </span>            : #include &lt;auth/auth.h&gt;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #include &lt;apr.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;apr_base64.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;apr_strings.h&gt;
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span>            : /* Stores the context information related to Basic authentication.
+<span class="lineNum">      32 </span>            :    This information is stored in the per server cache in the serf context. */
+<span class="lineNum">      33 </span>            : typedef struct basic_authn_info_t {
+<span class="lineNum">      34 </span>            :     const char *header;
+<span class="lineNum">      35 </span>            :     const char *value;
+<span class="lineNum">      36 </span>            : } basic_authn_info_t;
+<span class="lineNum">      37 </span>            : 
+<a name="38"><span class="lineNum">      38 </span>            : /* Implements serf__auth_handler_func_t callback. */</a>
+<span class="lineNum">      39 </span>            : static apr_status_t
+<span class="lineNum">      40 </span>            : serf__handle_basic_auth(const serf__authn_scheme_t *scheme,
+<span class="lineNum">      41 </span>            :                         int code,
+<span class="lineNum">      42 </span>            :                         serf_request_t *request,
+<span class="lineNum">      43 </span>            :                         serf_bucket_t *response,
+<span class="lineNum">      44 </span>            :                         const char *auth_hdr,
+<span class="lineNum">      45 </span>            :                         const char *auth_attr,
+<span class="lineNum">      46 </span>            :                         apr_pool_t *pool)
+<span class="lineNum">      47 </span>            : {
+<span class="lineNum">      48 </span>            :     const char *tmp;
+<span class="lineNum">      49 </span>            :     apr_size_t tmp_len;
+<span class="lineNum">      50 </span><span class="lineCov">         17 :     serf_connection_t *conn = request-&gt;conn;</span>
+<span class="lineNum">      51 </span><span class="lineCov">         17 :     serf_context_t *ctx = conn-&gt;ctx;</span>
+<span class="lineNum">      52 </span>            :     serf__authn_info_t *authn_info;
+<span class="lineNum">      53 </span>            :     basic_authn_info_t *basic_info;
+<span class="lineNum">      54 </span>            :     apr_status_t status;
+<span class="lineNum">      55 </span>            :     apr_pool_t *cred_pool;
+<span class="lineNum">      56 </span>            :     char *username, *password, *realm_name;
+<span class="lineNum">      57 </span><span class="lineCov">         17 :     const char *eq, *realm = NULL;</span>
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span>            :     /* Can't do Basic authentication if there's no callback to get
+<span class="lineNum">      60 </span>            :        username &amp; password. */
+<span class="lineNum">      61 </span><span class="lineCov">         17 :     if (!ctx-&gt;cred_cb) {</span>
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :         return SERF_ERROR_AUTHN_FAILED;</span>
+<span class="lineNum">      63 </span>            :     }
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span><span class="lineCov">         17 :     if (code == 401) {</span>
+<span class="lineNum">      66 </span><span class="lineCov">         11 :         authn_info = serf__get_authn_info_for_server(conn);</span>
+<span class="lineNum">      67 </span><span class="lineCov">         11 :     } else {</span>
+<span class="lineNum">      68 </span><span class="lineCov">          6 :         authn_info = &amp;ctx-&gt;proxy_authn_info;</span>
+<span class="lineNum">      69 </span>            :     }
+<span class="lineNum">      70 </span><span class="lineCov">         17 :     basic_info = authn_info-&gt;baton;</span>
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span><span class="lineCov">         17 :     realm_name = NULL;</span>
+<span class="lineNum">      73 </span><span class="lineCov">         17 :     eq = strchr(auth_attr, '=');</span>
+<span class="lineNum">      74 </span>            : 
+<span class="lineNum">      75 </span><span class="lineCov">         34 :     if (eq &amp;&amp; strncasecmp(auth_attr, &quot;realm&quot;, 5) == 0) {</span>
+<span class="lineNum">      76 </span><span class="lineCov">         17 :         realm_name = apr_pstrdup(pool, eq + 1);</span>
+<span class="lineNum">      77 </span><span class="lineCov">         17 :         if (realm_name[0] == '\&quot;') {</span>
+<span class="lineNum">      78 </span>            :             apr_size_t realm_len;
+<span class="lineNum">      79 </span>            : 
+<span class="lineNum">      80 </span><span class="lineCov">         17 :             realm_len = strlen(realm_name);</span>
+<span class="lineNum">      81 </span><span class="lineCov">         17 :             if (realm_name[realm_len - 1] == '\&quot;') {</span>
+<span class="lineNum">      82 </span><span class="lineCov">         17 :                 realm_name[realm_len - 1] = '\0';</span>
+<span class="lineNum">      83 </span><span class="lineCov">         17 :                 realm_name++;</span>
+<span class="lineNum">      84 </span><span class="lineCov">         17 :             }</span>
+<span class="lineNum">      85 </span><span class="lineCov">         17 :         }</span>
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span><span class="lineCov">         17 :         if (!realm_name) {</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :             return SERF_ERROR_AUTHN_MISSING_ATTRIBUTE;</span>
+<span class="lineNum">      89 </span>            :         }
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span><span class="lineCov">         34 :         realm = serf__construct_realm(code == 401 ? HOST : PROXY,</span>
+<span class="lineNum">      92 </span><span class="lineCov">         17 :                                       conn, realm_name,</span>
+<span class="lineNum">      93 </span><span class="lineCov">         17 :                                       pool);</span>
+<span class="lineNum">      94 </span><span class="lineCov">         17 :     }</span>
+<span class="lineNum">      95 </span>            : 
+<span class="lineNum">      96 </span>            :     /* Ask the application for credentials */
+<span class="lineNum">      97 </span><span class="lineCov">         17 :     apr_pool_create(&amp;cred_pool, pool);</span>
+<span class="lineNum">      98 </span><span class="lineCov">         34 :     status = serf__provide_credentials(ctx,</span>
+<span class="lineNum">      99 </span>            :                                        &amp;username, &amp;password,
+<span class="lineNum">     100 </span><span class="lineCov">         17 :                                        request,</span>
+<span class="lineNum">     101 </span><span class="lineCov">         17 :                                        code, scheme-&gt;name,</span>
+<span class="lineNum">     102 </span><span class="lineCov">         17 :                                        realm, cred_pool);</span>
+<span class="lineNum">     103 </span><span class="lineCov">         17 :     if (status) {</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :         apr_pool_destroy(cred_pool);</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :         return status;</span>
+<span class="lineNum">     106 </span>            :     }
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span><span class="lineCov">         17 :     tmp = apr_pstrcat(conn-&gt;pool, username, &quot;:&quot;, password, NULL);</span>
+<span class="lineNum">     109 </span><span class="lineCov">         17 :     tmp_len = strlen(tmp);</span>
+<span class="lineNum">     110 </span><span class="lineCov">         17 :     apr_pool_destroy(cred_pool);</span>
+<span class="lineNum">     111 </span>            : 
+<span class="lineNum">     112 </span><span class="lineCov">         34 :     serf__encode_auth_header(&amp;basic_info-&gt;value,</span>
+<span class="lineNum">     113 </span><span class="lineCov">         17 :                              scheme-&gt;name,</span>
+<span class="lineNum">     114 </span><span class="lineCov">         17 :                              tmp, tmp_len, pool);</span>
+<span class="lineNum">     115 </span><span class="lineCov">         17 :     basic_info-&gt;header = (code == 401) ? &quot;Authorization&quot; : &quot;Proxy-Authorization&quot;;</span>
+<span class="lineNum">     116 </span>            : 
+<span class="lineNum">     117 </span><span class="lineCov">         17 :     return APR_SUCCESS;</span>
+<span class="lineNum">     118 </span><span class="lineCov">         17 : }</span>
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span>            : /* For Basic authentication we expect all authn info to be the same for all
+<span class="lineNum">     121 </span>            :    connections in the context to the same server (same realm, username,
+<span class="lineNum">     122 </span>            :    password). Therefore we can keep the header value in the per-server store
+<span class="lineNum">     123 </span>            :    context instead of per connection. Implements serf__init_conn_func_t
+<span class="lineNum">     124 </span>            :    callback.
+<span class="lineNum">     125 </span>            :    TODO: we currently don't cache this info per realm, so each time a request
+<a name="126"><span class="lineNum">     126 </span>            :    'switches realms', we have to ask the application for new credentials. */</a>
+<span class="lineNum">     127 </span>            : static apr_status_t
+<span class="lineNum">     128 </span>            : serf__init_basic_connection(const serf__authn_scheme_t *scheme,
+<span class="lineNum">     129 </span>            :                             int code,
+<span class="lineNum">     130 </span>            :                             serf_connection_t *conn,
+<span class="lineNum">     131 </span>            :                             apr_pool_t *pool)
+<span class="lineNum">     132 </span>            : {
+<span class="lineNum">     133 </span><span class="lineCov">         20 :     serf_context_t *ctx = conn-&gt;ctx;</span>
+<span class="lineNum">     134 </span>            :     serf__authn_info_t *authn_info;
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span><span class="lineCov">         20 :     if (code == 401) {</span>
+<span class="lineNum">     137 </span><span class="lineCov">         12 :         authn_info = serf__get_authn_info_for_server(conn);</span>
+<span class="lineNum">     138 </span><span class="lineCov">         12 :     } else {</span>
+<span class="lineNum">     139 </span><span class="lineCov">          8 :         authn_info = &amp;ctx-&gt;proxy_authn_info;</span>
+<span class="lineNum">     140 </span>            :     }
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span><span class="lineCov">         20 :     if (!authn_info-&gt;baton) {</span>
+<span class="lineNum">     143 </span><span class="lineCov">         15 :         authn_info-&gt;baton = apr_pcalloc(pool, sizeof(basic_authn_info_t));</span>
+<span class="lineNum">     144 </span><span class="lineCov">         15 :     }</span>
+<span class="lineNum">     145 </span>            : 
+<span class="lineNum">     146 </span><span class="lineCov">         20 :     return APR_SUCCESS;</span>
+<span class="lineNum">     147 </span>            : }
+<span class="lineNum">     148 </span>            : 
+<a name="149"><span class="lineNum">     149 </span>            : /* Implements serf__setup_request_func_t callback. */</a>
+<span class="lineNum">     150 </span>            : static apr_status_t
+<span class="lineNum">     151 </span>            : serf__setup_request_basic_auth(const serf__authn_scheme_t *scheme,
+<span class="lineNum">     152 </span>            :                                peer_t peer,
+<span class="lineNum">     153 </span>            :                                int code,
+<span class="lineNum">     154 </span>            :                                serf_connection_t *conn,
+<span class="lineNum">     155 </span>            :                                serf_request_t *request,
+<span class="lineNum">     156 </span>            :                                const char *method,
+<span class="lineNum">     157 </span>            :                                const char *uri,
+<span class="lineNum">     158 </span>            :                                serf_bucket_t *hdrs_bkt)
+<span class="lineNum">     159 </span>            : {
+<span class="lineNum">     160 </span><span class="lineCov">         22 :     serf_context_t *ctx = conn-&gt;ctx;</span>
+<span class="lineNum">     161 </span>            :     serf__authn_info_t *authn_info;
+<span class="lineNum">     162 </span>            :     basic_authn_info_t *basic_info;
+<span class="lineNum">     163 </span>            : 
+<span class="lineNum">     164 </span><span class="lineCov">         22 :     if (peer == HOST) {</span>
+<span class="lineNum">     165 </span><span class="lineCov">         15 :         authn_info = serf__get_authn_info_for_server(conn);</span>
+<span class="lineNum">     166 </span><span class="lineCov">         15 :     } else {</span>
+<span class="lineNum">     167 </span><span class="lineCov">          7 :         authn_info = &amp;ctx-&gt;proxy_authn_info;</span>
+<span class="lineNum">     168 </span>            :     }
+<span class="lineNum">     169 </span><span class="lineCov">         22 :     basic_info = authn_info-&gt;baton;</span>
+<span class="lineNum">     170 </span>            : 
+<span class="lineNum">     171 </span><span class="lineCov">         66 :     if (basic_info &amp;&amp; basic_info-&gt;header &amp;&amp; basic_info-&gt;value) {</span>
+<span class="lineNum">     172 </span><span class="lineCov">         44 :         serf_bucket_headers_setn(hdrs_bkt, basic_info-&gt;header,</span>
+<span class="lineNum">     173 </span><span class="lineCov">         22 :                                  basic_info-&gt;value);</span>
+<span class="lineNum">     174 </span><span class="lineCov">         22 :         return APR_SUCCESS;</span>
+<span class="lineNum">     175 </span>            :     }
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :     return SERF_ERROR_AUTHN_FAILED;</span>
+<span class="lineNum">     178 </span><span class="lineCov">         22 : }</span>
+<span class="lineNum">     179 </span>            : 
+<a name="180"><span class="lineNum">     180 </span>            : /* Implements serf__validate_response_func_t callback. */</a>
+<span class="lineNum">     181 </span>            : static apr_status_t
+<span class="lineNum">     182 </span>            : validate_response_func(const serf__authn_scheme_t *scheme,
+<span class="lineNum">     183 </span>            :                        peer_t peer,
+<span class="lineNum">     184 </span>            :                        int code,
+<span class="lineNum">     185 </span>            :                        serf_connection_t *conn,
+<span class="lineNum">     186 </span>            :                        serf_request_t *request,
+<span class="lineNum">     187 </span>            :                        serf_bucket_t *response,
+<span class="lineNum">     188 </span>            :                        apr_pool_t *pool)
+<span class="lineNum">     189 </span>            : {
+<span class="lineNum">     190 </span><span class="lineCov">         28 :     return APR_SUCCESS;</span>
+<span class="lineNum">     191 </span>            : }
+<span class="lineNum">     192 </span>            : 
+<span class="lineNum">     193 </span>            : const serf__authn_scheme_t serf__basic_authn_scheme = {
+<span class="lineNum">     194 </span>            :     &quot;Basic&quot;,
+<span class="lineNum">     195 </span>            :     &quot;basic&quot;,
+<span class="lineNum">     196 </span>            :     SERF_AUTHN_BASIC,
+<span class="lineNum">     197 </span>            :     serf__init_basic_connection,
+<span class="lineNum">     198 </span>            :     serf__handle_basic_auth,
+<span class="lineNum">     199 </span>            :     serf__setup_request_basic_auth,
+<span class="lineNum">     200 </span>            :     validate_response_func,
+<span class="lineNum">     201 </span>            : };
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

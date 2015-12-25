@@ -1,0 +1,257 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - test/serf_response.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">test</a> - serf_response.c<span style="font-size: 80%;"> (source / <a href="serf_response.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">56</td>
+            <td class="headerCovTableEntry">69</td>
+            <td class="headerCovTableEntryMed">81.2 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-12-25 11:14:27</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* ====================================================================</a>
+<span class="lineNum">       2 </span>            :  *    Licensed to the Apache Software Foundation (ASF) under one
+<span class="lineNum">       3 </span>            :  *    or more contributor license agreements.  See the NOTICE file
+<span class="lineNum">       4 </span>            :  *    distributed with this work for additional information
+<span class="lineNum">       5 </span>            :  *    regarding copyright ownership.  The ASF licenses this file
+<span class="lineNum">       6 </span>            :  *    to you under the Apache License, Version 2.0 (the
+<span class="lineNum">       7 </span>            :  *    &quot;License&quot;); you may not use this file except in compliance
+<span class="lineNum">       8 </span>            :  *    with the License.  You may obtain a copy of the License at
+<span class="lineNum">       9 </span>            :  *
+<span class="lineNum">      10 </span>            :  *      http://www.apache.org/licenses/LICENSE-2.0
+<span class="lineNum">      11 </span>            :  *
+<span class="lineNum">      12 </span>            :  *    Unless required by applicable law or agreed to in writing,
+<span class="lineNum">      13 </span>            :  *    software distributed under the License is distributed on an
+<span class="lineNum">      14 </span>            :  *    &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+<span class="lineNum">      15 </span>            :  *    KIND, either express or implied.  See the License for the
+<span class="lineNum">      16 </span>            :  *    specific language governing permissions and limitations
+<span class="lineNum">      17 </span>            :  *    under the License.
+<span class="lineNum">      18 </span>            :  * ====================================================================
+<span class="lineNum">      19 </span>            :  */
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            : #include &lt;apr.h&gt;
+<span class="lineNum">      24 </span>            : #include &lt;apr_uri.h&gt;
+<span class="lineNum">      25 </span>            : #include &lt;apr_strings.h&gt;
+<span class="lineNum">      26 </span>            : #include &lt;apr_atomic.h&gt;
+<span class="lineNum">      27 </span>            : #include &lt;apr_version.h&gt;
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : #include &quot;serf.h&quot;
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span>            : typedef struct accept_baton_t {
+<span class="lineNum">      32 </span>            :     const char *resp_file;
+<span class="lineNum">      33 </span>            :     serf_bucket_t *bkt;
+<a name="34"><span class="lineNum">      34 </span>            : } accept_baton_t;</a>
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            : static serf_bucket_t* accept_response(void *acceptor_baton,
+<span class="lineNum">      37 </span>            :                                       serf_bucket_alloc_t *bkt_alloc,
+<span class="lineNum">      38 </span>            :                                       apr_pool_t *pool)
+<span class="lineNum">      39 </span>            : {
+<span class="lineNum">      40 </span><span class="lineCov">          5 :     accept_baton_t *ctx = acceptor_baton;</span>
+<span class="lineNum">      41 </span>            :     serf_bucket_t *c;
+<span class="lineNum">      42 </span>            :     apr_file_t *file;
+<span class="lineNum">      43 </span>            :     apr_status_t status;
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span><span class="lineCov">          5 :     if (!ctx-&gt;bkt) {</span>
+<span class="lineNum">      46 </span><span class="lineCov">         10 :         status = apr_file_open(&amp;file, ctx-&gt;resp_file,</span>
+<span class="lineNum">      47 </span><span class="lineCov">          5 :                                APR_READ, APR_OS_DEFAULT, pool);</span>
+<span class="lineNum">      48 </span><span class="lineCov">          5 :         if (status) {</span>
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 :             return NULL;</span>
+<span class="lineNum">      50 </span>            :         }
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span><span class="lineCov">          5 :         c = ctx-&gt;bkt = serf_bucket_file_create(file, bkt_alloc);</span>
+<span class="lineNum">      53 </span><span class="lineCov">          5 :     } else {</span>
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :         c = ctx-&gt;bkt;</span>
+<span class="lineNum">      55 </span>            :     }
+<span class="lineNum">      56 </span>            : 
+<span class="lineNum">      57 </span><span class="lineCov">          5 :     c = serf_bucket_barrier_create(c, bkt_alloc);</span>
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span><span class="lineCov">          5 :     return serf_bucket_response_create(c, bkt_alloc);</span>
+<span class="lineNum">      60 </span><span class="lineCov">          5 : }</span>
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span>            : typedef struct handler_baton_t {
+<span class="lineNum">      63 </span>            : #if APR_MAJOR_VERSION &gt; 0
+<span class="lineNum">      64 </span>            :     apr_uint32_t requests_outstanding;
+<span class="lineNum">      65 </span>            : #else
+<span class="lineNum">      66 </span>            :     apr_atomic_t requests_outstanding;
+<span class="lineNum">      67 </span>            : #endif
+<span class="lineNum">      68 </span>            : } handler_baton_t;
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span>            : /* Kludges for APR 0.9 support. */
+<span class="lineNum">      71 </span>            : #if APR_MAJOR_VERSION == 0
+<span class="lineNum">      72 </span>            : #define apr_atomic_inc32 apr_atomic_inc
+<span class="lineNum">      73 </span>            : #define apr_atomic_dec32 apr_atomic_dec
+<span class="lineNum">      74 </span>            : #define apr_atomic_read32 apr_atomic_read
+<a name="75"><span class="lineNum">      75 </span>            : #endif</a>
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span>            : static apr_status_t handle_response(serf_request_t *request,
+<span class="lineNum">      78 </span>            :                                     serf_bucket_t *response,
+<span class="lineNum">      79 </span>            :                                     void *handler_baton,
+<span class="lineNum">      80 </span>            :                                     apr_pool_t *pool)
+<span class="lineNum">      81 </span>            : {
+<span class="lineNum">      82 </span>            :     const char *data, *s;
+<span class="lineNum">      83 </span>            :     apr_size_t len;
+<span class="lineNum">      84 </span>            :     serf_status_line sl;
+<span class="lineNum">      85 </span>            :     apr_status_t status;
+<span class="lineNum">      86 </span><span class="lineCov">         15 :     handler_baton_t *ctx = handler_baton;</span>
+<span class="lineNum">      87 </span>            : 
+<span class="lineNum">      88 </span><span class="lineCov">         15 :     status = serf_bucket_response_status(response, &amp;sl);</span>
+<span class="lineNum">      89 </span><span class="lineCov">         15 :     if (status) {</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :         if (APR_STATUS_IS_EAGAIN(status)) {</span>
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :             return APR_SUCCESS;</span>
+<span class="lineNum">      92 </span>            :         }
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :         return status;</span>
+<span class="lineNum">      94 </span>            :     }
+<span class="lineNum">      95 </span>            : 
+<span class="lineNum">      96 </span><span class="lineCov">         15 :     status = serf_bucket_read(response, 2048, &amp;data, &amp;len);</span>
+<span class="lineNum">      97 </span>            : 
+<span class="lineNum">      98 </span><span class="lineCov">         20 :     if (!status || APR_STATUS_IS_EOF(status)) {</span>
+<span class="lineNum">      99 </span><span class="lineCov">         15 :         if (len) {</span>
+<span class="lineNum">     100 </span><span class="lineCov">          8 :             s = apr_pstrmemdup(pool, data, len);</span>
+<span class="lineNum">     101 </span><span class="lineCov">          8 :             printf(&quot;%s&quot;, s);</span>
+<span class="lineNum">     102 </span><span class="lineCov">          8 :         }</span>
+<span class="lineNum">     103 </span><span class="lineCov">         15 :     }</span>
+<span class="lineNum">     104 </span><span class="lineNoCov">          0 :     else if (APR_STATUS_IS_EAGAIN(status)) {</span>
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :         status = APR_SUCCESS;</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     107 </span><span class="lineCov">         15 :     if (APR_STATUS_IS_EOF(status)) {</span>
+<span class="lineNum">     108 </span>            :         serf_bucket_t *hdrs;
+<span class="lineNum">     109 </span>            :         const char *v;
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span><span class="lineCov">          5 :         hdrs = serf_bucket_response_get_headers(response);</span>
+<span class="lineNum">     112 </span><span class="lineCov">          5 :         v = serf_bucket_headers_get(hdrs, &quot;Trailer-Test&quot;);</span>
+<span class="lineNum">     113 </span><span class="lineCov">          5 :         if (v) {</span>
+<span class="lineNum">     114 </span><span class="lineCov">          1 :             printf(&quot;Trailer-Test: %s\n&quot;, v);</span>
+<span class="lineNum">     115 </span><span class="lineCov">          1 :         }</span>
+<span class="lineNum">     116 </span>            : 
+<span class="lineNum">     117 </span><span class="lineCov">          5 :         apr_atomic_dec32(&amp;ctx-&gt;requests_outstanding);</span>
+<span class="lineNum">     118 </span><span class="lineCov">          5 :     }</span>
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span><span class="lineCov">         15 :     return status;</span>
+<a name="121"><span class="lineNum">     121 </span><span class="lineCov">         15 : }</span></a>
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span>            : int main(int argc, const char **argv)
+<span class="lineNum">     124 </span>            : {
+<span class="lineNum">     125 </span>            :     apr_status_t status;
+<span class="lineNum">     126 </span>            :     apr_pool_t *pool;
+<span class="lineNum">     127 </span>            :     serf_bucket_t *resp_bkt;
+<span class="lineNum">     128 </span>            :     accept_baton_t accept_ctx;
+<span class="lineNum">     129 </span>            :     handler_baton_t handler_ctx;
+<span class="lineNum">     130 </span>            :     serf_bucket_alloc_t *allocator;
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span><span class="lineCov">          5 :     if (argc != 2) {</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :         printf(&quot;%s: [Resp. File]\n&quot;, argv[0]);</span>
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :         exit(-1);</span>
+<span class="lineNum">     135 </span>            :     }
+<span class="lineNum">     136 </span><span class="lineCov">          5 :     accept_ctx.resp_file = argv[1];</span>
+<span class="lineNum">     137 </span><span class="lineCov">          5 :     accept_ctx.bkt = NULL;</span>
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span><span class="lineCov">          5 :     apr_initialize();</span>
+<span class="lineNum">     140 </span><span class="lineCov">          5 :     atexit(apr_terminate);</span>
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span><span class="lineCov">          5 :     apr_pool_create(&amp;pool, NULL);</span>
+<span class="lineNum">     143 </span><span class="lineCov">          5 :     apr_atomic_init(pool);</span>
+<span class="lineNum">     144 </span>            :     /* serf_initialize(); */
+<span class="lineNum">     145 </span>            : 
+<span class="lineNum">     146 </span><span class="lineCov">          5 :     allocator = serf_bucket_allocator_create(pool, NULL, NULL);</span>
+<span class="lineNum">     147 </span>            : 
+<span class="lineNum">     148 </span><span class="lineCov">          5 :     while (1) {</span>
+<span class="lineNum">     149 </span>            :         const char *unused;
+<span class="lineNum">     150 </span>            :         apr_size_t remaining;
+<span class="lineNum">     151 </span>            : 
+<span class="lineNum">     152 </span><span class="lineCov">          5 :         handler_ctx.requests_outstanding = 0;</span>
+<span class="lineNum">     153 </span><span class="lineCov">          5 :         apr_atomic_inc32(&amp;handler_ctx.requests_outstanding);</span>
+<span class="lineNum">     154 </span>            :         
+<span class="lineNum">     155 </span><span class="lineCov">          5 :         resp_bkt = accept_response(&amp;accept_ctx, allocator, pool);</span>
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span><span class="lineCov">         15 :         while (1) {</span>
+<span class="lineNum">     158 </span><span class="lineCov">         15 :             status = handle_response(NULL, resp_bkt, &amp;handler_ctx, pool);</span>
+<span class="lineNum">     159 </span><span class="lineCov">         15 :             if (APR_STATUS_IS_TIMEUP(status))</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :                 continue;</span>
+<span class="lineNum">     161 </span><span class="lineCov">         20 :             if (SERF_BUCKET_READ_ERROR(status)) {</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :                 printf(&quot;Error running context: %d\n&quot;, status);</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :                 exit(1);</span>
+<span class="lineNum">     164 </span>            :             }
+<span class="lineNum">     165 </span><span class="lineCov">         15 :             if (!apr_atomic_read32(&amp;handler_ctx.requests_outstanding)) {</span>
+<span class="lineNum">     166 </span><span class="lineCov">          5 :                 break;</span>
+<span class="lineNum">     167 </span>            :             }
+<span class="lineNum">     168 </span>            :         }
+<span class="lineNum">     169 </span>            : 
+<span class="lineNum">     170 </span><span class="lineCov">          5 :         printf(&quot;###########################################################\n&quot;);</span>
+<span class="lineNum">     171 </span><span class="lineCov">          5 :         (void) serf_bucket_peek(accept_ctx.bkt, &amp;unused, &amp;remaining);</span>
+<span class="lineNum">     172 </span><span class="lineCov">          5 :         if (!remaining)</span>
+<span class="lineNum">     173 </span><span class="lineCov">          5 :             break;</span>
+<span class="lineNum">     174 </span>            :     }
+<span class="lineNum">     175 </span><span class="lineCov">          5 :     serf_bucket_destroy(resp_bkt);</span>
+<span class="lineNum">     176 </span><span class="lineCov">          5 :     serf_bucket_destroy(accept_ctx.bkt);</span>
+<span class="lineNum">     177 </span>            : 
+<span class="lineNum">     178 </span><span class="lineCov">          5 :     apr_pool_destroy(pool);</span>
+<span class="lineNum">     179 </span>            : 
+<span class="lineNum">     180 </span><span class="lineCov">          5 :     return 0;</span>
+<span class="lineNum">     181 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

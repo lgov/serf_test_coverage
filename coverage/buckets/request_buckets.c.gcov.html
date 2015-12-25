@@ -1,0 +1,720 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - coverage.info - buckets/request_buckets.c</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../index.html">top level</a> - <a href="index.html">buckets</a> - request_buckets.c<span style="font-size: 80%;"> (source / <a href="request_buckets.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">coverage.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">139</td>
+            <td class="headerCovTableEntry">260</td>
+            <td class="headerCovTableEntryLo">53.5 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-12-25 11:14:27</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">13</td>
+            <td class="headerCovTableEntry">25</td>
+            <td class="headerCovTableEntryLo">52.0 %</td>
+          </tr>
+          <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* ====================================================================</a>
+<span class="lineNum">       2 </span>            :  *    Licensed to the Apache Software Foundation (ASF) under one
+<span class="lineNum">       3 </span>            :  *    or more contributor license agreements.  See the NOTICE file
+<span class="lineNum">       4 </span>            :  *    distributed with this work for additional information
+<span class="lineNum">       5 </span>            :  *    regarding copyright ownership.  The ASF licenses this file
+<span class="lineNum">       6 </span>            :  *    to you under the Apache License, Version 2.0 (the
+<span class="lineNum">       7 </span>            :  *    &quot;License&quot;); you may not use this file except in compliance
+<span class="lineNum">       8 </span>            :  *    with the License.  You may obtain a copy of the License at
+<span class="lineNum">       9 </span>            :  *
+<span class="lineNum">      10 </span>            :  *      http://www.apache.org/licenses/LICENSE-2.0
+<span class="lineNum">      11 </span>            :  *
+<span class="lineNum">      12 </span>            :  *    Unless required by applicable law or agreed to in writing,
+<span class="lineNum">      13 </span>            :  *    software distributed under the License is distributed on an
+<span class="lineNum">      14 </span>            :  *    &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+<span class="lineNum">      15 </span>            :  *    KIND, either express or implied.  See the License for the
+<span class="lineNum">      16 </span>            :  *    specific language governing permissions and limitations
+<span class="lineNum">      17 </span>            :  *    under the License.
+<span class="lineNum">      18 </span>            :  * ====================================================================
+<span class="lineNum">      19 </span>            :  */
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #include &lt;apr_pools.h&gt;
+<span class="lineNum">      22 </span>            : #include &lt;apr_strings.h&gt;
+<span class="lineNum">      23 </span>            : #include &lt;apr_date.h&gt;
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &quot;serf.h&quot;
+<span class="lineNum">      26 </span>            : #include &quot;serf_bucket_util.h&quot;
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #include &quot;serf_private.h&quot;
+<span class="lineNum">      29 </span>            : 
+<span class="lineNum">      30 </span>            : typedef struct request_context_t {
+<span class="lineNum">      31 </span>            :     const char *method;
+<span class="lineNum">      32 </span>            :     const char *uri;
+<span class="lineNum">      33 </span>            :     serf_bucket_t *headers;
+<span class="lineNum">      34 </span>            :     serf_bucket_t *body;
+<span class="lineNum">      35 </span>            :     apr_int64_t len;
+<span class="lineNum">      36 </span>            :     serf_config_t *config;
+<span class="lineNum">      37 </span>            : } request_context_t;
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            : #define LENGTH_UNKNOWN ((apr_int64_t)-1)
+<a name="40"><span class="lineNum">      40 </span>            : </a>
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : serf_bucket_t *serf_bucket_request_create(
+<span class="lineNum">      43 </span>            :     const char *method,
+<span class="lineNum">      44 </span>            :     const char *URI,
+<span class="lineNum">      45 </span>            :     serf_bucket_t *body,
+<span class="lineNum">      46 </span>            :     serf_bucket_alloc_t *allocator)
+<span class="lineNum">      47 </span>            : {
+<span class="lineNum">      48 </span>            :     request_context_t *ctx;
+<span class="lineNum">      49 </span>            : 
+<span class="lineNum">      50 </span><span class="lineCov">        679 :     ctx = serf_bucket_mem_alloc(allocator, sizeof(*ctx));</span>
+<span class="lineNum">      51 </span><span class="lineCov">        679 :     ctx-&gt;method = method;</span>
+<span class="lineNum">      52 </span><span class="lineCov">        679 :     ctx-&gt;uri = URI;</span>
+<span class="lineNum">      53 </span><span class="lineCov">        679 :     ctx-&gt;headers = serf_bucket_headers_create(allocator);</span>
+<span class="lineNum">      54 </span><span class="lineCov">        679 :     ctx-&gt;body = body;</span>
+<span class="lineNum">      55 </span><span class="lineCov">        679 :     ctx-&gt;len = LENGTH_UNKNOWN;</span>
+<span class="lineNum">      56 </span><span class="lineCov">        679 :     ctx-&gt;config = NULL;</span>
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span><span class="lineCov">        679 :     return serf_bucket_create(&amp;serf_bucket_type_request, allocator, ctx);</span>
+<a name="59"><span class="lineNum">      59 </span>            : }</a>
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span>            : void serf_bucket_request_set_CL(
+<span class="lineNum">      62 </span>            :     serf_bucket_t *bucket,
+<span class="lineNum">      63 </span>            :     apr_int64_t len)
+<span class="lineNum">      64 </span>            : {
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :     request_context_t *ctx = (request_context_t *)bucket-&gt;data;</span>
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :     ctx-&gt;len = len;</span>
+<a name="68"><span class="lineNum">      68 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span>            : serf_bucket_t *serf_bucket_request_get_headers(
+<span class="lineNum">      71 </span>            :     serf_bucket_t *bucket)
+<span class="lineNum">      72 </span>            : {
+<span class="lineNum">      73 </span><span class="lineCov">        684 :     return ((request_context_t *)bucket-&gt;data)-&gt;headers;</span>
+<a name="74"><span class="lineNum">      74 </span>            : }</a>
+<span class="lineNum">      75 </span>            : 
+<span class="lineNum">      76 </span>            : void serf__bucket_request_read(serf_bucket_t *request_bucket,
+<span class="lineNum">      77 </span>            :                                serf_bucket_t **body_bkt,
+<span class="lineNum">      78 </span>            :                                const char **uri,
+<span class="lineNum">      79 </span>            :                                const char **method)
+<span class="lineNum">      80 </span>            : {
+<span class="lineNum">      81 </span><span class="lineCov">         10 :     request_context_t *ctx = request_bucket-&gt;data;</span>
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span><span class="lineCov">         10 :     if (body_bkt)</span>
+<span class="lineNum">      84 </span><span class="lineCov">          5 :         *body_bkt = ctx-&gt;body;</span>
+<span class="lineNum">      85 </span><span class="lineCov">         10 :     if (uri)</span>
+<span class="lineNum">      86 </span><span class="lineCov">          5 :         *uri = ctx-&gt;uri;</span>
+<span class="lineNum">      87 </span><span class="lineCov">         10 :     if (method)</span>
+<span class="lineNum">      88 </span><span class="lineCov">          5 :         *method = ctx-&gt;method;</span>
+<span class="lineNum">      89 </span><span class="lineCov">         10 : }</span>
+<a name="90"><span class="lineNum">      90 </span>            : </a>
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span>            : void serf_bucket_request_set_root(
+<span class="lineNum">      93 </span>            :     serf_bucket_t *bucket,
+<span class="lineNum">      94 </span>            :     const char *root_url)
+<span class="lineNum">      95 </span>            : {
+<span class="lineNum">      96 </span><span class="lineCov">          1 :     request_context_t *ctx = (request_context_t *)bucket-&gt;data;</span>
+<span class="lineNum">      97 </span>            : 
+<span class="lineNum">      98 </span>            :     /* If uri is already absolute, don't change it. */
+<span class="lineNum">      99 </span><span class="lineCov">          1 :     if (ctx-&gt;uri[0] != '/')</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :         return;</span>
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span>            :     /* If uri is '/' replace it with root_url. */
+<span class="lineNum">     103 </span><span class="lineCov">          1 :     if (ctx-&gt;uri[1] == '\0')</span>
+<span class="lineNum">     104 </span><span class="lineCov">          1 :         ctx-&gt;uri = root_url;</span>
+<span class="lineNum">     105 </span>            :     else
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :         ctx-&gt;uri =</span>
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :             apr_pstrcat(serf_bucket_allocator_get_pool(bucket-&gt;allocator),</span>
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :                         root_url,</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :                         ctx-&gt;uri,</span>
+<span class="lineNum">     110 </span>            :                         NULL);
+<a name="111"><span class="lineNum">     111 </span><span class="lineCov">          1 : }</span></a>
+<span class="lineNum">     112 </span>            : 
+<span class="lineNum">     113 </span>            : static void serialize_data(serf_bucket_t *bucket)
+<span class="lineNum">     114 </span>            : {
+<span class="lineNum">     115 </span><span class="lineCov">        671 :     request_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">     116 </span>            :     serf_bucket_t *new_bucket;
+<span class="lineNum">     117 </span>            :     struct iovec iov[4];
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span>            :     /* Create a bucket for the request-line. */
+<span class="lineNum">     120 </span><span class="lineCov">        671 :     iov[0].iov_base = (char*)ctx-&gt;method;</span>
+<span class="lineNum">     121 </span><span class="lineCov">        671 :     iov[0].iov_len = strlen(ctx-&gt;method);</span>
+<span class="lineNum">     122 </span><span class="lineCov">        671 :     iov[1].iov_base = &quot; &quot;;</span>
+<span class="lineNum">     123 </span><span class="lineCov">        671 :     iov[1].iov_len = sizeof(&quot; &quot;) - 1;</span>
+<span class="lineNum">     124 </span><span class="lineCov">        671 :     iov[2].iov_base = (char*)ctx-&gt;uri;</span>
+<span class="lineNum">     125 </span><span class="lineCov">        671 :     iov[2].iov_len = strlen(ctx-&gt;uri);</span>
+<span class="lineNum">     126 </span><span class="lineCov">        671 :     iov[3].iov_base = &quot; HTTP/1.1\r\n&quot;;</span>
+<span class="lineNum">     127 </span><span class="lineCov">        671 :     iov[3].iov_len = sizeof(&quot; HTTP/1.1\r\n&quot;) - 1;</span>
+<span class="lineNum">     128 </span>            : 
+<span class="lineNum">     129 </span><span class="lineCov">        671 :     new_bucket = serf_bucket_iovec_create(iov, 4, bucket-&gt;allocator);</span>
+<span class="lineNum">     130 </span>            : 
+<span class="lineNum">     131 </span>            :     /* Build up the new bucket structure with the request-line and the headers.
+<span class="lineNum">     132 </span>            :      *
+<span class="lineNum">     133 </span>            :      * Note that self needs to become an aggregate bucket so that a
+<span class="lineNum">     134 </span>            :      * pointer to self still represents the &quot;right&quot; data.
+<span class="lineNum">     135 </span>            :      */
+<span class="lineNum">     136 </span><span class="lineCov">        671 :     serf_bucket_aggregate_become(bucket);</span>
+<span class="lineNum">     137 </span><span class="lineCov">        671 :     serf_bucket_set_config(bucket, ctx-&gt;config);</span>
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span>            :     /* Insert the two buckets. */
+<span class="lineNum">     140 </span><span class="lineCov">        671 :     serf_bucket_aggregate_append(bucket, new_bucket);</span>
+<span class="lineNum">     141 </span><span class="lineCov">        671 :     serf_bucket_aggregate_append(bucket, ctx-&gt;headers);</span>
+<span class="lineNum">     142 </span>            : 
+<span class="lineNum">     143 </span>            :     /* If we know the length, then use C-L and the raw body. Otherwise,
+<span class="lineNum">     144 </span>            :        use chunked encoding for the request.  */
+<span class="lineNum">     145 </span><span class="lineCov">        671 :     if (ctx-&gt;len != LENGTH_UNKNOWN) {</span>
+<span class="lineNum">     146 </span>            :         char buf[30];
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :         apr_snprintf(buf, 30, &quot;%&quot; APR_INT64_T_FMT, ctx-&gt;len);</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :         serf_bucket_headers_set(ctx-&gt;headers, &quot;Content-Length&quot;, buf);</span>
+<span class="lineNum">     149 </span><span class="lineNoCov">          0 :         if (ctx-&gt;body != NULL)</span>
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :             serf_bucket_aggregate_append(bucket, ctx-&gt;body);</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     152 </span><span class="lineCov">        671 :     else if (ctx-&gt;body != NULL) {</span>
+<span class="lineNum">     153 </span>            :         /* Morph the body bucket to a chunked encoding bucket for now. */
+<span class="lineNum">     154 </span><span class="lineCov">        652 :         serf_bucket_headers_setn(ctx-&gt;headers, &quot;Transfer-Encoding&quot;, &quot;chunked&quot;);</span>
+<span class="lineNum">     155 </span><span class="lineCov">        652 :         ctx-&gt;body = serf_bucket_chunk_create(ctx-&gt;body, bucket-&gt;allocator);</span>
+<span class="lineNum">     156 </span><span class="lineCov">        652 :         serf_bucket_aggregate_append(bucket, ctx-&gt;body);</span>
+<span class="lineNum">     157 </span><span class="lineCov">        652 :     }</span>
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span>            :     /* Our private context is no longer needed, and is not referred to by
+<span class="lineNum">     160 </span>            :      * any existing bucket. Toss it.
+<span class="lineNum">     161 </span>            :      */
+<span class="lineNum">     162 </span><span class="lineCov">        671 :     serf_bucket_mem_free(bucket-&gt;allocator, ctx);</span>
+<a name="163"><span class="lineNum">     163 </span><span class="lineCov">        671 : }</span></a>
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span>            : static apr_status_t serf_request_read(serf_bucket_t *bucket,
+<span class="lineNum">     166 </span>            :                                       apr_size_t requested,
+<span class="lineNum">     167 </span>            :                                       const char **data, apr_size_t *len)
+<span class="lineNum">     168 </span>            : {
+<span class="lineNum">     169 </span>            :     /* Seralize our private data into a new aggregate bucket. */
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :     serialize_data(bucket);</span>
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span>            :     /* Delegate to the &quot;new&quot; aggregate bucket to do the read. */
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :     return bucket-&gt;type-&gt;read(bucket, requested, data, len);</span>
+<a name="174"><span class="lineNum">     174 </span>            : }</a>
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span>            : static apr_status_t serf_request_readline(serf_bucket_t *bucket,
+<span class="lineNum">     177 </span>            :                                           int acceptable, int *found,
+<span class="lineNum">     178 </span>            :                                           const char **data, apr_size_t *len)
+<span class="lineNum">     179 </span>            : {
+<span class="lineNum">     180 </span>            :     /* Seralize our private data into a new aggregate bucket. */
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :     serialize_data(bucket);</span>
+<span class="lineNum">     182 </span>            : 
+<span class="lineNum">     183 </span>            :     /* Delegate to the &quot;new&quot; aggregate bucket to do the readline. */
+<span class="lineNum">     184 </span><span class="lineNoCov">          0 :     return bucket-&gt;type-&gt;readline(bucket, acceptable, found, data, len);</span>
+<a name="185"><span class="lineNum">     185 </span>            : }</a>
+<span class="lineNum">     186 </span>            : 
+<span class="lineNum">     187 </span>            : static apr_status_t serf_request_read_iovec(serf_bucket_t *bucket,
+<span class="lineNum">     188 </span>            :                                             apr_size_t requested,
+<span class="lineNum">     189 </span>            :                                             int vecs_size,
+<span class="lineNum">     190 </span>            :                                             struct iovec *vecs,
+<span class="lineNum">     191 </span>            :                                             int *vecs_used)
+<span class="lineNum">     192 </span>            : {
+<span class="lineNum">     193 </span>            :     /* Seralize our private data into a new aggregate bucket. */
+<span class="lineNum">     194 </span><span class="lineCov">        671 :     serialize_data(bucket);</span>
+<span class="lineNum">     195 </span>            : 
+<span class="lineNum">     196 </span>            :     /* Delegate to the &quot;new&quot; aggregate bucket to do the read. */
+<span class="lineNum">     197 </span><span class="lineCov">       1342 :     return bucket-&gt;type-&gt;read_iovec(bucket, requested,</span>
+<span class="lineNum">     198 </span><span class="lineCov">        671 :                                     vecs_size, vecs, vecs_used);</span>
+<a name="199"><span class="lineNum">     199 </span>            : }</a>
+<span class="lineNum">     200 </span>            : 
+<span class="lineNum">     201 </span>            : static serf_bucket_t * serf_request_read_bucket(serf_bucket_t *bucket,
+<span class="lineNum">     202 </span>            :                                                 const serf_bucket_type_t *type)
+<span class="lineNum">     203 </span>            : {
+<span class="lineNum">     204 </span>            :     /* Luckily we don't have to be affraid for bucket_v2 tests here */
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :     serialize_data(bucket);</span>
+<span class="lineNum">     206 </span>            : 
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :     return serf_bucket_read_bucket(bucket, type);</span>
+<a name="208"><span class="lineNum">     208 </span>            : }</a>
+<span class="lineNum">     209 </span>            : 
+<span class="lineNum">     210 </span>            : static apr_status_t serf_request_peek(serf_bucket_t *bucket,
+<span class="lineNum">     211 </span>            :                                       const char **data,
+<span class="lineNum">     212 </span>            :                                       apr_size_t *len)
+<span class="lineNum">     213 </span>            : {
+<span class="lineNum">     214 </span>            :     /* Seralize our private data into a new aggregate bucket. */
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :     serialize_data(bucket);</span>
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span>            :     /* Delegate to the &quot;new&quot; aggregate bucket to do the peek. */
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :     return serf_bucket_peek(bucket, data, len);</span>
+<span class="lineNum">     219 </span>            : }
+<span class="lineNum">     220 </span>            : 
+<a name="221"><span class="lineNum">     221 </span>            : /* Note that this function is only called when serialize_data()</a>
+<span class="lineNum">     222 </span>            :    hasn't been called on the bucket */
+<span class="lineNum">     223 </span>            : static void serf_request_destroy(serf_bucket_t *bucket)
+<span class="lineNum">     224 </span>            : {
+<span class="lineNum">     225 </span><span class="lineCov">          8 :     request_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">     226 </span>            : 
+<span class="lineNum">     227 </span><span class="lineCov">          8 :     serf_bucket_destroy(ctx-&gt;headers);</span>
+<span class="lineNum">     228 </span>            : 
+<span class="lineNum">     229 </span><span class="lineCov">          8 :     if (ctx-&gt;body) {</span>
+<span class="lineNum">     230 </span><span class="lineCov">          8 :         serf_bucket_destroy(ctx-&gt;body);</span>
+<span class="lineNum">     231 </span><span class="lineCov">          8 :     }</span>
+<span class="lineNum">     232 </span>            : 
+<span class="lineNum">     233 </span><span class="lineCov">          8 :     serf_default_destroy_and_data(bucket);</span>
+<a name="234"><span class="lineNum">     234 </span><span class="lineCov">          8 : }</span></a>
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span>            : void serf_bucket_request_become(
+<span class="lineNum">     237 </span>            :     serf_bucket_t *bucket,
+<span class="lineNum">     238 </span>            :     const char *method,
+<span class="lineNum">     239 </span>            :     const char *uri,
+<span class="lineNum">     240 </span>            :     serf_bucket_t *body)
+<span class="lineNum">     241 </span>            : {
+<span class="lineNum">     242 </span>            :     request_context_t *ctx;
+<span class="lineNum">     243 </span>            : 
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :     ctx = serf_bucket_mem_alloc(bucket-&gt;allocator, sizeof(*ctx));</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :     ctx-&gt;method = method;</span>
+<span class="lineNum">     246 </span><span class="lineNoCov">          0 :     ctx-&gt;uri = uri;</span>
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :     ctx-&gt;headers = serf_bucket_headers_create(bucket-&gt;allocator);</span>
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :     ctx-&gt;body = body;</span>
+<span class="lineNum">     249 </span>            : 
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :     bucket-&gt;type = &amp;serf_bucket_type_request;</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :     bucket-&gt;data = ctx;</span>
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span>            :     /* The allocator remains the same. */
+<a name="254"><span class="lineNum">     254 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     255 </span>            : 
+<span class="lineNum">     256 </span>            : static apr_status_t serf_request_set_config(serf_bucket_t *bucket,
+<span class="lineNum">     257 </span>            :                                             serf_config_t *config)
+<span class="lineNum">     258 </span>            : {
+<span class="lineNum">     259 </span><span class="lineCov">        674 :     request_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span><span class="lineCov">        674 :     ctx-&gt;config = config;</span>
+<span class="lineNum">     262 </span>            : 
+<span class="lineNum">     263 </span><span class="lineCov">        674 :     return serf_bucket_set_config(ctx-&gt;headers, config);</span>
+<span class="lineNum">     264 </span>            : }
+<span class="lineNum">     265 </span>            : 
+<span class="lineNum">     266 </span>            : const serf_bucket_type_t serf_bucket_type_request = {
+<span class="lineNum">     267 </span>            :     &quot;REQUEST&quot;,
+<span class="lineNum">     268 </span>            :     serf_request_read,
+<span class="lineNum">     269 </span>            :     serf_request_readline,
+<span class="lineNum">     270 </span>            :     serf_request_read_iovec,
+<span class="lineNum">     271 </span>            :     serf_default_read_for_sendfile,
+<span class="lineNum">     272 </span>            :     serf_buckets_are_v2,
+<span class="lineNum">     273 </span>            :     serf_request_peek,
+<span class="lineNum">     274 </span>            :     serf_request_destroy,
+<span class="lineNum">     275 </span>            :     serf_request_read_bucket,
+<span class="lineNum">     276 </span>            :     serf_default_get_remaining,
+<span class="lineNum">     277 </span>            :     serf_request_set_config,
+<span class="lineNum">     278 </span>            : };
+<span class="lineNum">     279 </span>            : 
+<span class="lineNum">     280 </span>            : typedef enum incoming_rq_status_t
+<span class="lineNum">     281 </span>            : {
+<span class="lineNum">     282 </span>            :     STATE_INIT,
+<span class="lineNum">     283 </span>            :     STATE_HEADERS,
+<span class="lineNum">     284 </span>            :     STATE_PREBODY,
+<span class="lineNum">     285 </span>            :     STATE_BODY,
+<span class="lineNum">     286 </span>            :     STATE_TRAILERS,
+<span class="lineNum">     287 </span>            :     STATE_DONE
+<span class="lineNum">     288 </span>            : } incoming_rq_status_t;
+<span class="lineNum">     289 </span>            : 
+<span class="lineNum">     290 </span>            : typedef struct incoming_request_context_t {
+<span class="lineNum">     291 </span>            :     const char *method;
+<span class="lineNum">     292 </span>            :     const char *path_raw;
+<span class="lineNum">     293 </span>            :     int version;
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span>            :     serf_bucket_t *stream;
+<span class="lineNum">     296 </span>            :     serf_bucket_t *headers;
+<span class="lineNum">     297 </span>            :     serf_bucket_t *body;
+<span class="lineNum">     298 </span>            : 
+<span class="lineNum">     299 </span>            :     incoming_rq_status_t state;
+<span class="lineNum">     300 </span>            :     bool expect_trailers;
+<span class="lineNum">     301 </span>            : 
+<span class="lineNum">     302 </span>            :     /* Buffer for accumulating a line from the response. */
+<span class="lineNum">     303 </span>            :     serf_linebuf_t linebuf;
+<span class="lineNum">     304 </span>            : 
+<a name="305"><span class="lineNum">     305 </span>            : } incoming_request_context_t;</a>
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span>            : serf_bucket_t *serf_bucket_incoming_request_create(
+<span class="lineNum">     308 </span>            :                       serf_bucket_t *stream,
+<span class="lineNum">     309 </span>            :                       serf_bucket_alloc_t *allocator)
+<span class="lineNum">     310 </span>            : {
+<span class="lineNum">     311 </span>            :     incoming_request_context_t *ctx;
+<span class="lineNum">     312 </span>            : 
+<span class="lineNum">     313 </span><span class="lineCov">         13 :     ctx = serf_bucket_mem_calloc(allocator, sizeof(*ctx));</span>
+<span class="lineNum">     314 </span>            : 
+<span class="lineNum">     315 </span><span class="lineCov">         13 :     ctx-&gt;stream = stream;</span>
+<span class="lineNum">     316 </span><span class="lineCov">         13 :     ctx-&gt;state = STATE_INIT;</span>
+<span class="lineNum">     317 </span><span class="lineCov">         13 :     ctx-&gt;headers = serf_bucket_headers_create(allocator);</span>
+<span class="lineNum">     318 </span><span class="lineCov">         13 :     serf_linebuf_init(&amp;ctx-&gt;linebuf);</span>
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span><span class="lineCov">         13 :     return serf_bucket_create(&amp;serf_bucket_type_incoming_request,</span>
+<span class="lineNum">     321 </span><span class="lineCov">         13 :                               allocator, ctx);</span>
+<a name="322"><span class="lineNum">     322 </span>            : }</a>
+<span class="lineNum">     323 </span>            : 
+<span class="lineNum">     324 </span>            : static apr_status_t serf_incoming_rq_parse_rqline(serf_bucket_t *bucket)
+<span class="lineNum">     325 </span>            : {
+<span class="lineNum">     326 </span><span class="lineCov">         13 :     incoming_request_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">     327 </span>            :     const char *spc, *spc2;
+<span class="lineNum">     328 </span>            :     int res;
+<span class="lineNum">     329 </span>            : 
+<span class="lineNum">     330 </span><span class="lineCov">         13 :     if (ctx-&gt;linebuf.state != SERF_LINEBUF_READY)</span>
+<span class="lineNum">     331 </span><span class="lineCov">          3 :         return APR_SUCCESS;</span>
+<span class="lineNum">     332 </span>            : 
+<span class="lineNum">     333 </span><span class="lineCov">         10 :     if (ctx-&gt;linebuf.used == 0) {</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :         return SERF_ERROR_TRUNCATED_STREAM;</span>
+<span class="lineNum">     335 </span>            :     }
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span>            :     /* ### This may need some security review if this is used in production
+<span class="lineNum">     338 </span>            :             code */
+<span class="lineNum">     339 </span><span class="lineCov">         10 :     spc = memchr(ctx-&gt;linebuf.line, ' ', ctx-&gt;linebuf.used);</span>
+<span class="lineNum">     340 </span>            : 
+<span class="lineNum">     341 </span><span class="lineCov">         10 :     if (spc)</span>
+<span class="lineNum">     342 </span><span class="lineCov">         20 :         ctx-&gt;method = serf_bstrmemdup(bucket-&gt;allocator, ctx-&gt;linebuf.line,</span>
+<span class="lineNum">     343 </span><span class="lineCov">         10 :                                       spc - ctx-&gt;linebuf.line);</span>
+<span class="lineNum">     344 </span>            :     else
+<span class="lineNum">     345 </span><span class="lineNoCov">          0 :         return SERF_ERROR_TRUNCATED_STREAM;</span>
+<span class="lineNum">     346 </span>            : 
+<span class="lineNum">     347 </span><span class="lineCov">         20 :     spc2 = memchr(spc + 1, ' ', ctx-&gt;linebuf.used - (ctx-&gt;linebuf.line - spc)</span>
+<span class="lineNum">     348 </span><span class="lineCov">         10 :                                 - 1);</span>
+<span class="lineNum">     349 </span>            : 
+<span class="lineNum">     350 </span><span class="lineCov">         10 :     if (spc2)</span>
+<span class="lineNum">     351 </span><span class="lineCov">         20 :         ctx-&gt;path_raw = serf_bstrmemdup(bucket-&gt;allocator, spc + 1,</span>
+<span class="lineNum">     352 </span><span class="lineCov">         10 :                                         (spc2 - spc-1));</span>
+<span class="lineNum">     353 </span>            :     else
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :         return SERF_ERROR_TRUNCATED_STREAM;</span>
+<span class="lineNum">     355 </span>            : 
+<span class="lineNum">     356 </span><span class="lineCov">         10 :     spc2++;</span>
+<span class="lineNum">     357 </span>            :     /* spc2 should now be of form 'HTTP/1.1'
+<span class="lineNum">     358 </span>            :        NOTE: Since r1699995 linebuf.line is always NUL terminated string. */
+<span class="lineNum">     359 </span><span class="lineCov">         10 :     res = apr_date_checkmask(spc2, &quot;HTTP/#.#&quot;);</span>
+<span class="lineNum">     360 </span><span class="lineCov">         10 :     if (!res) {</span>
+<span class="lineNum">     361 </span>            :         /* Not an HTTP response?  Well, at least we won't understand it. */
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :         return SERF_ERROR_TRUNCATED_STREAM;</span>
+<span class="lineNum">     363 </span>            :     }
+<span class="lineNum">     364 </span>            : 
+<span class="lineNum">     365 </span><span class="lineCov">         10 :     ctx-&gt;version = SERF_HTTP_VERSION(spc2[5] - '0',</span>
+<span class="lineNum">     366 </span>            :                                      spc2[7] - '0');
+<span class="lineNum">     367 </span><span class="lineCov">         10 :     ctx-&gt;state++;</span>
+<span class="lineNum">     368 </span>            : 
+<span class="lineNum">     369 </span><span class="lineCov">         10 :     return APR_SUCCESS;</span>
+<a name="370"><span class="lineNum">     370 </span><span class="lineCov">         13 : }</span></a>
+<span class="lineNum">     371 </span>            : 
+<span class="lineNum">     372 </span>            : static apr_status_t serf_incoming_rq_parse_headerline(serf_bucket_t *bucket)
+<span class="lineNum">     373 </span>            : {
+<span class="lineNum">     374 </span><span class="lineCov">         32 :     incoming_request_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">     375 </span>            :     const char *split;
+<span class="lineNum">     376 </span>            : 
+<span class="lineNum">     377 </span><span class="lineCov">         32 :     if (ctx-&gt;linebuf.state != SERF_LINEBUF_READY)</span>
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :         return APR_SUCCESS;</span>
+<span class="lineNum">     379 </span>            : 
+<span class="lineNum">     380 </span><span class="lineCov">         32 :     if (ctx-&gt;linebuf.used == 0) {</span>
+<span class="lineNum">     381 </span><span class="lineCov">         15 :         ctx-&gt;state++;</span>
+<span class="lineNum">     382 </span><span class="lineCov">         15 :         return APR_SUCCESS;</span>
+<span class="lineNum">     383 </span>            :     }
+<span class="lineNum">     384 </span>            : 
+<span class="lineNum">     385 </span><span class="lineCov">         17 :     split = memchr(ctx-&gt;linebuf.line, ':', ctx-&gt;linebuf.used);</span>
+<span class="lineNum">     386 </span>            : 
+<span class="lineNum">     387 </span><span class="lineCov">         34 :     serf_bucket_headers_setx(ctx-&gt;headers,</span>
+<span class="lineNum">     388 </span><span class="lineCov">         17 :                              ctx-&gt;linebuf.line, (split - ctx-&gt;linebuf.line),</span>
+<span class="lineNum">     389 </span>            :                              TRUE /* copy */,
+<span class="lineNum">     390 </span><span class="lineCov">         17 :                              split + 2,</span>
+<span class="lineNum">     391 </span><span class="lineCov">         17 :                              ctx-&gt;linebuf.used - (split - ctx-&gt;linebuf.line) - 2,</span>
+<span class="lineNum">     392 </span>            :                              TRUE /* copy */);
+<span class="lineNum">     393 </span>            : 
+<span class="lineNum">     394 </span><span class="lineCov">         17 :     return APR_SUCCESS;</span>
+<a name="395"><span class="lineNum">     395 </span><span class="lineCov">         32 : }</span></a>
+<span class="lineNum">     396 </span>            : 
+<span class="lineNum">     397 </span>            : static apr_status_t serf_incoming_rq_wait_for(serf_bucket_t *bucket,
+<span class="lineNum">     398 </span>            :                                               incoming_rq_status_t wait_for)
+<span class="lineNum">     399 </span>            : {
+<span class="lineNum">     400 </span><span class="lineCov">         28 :     incoming_request_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">     401 </span>            :     apr_status_t read_status, status;
+<span class="lineNum">     402 </span>            : 
+<span class="lineNum">     403 </span><span class="lineCov">         33 :     if (ctx-&gt;state == STATE_TRAILERS &amp;&amp; wait_for == STATE_BODY) {</span>
+<span class="lineNum">     404 </span>            :         /* We are done with the body, but not with the request.
+<span class="lineNum">     405 </span>            :            Can't return EOF yet */
+<span class="lineNum">     406 </span><span class="lineCov">          5 :         wait_for = STATE_DONE;</span>
+<span class="lineNum">     407 </span><span class="lineCov">          5 :     }</span>
+<span class="lineNum">     408 </span>            : 
+<span class="lineNum">     409 </span><span class="lineCov">        150 :     while (ctx-&gt;state &lt; wait_for) {</span>
+<span class="lineNum">     410 </span><span class="lineCov">         55 :         switch (ctx-&gt;state) {</span>
+<span class="lineNum">     411 </span>            :             case STATE_INIT:
+<span class="lineNum">     412 </span><span class="lineCov">         13 :                 read_status = serf_linebuf_fetch(&amp;ctx-&gt;linebuf, ctx-&gt;stream,</span>
+<span class="lineNum">     413 </span>            :                                                  SERF_NEWLINE_ANY);
+<span class="lineNum">     414 </span><span class="lineCov">         19 :                 if (SERF_BUCKET_READ_ERROR(read_status))</span>
+<span class="lineNum">     415 </span><span class="lineNoCov">          0 :                     return read_status;</span>
+<span class="lineNum">     416 </span>            : 
+<span class="lineNum">     417 </span><span class="lineCov">         13 :                 status = serf_incoming_rq_parse_rqline(bucket);</span>
+<span class="lineNum">     418 </span><span class="lineCov">         26 :                 if (status || read_status)</span>
+<span class="lineNum">     419 </span><span class="lineCov">          9 :                     return status ? status : read_status;</span>
+<span class="lineNum">     420 </span><span class="lineCov">         10 :                 break;</span>
+<span class="lineNum">     421 </span>            :             case STATE_HEADERS:
+<span class="lineNum">     422 </span>            :             case STATE_TRAILERS:
+<span class="lineNum">     423 </span><span class="lineCov">         32 :                 read_status = serf_linebuf_fetch(&amp;ctx-&gt;linebuf, ctx-&gt;stream,</span>
+<span class="lineNum">     424 </span>            :                                                  SERF_NEWLINE_ANY);
+<span class="lineNum">     425 </span><span class="lineCov">         42 :                 if (SERF_BUCKET_READ_ERROR(read_status))</span>
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :                     return read_status;</span>
+<span class="lineNum">     427 </span>            : 
+<span class="lineNum">     428 </span><span class="lineCov">         32 :                 status = serf_incoming_rq_parse_headerline(bucket);</span>
+<span class="lineNum">     429 </span><span class="lineCov">         64 :                 if (status || read_status)</span>
+<span class="lineNum">     430 </span><span class="lineCov">         15 :                     return status ? status : read_status;</span>
+<span class="lineNum">     431 </span><span class="lineCov">         27 :                 break;</span>
+<span class="lineNum">     432 </span>            :             case STATE_PREBODY:
+<span class="lineNum">     433 </span>            :                 /* TODO: Determine the body type.. Wrap bucket if necessary,
+<span class="lineNum">     434 </span>            :                          etc.*/
+<span class="lineNum">     435 </span>            : 
+<span class="lineNum">     436 </span>            :                 /* What kind of body do we expect */
+<span class="lineNum">     437 </span>            :                 {
+<span class="lineNum">     438 </span>            :                     const char *te;
+<span class="lineNum">     439 </span>            : 
+<span class="lineNum">     440 </span><span class="lineCov">         10 :                     ctx-&gt;body = ctx-&gt;stream;</span>
+<span class="lineNum">     441 </span><span class="lineCov">         10 :                     te = serf_bucket_headers_get(ctx-&gt;headers, &quot;Transfer-Encoding&quot;);</span>
+<span class="lineNum">     442 </span>            : 
+<span class="lineNum">     443 </span><span class="lineCov">         15 :                     if (te &amp;&amp; strcasecmp(te, &quot;chunked&quot;) == 0) {</span>
+<span class="lineNum">     444 </span><span class="lineCov">         10 :                         ctx-&gt;body = serf_bucket_dechunk_create(ctx-&gt;stream,</span>
+<span class="lineNum">     445 </span><span class="lineCov">          5 :                                                                bucket-&gt;allocator);</span>
+<span class="lineNum">     446 </span><span class="lineCov">          5 :                         ctx-&gt;expect_trailers = true;</span>
+<span class="lineNum">     447 </span><span class="lineCov">          5 :                     }</span>
+<span class="lineNum">     448 </span>            :                     else {
+<span class="lineNum">     449 </span>            :                         const char *cl;
+<span class="lineNum">     450 </span>            : 
+<span class="lineNum">     451 </span><span class="lineCov">          5 :                         cl = serf_bucket_headers_get(ctx-&gt;headers, &quot;Content-Length&quot;);</span>
+<span class="lineNum">     452 </span>            : 
+<span class="lineNum">     453 </span><span class="lineCov">          5 :                         if (cl) {</span>
+<span class="lineNum">     454 </span>            :                             apr_uint64_t length;
+<span class="lineNum">     455 </span><span class="lineNoCov">          0 :                             length = apr_strtoi64(cl, NULL, 10);</span>
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :                             if (errno == ERANGE) {</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :                                 return APR_FROM_OS_ERROR(ERANGE);</span>
+<span class="lineNum">     458 </span>            :                             }
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :                             ctx-&gt;body = serf_bucket_response_body_create(</span>
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :                                           ctx-&gt;body, length, bucket-&gt;allocator);</span>
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :                         }</span>
+<span class="lineNum">     462 </span>            :                     }
+<span class="lineNum">     463 </span><span class="lineCov">         10 :                     ctx-&gt;state++;</span>
+<span class="lineNum">     464 </span>            :                 }
+<span class="lineNum">     465 </span><span class="lineCov">         10 :                 break;</span>
+<span class="lineNum">     466 </span>            :             case STATE_DONE:
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     468 </span>            :             default:
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :                 return APR_EGENERAL; /* Should never happen */</span>
+<span class="lineNum">     470 </span>            :         }
+<span class="lineNum">     471 </span>            :     }
+<span class="lineNum">     472 </span>            : 
+<span class="lineNum">     473 </span><span class="lineCov">         20 :     return (ctx-&gt;state == STATE_DONE) ? APR_EOF : APR_SUCCESS;</span>
+<a name="474"><span class="lineNum">     474 </span><span class="lineCov">         28 : }</span></a>
+<span class="lineNum">     475 </span>            : 
+<span class="lineNum">     476 </span>            : static apr_status_t serf_incoming_rq_read(serf_bucket_t *bucket,
+<span class="lineNum">     477 </span>            :                                           apr_size_t requested,
+<span class="lineNum">     478 </span>            :                                           const char **data,
+<span class="lineNum">     479 </span>            :                                           apr_size_t *len)
+<span class="lineNum">     480 </span>            : {
+<span class="lineNum">     481 </span><span class="lineCov">         28 :     incoming_request_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">     482 </span>            :     apr_status_t status;
+<span class="lineNum">     483 </span>            : 
+<span class="lineNum">     484 </span><span class="lineCov">         28 :     status = serf_incoming_rq_wait_for(bucket, STATE_BODY);</span>
+<span class="lineNum">     485 </span><span class="lineCov">         43 :     if (status || !ctx-&gt;body) {</span>
+<span class="lineNum">     486 </span><span class="lineCov">         13 :         *len = 0;</span>
+<span class="lineNum">     487 </span><span class="lineCov">         39 :         return status ? status : APR_EOF;</span>
+<span class="lineNum">     488 </span>            :     }
+<span class="lineNum">     489 </span>            : 
+<span class="lineNum">     490 </span><span class="lineCov">         15 :     status = serf_bucket_read(ctx-&gt;body, requested, data, len);</span>
+<span class="lineNum">     491 </span><span class="lineCov">         25 :     if (APR_STATUS_IS_EOF(status) &amp;&amp; ctx-&gt;expect_trailers) {</span>
+<span class="lineNum">     492 </span><span class="lineCov">          5 :         ctx-&gt;state = STATE_TRAILERS;</span>
+<span class="lineNum">     493 </span><span class="lineCov">          5 :         status = APR_SUCCESS;</span>
+<span class="lineNum">     494 </span><span class="lineCov">          5 :     }</span>
+<span class="lineNum">     495 </span><span class="lineCov">         15 :     return status;</span>
+<a name="496"><span class="lineNum">     496 </span><span class="lineCov">         28 : }</span></a>
+<span class="lineNum">     497 </span>            : 
+<span class="lineNum">     498 </span>            : static apr_status_t serf_incoming_rq_readline(serf_bucket_t *bucket, int acceptable,
+<span class="lineNum">     499 </span>            :                                               int *found,
+<span class="lineNum">     500 </span>            :                                               const char **data, apr_size_t *len)
+<span class="lineNum">     501 </span>            : {
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :     incoming_request_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">     503 </span>            :     apr_status_t status;
+<span class="lineNum">     504 </span>            : 
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :     status = serf_incoming_rq_wait_for(bucket, STATE_BODY);</span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :     if (status || !ctx-&gt;body) {</span>
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :         *found = 0;</span>
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :         *len = 0;</span>
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :         return status ? status : APR_EOF;</span>
+<span class="lineNum">     510 </span>            :     }
+<span class="lineNum">     511 </span>            : 
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :     status = serf_bucket_readline(ctx-&gt;body, acceptable, found, data, len);</span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :     if (APR_STATUS_IS_EOF(status) &amp;&amp; ctx-&gt;expect_trailers) {</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :         ctx-&gt;state = STATE_TRAILERS;</span>
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :         status = APR_SUCCESS;</span>
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :     return status;</span>
+<a name="518"><span class="lineNum">     518 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     519 </span>            : 
+<span class="lineNum">     520 </span>            : static apr_status_t serf_incoming_rq_read_iovec(serf_bucket_t *bucket,
+<span class="lineNum">     521 </span>            :                                                 apr_size_t requested,
+<span class="lineNum">     522 </span>            :                                                 int vecs_size,
+<span class="lineNum">     523 </span>            :                                                 struct iovec *vecs,
+<span class="lineNum">     524 </span>            :                                                 int *vecs_used)
+<span class="lineNum">     525 </span>            : {
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :     incoming_request_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">     527 </span>            :     apr_status_t status;
+<span class="lineNum">     528 </span>            : 
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :     status = serf_incoming_rq_wait_for(bucket, STATE_BODY);</span>
+<span class="lineNum">     530 </span><span class="lineNoCov">          0 :     if (status || !ctx-&gt;body) {</span>
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :         *vecs_used = 0;</span>
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :         return status ? status : APR_EOF;</span>
+<span class="lineNum">     533 </span>            :     }
+<span class="lineNum">     534 </span>            : 
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :     status = serf_bucket_read_iovec(ctx-&gt;body, requested, vecs_size,</span>
+<span class="lineNum">     536 </span>            :                                     vecs, vecs_used);
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :     if (APR_STATUS_IS_EOF(status) &amp;&amp; ctx-&gt;expect_trailers) {</span>
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :         ctx-&gt;state = STATE_TRAILERS;</span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :         status = APR_SUCCESS;</span>
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :     return status;</span>
+<a name="542"><span class="lineNum">     542 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     543 </span>            : 
+<span class="lineNum">     544 </span>            : static apr_status_t serf_incoming_rq_peek(serf_bucket_t *bucket,
+<span class="lineNum">     545 </span>            :                                           const char **data,
+<span class="lineNum">     546 </span>            :                                           apr_size_t *len)
+<span class="lineNum">     547 </span>            : {
+<span class="lineNum">     548 </span><span class="lineNoCov">          0 :     incoming_request_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">     549 </span>            :     apr_status_t status;
+<span class="lineNum">     550 </span>            : 
+<span class="lineNum">     551 </span><span class="lineNoCov">          0 :     status = serf_incoming_rq_wait_for(bucket, STATE_BODY);</span>
+<span class="lineNum">     552 </span><span class="lineNoCov">          0 :     if (status || !ctx-&gt;body) {</span>
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :         *len = 0;</span>
+<span class="lineNum">     554 </span>            : 
+<span class="lineNum">     555 </span><span class="lineNoCov">          0 :         if (SERF_BUCKET_READ_ERROR(status))</span>
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :             return status;</span>
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :         else if (APR_STATUS_IS_EOF(status))</span>
+<span class="lineNum">     558 </span><span class="lineNoCov">          0 :             return SERF_ERROR_TRUNCATED_STREAM;</span>
+<span class="lineNum">     559 </span>            : 
+<span class="lineNum">     560 </span><span class="lineNoCov">          0 :         return status ? APR_SUCCESS : APR_EOF;</span>
+<span class="lineNum">     561 </span>            :     }
+<span class="lineNum">     562 </span>            : 
+<span class="lineNum">     563 </span><span class="lineNoCov">          0 :     status = serf_bucket_peek(ctx-&gt;body, data, len);</span>
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :     if (APR_STATUS_IS_EOF(status) &amp;&amp; ctx-&gt;expect_trailers) {</span>
+<span class="lineNum">     565 </span><span class="lineNoCov">          0 :         ctx-&gt;state = STATE_TRAILERS;</span>
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :         status = APR_SUCCESS;</span>
+<span class="lineNum">     567 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :     return status;</span>
+<a name="569"><span class="lineNum">     569 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     570 </span>            : 
+<span class="lineNum">     571 </span>            : static void serf_incoming_rq_destroy(serf_bucket_t *bucket)
+<span class="lineNum">     572 </span>            : {
+<span class="lineNum">     573 </span><span class="lineNoCov">          0 :     incoming_request_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">     574 </span>            : 
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :     if (ctx-&gt;method)</span>
+<span class="lineNum">     576 </span><span class="lineNoCov">          0 :         serf_bucket_mem_free(bucket-&gt;allocator, (void*)ctx-&gt;method);</span>
+<span class="lineNum">     577 </span><span class="lineNoCov">          0 :     if (ctx-&gt;path_raw)</span>
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :         serf_bucket_mem_free(bucket-&gt;allocator, (void*)ctx-&gt;path_raw);</span>
+<span class="lineNum">     579 </span><span class="lineNoCov">          0 :     if (ctx-&gt;headers)</span>
+<span class="lineNum">     580 </span><span class="lineNoCov">          0 :         serf_bucket_destroy(ctx-&gt;headers);</span>
+<span class="lineNum">     581 </span><span class="lineNoCov">          0 :     if (ctx-&gt;body)</span>
+<span class="lineNum">     582 </span><span class="lineNoCov">          0 :         serf_bucket_destroy(ctx-&gt;body);</span>
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :     else if (ctx-&gt;stream)</span>
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :       serf_bucket_destroy(ctx-&gt;stream);</span>
+<span class="lineNum">     585 </span>            : 
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :     serf_default_destroy_and_data(bucket);</span>
+<a name="587"><span class="lineNum">     587 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     588 </span>            : 
+<span class="lineNum">     589 </span>            : apr_status_t serf_bucket_incoming_request_read(
+<span class="lineNum">     590 </span>            :                   serf_bucket_t **headers,
+<span class="lineNum">     591 </span>            :                   const char **method,
+<span class="lineNum">     592 </span>            :                   const char **path,
+<span class="lineNum">     593 </span>            :                   int *http_version,
+<span class="lineNum">     594 </span>            :                   serf_bucket_t *bucket)
+<span class="lineNum">     595 </span>            : {
+<span class="lineNum">     596 </span><span class="lineNoCov">          0 :     incoming_request_context_t *ctx = bucket-&gt;data;</span>
+<span class="lineNum">     597 </span>            :     apr_status_t status;
+<span class="lineNum">     598 </span>            : 
+<span class="lineNum">     599 </span><span class="lineNoCov">          0 :     status = serf_incoming_rq_wait_for(bucket, STATE_BODY);</span>
+<span class="lineNum">     600 </span><span class="lineNoCov">          0 :     if (status) {</span>
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :         if (headers)</span>
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :             *headers = NULL;</span>
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 :         if (method)</span>
+<span class="lineNum">     604 </span><span class="lineNoCov">          0 :             *method = NULL;</span>
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :         if (path)</span>
+<span class="lineNum">     606 </span><span class="lineNoCov">          0 :             *path = NULL;</span>
+<span class="lineNum">     607 </span><span class="lineNoCov">          0 :         if (http_version)</span>
+<span class="lineNum">     608 </span><span class="lineNoCov">          0 :             *http_version = 0;</span>
+<span class="lineNum">     609 </span>            : 
+<span class="lineNum">     610 </span><span class="lineNoCov">          0 :         return status;</span>
+<span class="lineNum">     611 </span>            :     }
+<span class="lineNum">     612 </span>            : 
+<span class="lineNum">     613 </span><span class="lineNoCov">          0 :     if (headers)</span>
+<span class="lineNum">     614 </span><span class="lineNoCov">          0 :         *headers = ctx-&gt;headers;</span>
+<span class="lineNum">     615 </span><span class="lineNoCov">          0 :     if (method)</span>
+<span class="lineNum">     616 </span><span class="lineNoCov">          0 :         *method = ctx-&gt;method;</span>
+<span class="lineNum">     617 </span><span class="lineNoCov">          0 :     if (path)</span>
+<span class="lineNum">     618 </span><span class="lineNoCov">          0 :         *path = ctx-&gt;path_raw;</span>
+<span class="lineNum">     619 </span><span class="lineNoCov">          0 :     if (http_version)</span>
+<span class="lineNum">     620 </span><span class="lineNoCov">          0 :         *http_version = ctx-&gt;version;</span>
+<span class="lineNum">     621 </span>            : 
+<span class="lineNum">     622 </span><span class="lineNoCov">          0 :     return APR_SUCCESS;</span>
+<a name="623"><span class="lineNum">     623 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     624 </span>            : 
+<span class="lineNum">     625 </span>            : apr_status_t serf_bucket_incoming_request_wait_for_headers(
+<span class="lineNum">     626 </span>            :                   serf_bucket_t *bucket)
+<span class="lineNum">     627 </span>            : {
+<span class="lineNum">     628 </span><span class="lineNoCov">          0 :     return serf_incoming_rq_wait_for(bucket, STATE_BODY);</span>
+<span class="lineNum">     629 </span>            : }
+<span class="lineNum">     630 </span>            : 
+<span class="lineNum">     631 </span>            : 
+<span class="lineNum">     632 </span>            : const serf_bucket_type_t serf_bucket_type_incoming_request = {
+<span class="lineNum">     633 </span>            :     &quot;INCOMING-REQUEST&quot;,
+<span class="lineNum">     634 </span>            :     serf_incoming_rq_read,
+<span class="lineNum">     635 </span>            :     serf_incoming_rq_readline,
+<span class="lineNum">     636 </span>            :     serf_incoming_rq_read_iovec,
+<span class="lineNum">     637 </span>            :     serf_default_read_for_sendfile,
+<span class="lineNum">     638 </span>            :     serf_buckets_are_v2,
+<span class="lineNum">     639 </span>            :     serf_incoming_rq_peek,
+<span class="lineNum">     640 </span>            :     serf_incoming_rq_destroy,
+<span class="lineNum">     641 </span>            :     serf_default_read_bucket,
+<span class="lineNum">     642 </span>            :     serf_default_get_remaining,
+<span class="lineNum">     643 </span>            :     serf_default_ignore_config
+<span class="lineNum">     644 </span>            : };
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.12</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>
